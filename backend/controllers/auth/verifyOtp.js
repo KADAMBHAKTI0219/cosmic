@@ -1,0 +1,99 @@
+const User = require('../../models/auth/auth');
+const EmailVerification = require('../../models/auth/emailVerification');
+const jwt = require('jsonwebtoken');
+
+// Generate JWT Token
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRE
+  });
+};
+
+// @desc    Verify OTP and activate account
+// @route   POST /api/auth/verify-otp
+// @access  Public
+exports.verifyOtp = async (req, res) => {
+  try {
+    const { userId, otp } = req.body;
+
+    // Check if required fields are provided
+    if (!userId || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide userId and OTP'
+      });
+    }
+
+    // Find the verification record
+    const verification = await EmailVerification.findOne({ userId });
+    
+    // Check if verification record exists
+    if (!verification) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification record not found or expired. Please request a new OTP.'
+      });
+    }
+
+    // Check if OTP matches
+    if (verification.otp !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid OTP. Please try again.'
+      });
+    }
+
+    // Find and update user
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Update user verification status
+    user.isVerified = true;
+    await user.save();
+
+    // Delete verification record
+    await EmailVerification.findByIdAndDelete(verification._id);
+
+    // Generate token
+    const token = generateToken(user._id);
+
+    // Set cookie options
+    const options = {
+      expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000),
+      httpOnly: true
+    };
+
+    // Add secure flag in production
+    if (process.env.NODE_ENV === 'production') {
+      options.secure = true;
+    }
+
+    // Send response with cookie
+    res.status(200)
+      .cookie('token', token, options)
+      .json({
+        success: true,
+        message: 'Email verified successfully',
+        token,
+        user: {
+          id: user._id,
+          name: `${user.firstName} ${user.lastName}`,
+          email: user.email,
+          role: user.role
+        }
+      });
+  } catch (error) {
+    console.error('Verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};

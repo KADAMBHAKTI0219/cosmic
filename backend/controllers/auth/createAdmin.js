@@ -2,10 +2,12 @@ const User = require('../../models/auth/auth');
 const jwt = require('jsonwebtoken');
 
 // Generate JWT Token
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE
-  });
+const generateToken = (user) => {
+  return jwt.sign(
+    { _id: user._id.toString(), role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRE || '24h' }
+  );
 };
 
 // @desc    Create admin user directly
@@ -72,7 +74,7 @@ exports.createAdmin = async (req, res) => {
     });
 
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user);
 
     // Set cookie options
     const options = {

@@ -14,18 +14,36 @@ const generateToken = (id) => {
 // @access  Public
 exports.verifyOtp = async (req, res) => {
   try {
-    const { userId, otp } = req.body;
-
+    const { userId, email, otp } = req.body;
+    
     // Check if required fields are provided
-    if (!userId || !otp) {
+    if ((!userId && !email) || !otp) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide userId and OTP'
+        message: 'Please provide userId or email, and OTP'
       });
     }
+    
+    // Use email as userId if provided
+     const userIdentifier = email || userId;
 
-    // Find the verification record
-    const verification = await EmailVerification.findOne({ userId });
+     // Check if userIdentifier is an email
+     let verification;
+     let user;
+     
+     if (userIdentifier.includes('@')) {
+       // If userIdentifier is an email, find verification by email
+       verification = await EmailVerification.findOne({ email: userIdentifier });
+       
+       // Find user by email
+       user = await User.findOne({ email: userIdentifier });
+     } else {
+       // If userIdentifier is an ObjectId, find verification by userId
+       verification = await EmailVerification.findOne({ userId: userIdentifier });
+       
+       // Find user by id
+       user = await User.findById(userIdentifier);
+     }
     
     // Check if verification record exists
     if (!verification) {
@@ -43,8 +61,13 @@ exports.verifyOtp = async (req, res) => {
       });
     }
 
-    // Find and update user
-    const user = await User.findById(userId);
+    // Check if user exists
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
     
     if (!user) {
       return res.status(404).json({

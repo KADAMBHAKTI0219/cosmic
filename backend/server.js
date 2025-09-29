@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const path = require('path');
 const connectDB = require('./config/db');
 const { setupSecurity } = require('./middleware/security');
 
@@ -11,8 +12,11 @@ dotenv.config();
 // Connect to database
 connectDB();
 
-// Initialize app
+// Initialize main app
 const app = express();
+
+// Initialize uploads server
+const uploadsApp = express();
 
 // Middleware
 app.use(express.json({ limit: '10mb' }));
@@ -34,6 +38,8 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/reviews', require('./routes/review'));
 app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/offers', require('./routes/offers'));
+app.use('/api/emis', require('./routes/emi'));
 
 // Default route
 app.get('/', (req, res) => {
@@ -50,8 +56,22 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
+// Configure uploads server
+uploadsApp.use(cors());
+uploadsApp.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+uploadsApp.get('/', (req, res) => {
+  res.send('Uploads server is running...');
+});
+
+// Start main server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  console.log(`Main server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+});
+
+// Start uploads server
+const UPLOAD_PORT = process.env.UPLOAD_PORT || 3001;
+uploadsApp.listen(UPLOAD_PORT, () => {
+  console.log(`Uploads server running on port ${UPLOAD_PORT}`);
 });

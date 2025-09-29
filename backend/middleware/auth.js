@@ -26,8 +26,19 @@ exports.protect = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Get user from the token
-    req.user = await User.findById(decoded.id);
+    // Get user from the token - using decoded._id which is how we signed the token
+    const user = await User.findById(decoded._id);
+    
+    // Check if user exists
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found or not authenticated'
+      });
+    }
+    
+    // Set user in request
+    req.user = user;
     
     next();
   } catch (error) {
@@ -41,6 +52,15 @@ exports.protect = async (req, res, next) => {
 // Grant access to specific roles
 exports.authorize = (...roles) => {
   return (req, res, next) => {
+    // Check if req.user exists
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found or not authenticated'
+      });
+    }
+    
+    // Check if user has required role
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,

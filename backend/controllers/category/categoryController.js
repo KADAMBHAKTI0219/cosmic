@@ -1,18 +1,26 @@
 const Category = require('../../models/category/category');
 const Product = require('../../models/products/product');
+const path = require('path');
 
 // @desc    Create new category
 // @route   POST /api/categories
 // @access  Private/Admin
 exports.createCategory = async (req, res) => {
   try {
-    const { name, description, image } = req.body;
+    const { name, description } = req.body;
+    
+    // Get image file path if uploaded
+    let imagePath = null;
+    if (req.file) {
+      const uploadUrl = process.env.UPLOAD_URL || 'http://localhost:3001';
+      imagePath = `${uploadUrl}/uploads/categories/${req.file.filename}`;
+    }
 
     // Create category
     const category = await Category.create({
       name,
       description,
-      image
+      image: imagePath
     });
 
     res.status(201).json({

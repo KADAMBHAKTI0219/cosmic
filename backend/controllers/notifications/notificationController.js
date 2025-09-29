@@ -1,6 +1,8 @@
 const Notification = require('../../models/notification/notification');
 const ActivityLog = require('../../models/notification/activityLog');
 const ErrorLog = require('../../models/notification/errorLog');
+const User = require('../../models/auth/auth');
+const emailSender = require('../../utils/emailSender');
 
 // Create a new notification
 exports.createNotification = async (req, res) => {
@@ -20,6 +22,27 @@ exports.createNotification = async (req, res) => {
     
     // Here you would trigger real-time notification via Socket.io
     // io.to(recipient).emit('notification', notification);
+    
+    // If notification is created by admin, send email to all customers
+    if (req.user && req.user.role === 'admin') {
+      // Fetch all customers
+      const customers = await User.find({ role: 'customer', status: 'active' }, 'email firstName lastName');
+      
+      // Send email to all customers
+      for (const customer of customers) {
+        try {
+          await emailSender.sendNotificationEmail(
+            customer.email,
+            title,
+            message,
+            `${customer.firstName} ${customer.lastName}`
+          );
+        } catch (emailError) {
+          console.error(`Failed to send email to ${customer.email}:`, emailError);
+          // Continue with other emails even if one fails
+        }
+      }
+    }
     
     res.status(201).json({ success: true, data: notification });
   } catch (error) {

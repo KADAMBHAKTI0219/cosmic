@@ -11,8 +11,4 @@ router.post('/', orderController.placeOrder);
 router.get('/', orderController.getMyOrders);
 router.get('/:id', orderController.getOrderById);
 
-// Admin routes
-router.get('/admin/all', orderController.getAllOrders);
-router.put('/:id', orderController.updateOrderStatus);
-
 module.exports = router;

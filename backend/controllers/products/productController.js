@@ -1,20 +1,28 @@
 const Product = require('../../models/products/product');
 const Category = require('../../models/category/category');
+const path = require('path');
 
 // @desc    Create new product
 // @route   POST /api/products
 // @access  Private/Admin
 exports.createProduct = async (req, res) => {
   try {
-    const { name, description, price, stock, categoryId, images } = req.body;
+    const { name, description, price, stock, categoryId } = req.body;
 
     // Check if category exists
     const category = await Category.findById(categoryId);
     if (!category) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid category'
+        message: 'Category not found'
       });
+    }
+    
+    // Process uploaded images
+    let productImages = [];
+    if (req.files && req.files.length > 0) {
+      const uploadUrl = process.env.UPLOAD_URL || 'http://localhost:3001';
+      productImages = req.files.map(file => `${uploadUrl}/uploads/products/${file.filename}`);
     }
 
     // Create product
@@ -24,7 +32,7 @@ exports.createProduct = async (req, res) => {
       price,
       stock,
       categoryId,
-      images,
+      images: productImages,
       isOutOfStock: stock <= 0
     });
 

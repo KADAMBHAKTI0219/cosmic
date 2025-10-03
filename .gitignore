@@ -1,3 +1,5 @@
 backend/npm
-backend/next
+
 backend/node-modules
+frontend/npm
+frontend/node-modules

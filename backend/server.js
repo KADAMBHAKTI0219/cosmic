@@ -22,7 +22,7 @@ const uploadsApp = express();
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: [process.env.CLIENT_URL || 'http://localhost:3000', 'http://localhost:5174'],
   credentials: true
 }));
 
@@ -40,6 +40,10 @@ app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/offers', require('./routes/offers'));
 app.use('/api/emis', require('./routes/emi'));
+app.use('/api/newsletter', require('./routes/newsletter'));
+app.use('/api/coupons', require('./routes/coupon'));
+app.use('/api/inventory', require('./routes/inventory'));
+app.use('/api/reports', require('./routes/reports'));
 
 // Default route
 app.get('/', (req, res) => {
@@ -57,7 +61,10 @@ app.use((err, req, res, next) => {
 });
 
 // Configure uploads server
-uploadsApp.use(cors());
+uploadsApp.use(cors({
+  origin: [process.env.CLIENT_URL || 'http://localhost:3000', 'http://localhost:5174'],
+  credentials: true
+}));
 uploadsApp.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 uploadsApp.get('/', (req, res) => {

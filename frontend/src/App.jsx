@@ -1,0 +1,61 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Header from './layouts/header';
+import Footer from './layouts/footer';
+import Navbar from './layouts/navbar';
+
+import Home from './pages/home';
+import Register from './pages/auth/register';
+import Products from './components/products/products';
+import ProductDetails from './components/products/productdetails';
+
+// Admin Panel Components
+import AdminRoutes from './components/admin-panel/AdminRoutes';
+
+function App() {
+  return (
+    <Router>
+      <div className="flex flex-col min-h-screen">
+        <Routes>
+          {/* Admin Routes */}
+          <Route path="/admin/*" element={<AdminRoutes />} />
+          
+          {/* Public Routes */}
+          <Route path="*" element={
+            <>
+              <Header />
+              <Navbar/>
+              <main className="flex-grow">
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/auth/register" element={<Register />} />
+                  
+                  {/* Category Routes */}
+                  <Route path="/solar-module" element={<Products />} />
+                  <Route path="/solar-module/:subcategory" element={<Products />} />
+                  <Route path="/solar-panel" element={<Products />} />
+                  <Route path="/solar-panel/:subcategory" element={<Products />} />
+                  <Route path="/solar-inverter" element={<Products />} />
+                  <Route path="/solar-inverter/:subcategory" element={<Products />} />
+                  <Route path="/solar-battery" element={<Products />} />
+                  <Route path="/solar-battery/:subcategory" element={<Products />} />
+                  <Route path="/solar-accessories" element={<Products />} />
+                  <Route path="/solar-accessories/:subcategory" element={<Products />} />
+                  
+                  {/* Generic product category route */}
+                  <Route path="/category/:category" element={<Products />} />
+                  <Route path="/category/:category/:subcategory" element={<Products />} />
+                  
+                  {/* Product Details Route */}
+                  <Route path="/product/:id" element={<ProductDetails />} />
+                </Routes>
+              </main>
+              <Footer />
+            </>
+          } />
+        </Routes>
+      </div>
+    </Router>
+  );
+}
+
+export default App;

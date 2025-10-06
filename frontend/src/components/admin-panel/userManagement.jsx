@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { FaEdit, FaTrash, FaSearch, FaUserPlus, FaTimes, FaSave, FaSpinner, FaFilter, FaUserShield, FaUser, FaUserCheck, FaUserTimes } from 'react-icons/fa';
-import { getAllUsers, updateUser, deleteUser, getUserById, createAdmin, getUserStats } from '../../services/api';
+import { userManagementApi } from '../../services/adminApi';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
+import { useAdminAuth } from '../../context/AdminAuthContext';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -36,6 +38,8 @@ const UserManagement = () => {
     newUsersThisMonth: 0
   });
   
+  const { adminToken } = useAdminAuth();
+  
   // Load users from API with pagination and filters
   useEffect(() => {
     const fetchUsers = async () => {
@@ -50,7 +54,7 @@ const UserManagement = () => {
           sortOrder: filters.sortOrder
         };
         
-        const response = await getAllUsers(params);
+        const response = await userManagementApi.getAllUsers(params);
         setUsers(response.data.data);
         setPagination({
           page: response.data.pagination.page,
@@ -67,16 +71,33 @@ const UserManagement = () => {
       }
     };
     
-    fetchUsers();
-  }, [pagination.page, pagination.limit, searchTerm, filters]);
+    if (adminToken) {
+      fetchUsers();
+    }
+  }, [pagination.page, pagination.limit, searchTerm, filters, adminToken]);
   
   // Load user statistics
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await getUserStats();
-        if (response.data && response.data.data) {
-          setStats(response.data.data);
+        // Only fetch stats if admin is authenticated
+        if (adminToken) {
+          const response = await userManagementApi.getUserStats();
+          // If this fails, try the alternative endpoint
+          if (!response.data || !response.data.data) {
+            const altResponse = await axios.get('http://localhost:5000/api/admin/users/stats', {
+              headers: {
+                Authorization: `Bearer ${adminToken}`
+              }
+            });
+            if (altResponse.data && altResponse.data.data) {
+              setStats(altResponse.data.data);
+              return;
+            }
+          }
+          if (response.data && response.data.data) {
+            setStats(response.data.data);
+          }
         }
       } catch (err) {
         console.error('Error fetching user stats:', err);
@@ -84,8 +105,10 @@ const UserManagement = () => {
       }
     };
     
-    fetchStats();
-  }, []);
+    if (adminToken) {
+      fetchStats();
+    }
+  }, [adminToken]);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -172,7 +195,8 @@ const UserManagement = () => {
 
   const handleAddUser = async () => {
     try {
-      await createAdmin(newUser);
+      // Use userManagementApi instead of undefined createAdmin
+      await userManagementApi.updateUser(newUser._id || 'new', newUser);
       
       // Refresh user list
       const params = {
@@ -184,7 +208,16 @@ const UserManagement = () => {
         sortOrder: filters.sortOrder
       };
       
-      const response = await getAllUsers(params);
+      const response = await userManagementApi.getAllUsers(
+        pagination.page,
+        pagination.limit,
+        {
+          search: searchTerm,
+          status: filters.status,
+          sortBy: filters.sortBy,
+          sortOrder: filters.sortOrder
+        }
+      );
       setUsers(response.data.data);
       
       toast.success('User added successfully');

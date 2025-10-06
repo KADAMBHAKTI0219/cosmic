@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { login } from '../../services/api';
+import { authApi } from '../../services/api';
 
 const Login = () => {
   const [credentials, setCredentials] = useState({
@@ -44,7 +44,7 @@ const Login = () => {
     
     try {
       setLoading(true);
-      const response = await login(credentials);
+      const response = await authApi.login(credentials);
       
       // Store user data and token in localStorage
       localStorage.setItem('token', response.data.token);
@@ -78,7 +78,7 @@ const Login = () => {
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
-            <Link to="/auth/register" className="font-medium text-[#92c51b] hover:text-[#83b118]">
+            <Link to="/auth/register" className="font-medium text-main hover:text-main-dark">
               Create New Account
             </Link>
           </p>
@@ -95,7 +95,7 @@ const Login = () => {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-[#92c51b] focus:z-10 sm:text-sm"
+                className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-main focus:border-main focus:z-10 sm:text-sm"
                 placeholder="Enter your email address"
                 value={credentials.email}
                 onChange={handleChange}
@@ -111,7 +111,7 @@ const Login = () => {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-[#92c51b] focus:z-10 sm:text-sm"
+                className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-main focus:border-main focus:z-10 sm:text-sm"
                 placeholder="Enter your password"
                 value={credentials.password}
                 onChange={handleChange}
@@ -125,7 +125,7 @@ const Login = () => {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-[#92c51b] focus:ring-[#92c51b] border-gray-300 rounded"
+                className="h-4 w-4 text-main focus:ring-main border-gray-300 rounded"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
                 Remember Me
@@ -133,7 +133,7 @@ const Login = () => {
             </div>
 
             <div className="text-sm">
-              <Link to="/auth/forgot-password" className="font-medium text-[#92c51b] hover:text-[#83b118]">
+              <Link to="/auth/forgot-password" className="font-medium text-main hover:text-main-dark">
                 Forgot Password?
               </Link>
             </div>
@@ -143,7 +143,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#92c51b] hover:bg-[#83b118] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#92c51b] transition-colors duration-200"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-main hover:bg-main-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-main transition-colors duration-200"
             >
               {loading ? (
                 <span className="flex items-center">

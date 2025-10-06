@@ -8,42 +8,42 @@ const WhySwitchingToSolar = () => {
       title: 'Reduced Carbon Footprint',
       description: 'By harnessing solar energy, you significantly lower your greenhouse gas emissions, contributing to a cleaner and more sustainable environment.',
       icon: 'atom',
-      color: 'bg-green-800',
+      color: 'bg-main-dark',
     },
     {
       id: 2,
       title: 'Reduced Electricity Bill',
       description: 'Generating your own power through solar reduces reliance on the grid, leading to substantial savings on monthly electricity expenses.',
       icon: 'lightning',
-      color: 'bg-green-800',
+      color: 'bg-main-dark',
     },
     {
       id: 3,
       title: 'Low Maintenance',
-      description: 'Waaree\'s solar systems are built for durability and require minimal maintenance, ensuring long term, hassle-free performance.',
+      description: 'Cosmic PowerTech\'s solar systems are built for durability and require minimal maintenance, ensuring long term, hassle-free performance.',
       icon: 'gear',
-      color: 'bg-green-800',
+      color: 'bg-main-dark',
     },
     {
       id: 4,
       title: 'Easy Installation',
-      description: 'Installing solar with Waaree is a simple and well-managed process. Our skilled team takes care of everything, delivering quick and reliable setup with added support throughout.',
+      description: 'Installing solar with Cosmic PowerTech is a simple and well-managed process. Our skilled team takes care of everything, delivering quick and reliable setup with added support throughout.',
       icon: 'wrench',
-      color: 'bg-green-800',
+      color: 'bg-main-dark',
     },
     {
       id: 5,
-      title: 'Easy Financing with Waaree',
-      description: 'Waaree\'s strong reputation ensures you get the advantage of easy financing solutions for your solar energy system.',
+      title: 'Easy Financing with Cosmic PowerTech',
+      description: 'Cosmic PowerTech\'s strong reputation ensures you get the advantage of easy financing solutions for your solar energy system.',
       icon: 'money',
-      color: 'bg-green-800',
+      color: 'bg-main-dark',
     },
     {
       id: 6,
       title: 'Clean Energy',
       description: 'As a reliable and clean energy source, solar power plays a vital role in advancing global sustainability and energy independence.',
       icon: 'sun',
-      color: 'bg-green-800',
+      color: 'bg-main-dark',
     },
   ];
 
@@ -52,12 +52,12 @@ const WhySwitchingToSolar = () => {
       <div className="max-w-7xl mx-auto">
         {/* Heading */}
         <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-center mb-2 sm:mb-3 md:mb-4">
-          Why Switching to Solar with Waaree is a Smart Move
+          Why Switching to Solar with Cosmic PowerTech is a Smart Move
         </h2>
         
         {/* Subheading */}
         <p className="text-center text-sm sm:text-base md:text-lg mb-6 sm:mb-8 md:mb-10 lg:mb-12 max-w-4xl mx-auto px-2">
-          Switching to solar means getting smart with your energy — and your wallet. While bills go up, your solar gear soaks up free sunshine, <span className="text-green-600 font-medium">saving you money</span> nonstop. Plus, <span className="text-green-600 font-medium">saving the planet</span>? That's a win-win.
+          Switching to solar means getting smart with your energy — and your wallet. While bills go up, your solar gear soaks up free sunshine, <span className="text-main font-medium">saving you money</span> nonstop. Plus, <span className="text-main font-medium">saving the planet</span>? That's a win-win.
         </p>
         
         {/* Benefits Grid */}

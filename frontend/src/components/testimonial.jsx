@@ -121,7 +121,7 @@ const Testimonial = () => {
               <div 
                 className={`p-6 rounded-lg h-full flex flex-col ${
                   testimonial.id === 2 
-                    ? 'bg-green-700 text-white' 
+                    ? 'bg-main text-white' 
                     : 'bg-gray-100 text-gray-800'
                 }`}
                 style={{ minHeight: '280px' }}

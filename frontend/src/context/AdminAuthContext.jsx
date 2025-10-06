@@ -15,23 +15,25 @@ export const AdminAuthProvider = ({ children }) => {
       
       if (token) {
         try {
-          // Set default auth header for all requests
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          // Create API instance with token
+          const API = axios.create({
+            baseURL: 'http://localhost:5000/api',
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
           
           // Verify token by fetching admin profile
-          const response = await axios.get('/api/auth/me');
+          const response = await API.get('/admin/user-stats');
           
-          if (response.data.success && response.data.data.role === 'admin') {
-            setAdmin(response.data.data);
-          } else {
-            // If not admin, clear token
-            localStorage.removeItem('adminToken');
-            delete axios.defaults.headers.common['Authorization'];
-          }
+          // If successful response, user is authenticated as admin
+          setAdmin({
+            role: 'admin',
+            token: token
+          });
         } catch (err) {
           console.error('Admin auth error:', err);
           localStorage.removeItem('adminToken');
-          delete axios.defaults.headers.common['Authorization'];
         }
       }
       
@@ -47,7 +49,7 @@ export const AdminAuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const response = await axios.post('/api/auth/login', { email, password });
+      const response = await axios.post('http://localhost:5000/api/auth/login', { email, password });
       
       if (response.data.success && response.data.data.role === 'admin') {
         localStorage.setItem('adminToken', response.data.token);

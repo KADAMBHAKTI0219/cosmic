@@ -32,7 +32,7 @@ const ProductCard = ({ product }) => {
           </span>
         )}
         {discountPercentage > 0 && (
-          <span className="bg-green-600 text-white text-xs font-bold px-2 py-1 ml-1">
+          <span className="bg-main text-white text-xs font-bold px-2 py-1 ml-1">
             {discountPercentage}% Off
           </span>
         )}

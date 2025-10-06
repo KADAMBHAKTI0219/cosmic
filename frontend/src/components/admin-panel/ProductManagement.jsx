@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FaSearch, FaEdit, FaTrash, FaPlus, FaTimes, FaSave, FaSpinner } from 'react-icons/fa';
-import { getAllProducts, createProduct, updateProduct, deleteProduct, getAllCategories } from '../../services/api';
+import { FaSearch, FaEdit, FaTrash, FaPlus, FaTimes, FaSave, FaSpinner, FaEye } from 'react-icons/fa';
+import { productManagementApi, categoryManagementApi } from '../../services/adminApi';
 import { toast } from 'react-toastify';
 
 const ProductManagement = () => {
@@ -12,21 +12,28 @@ const ProductManagement = () => {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [newProduct, setNewProduct] = useState({ 
     name: '', 
     category: 'Electronics', 
+    description: '',
     price: '', 
     stock: '', 
-    status: 'Active' 
+    status: 'Active',
+    images: []
   });
   const [editProduct, setEditProduct] = useState({
     id: null,
     name: '', 
     category: '', 
+    description: '',
     price: '', 
     stock: '', 
-    status: '' 
+    status: '',
+    images: []
   });
+  const [viewProduct, setViewProduct] = useState(null);
+  const [deleteProduct, setDeleteProduct] = useState(null);
 
   const [categories, setCategories] = useState(['Electronics', 'Fashion', 'Footwear', 'Home Appliances', 'Books', 'Sports']);
 
@@ -36,8 +43,8 @@ const ProductManagement = () => {
       try {
         setLoading(true);
         const [productsResponse, categoriesResponse] = await Promise.all([
-          getAllProducts(),
-          getAllCategories()
+          productManagementApi.getAllProducts(),
+          categoryManagementApi.getAllCategories()
         ]);
         
         setProducts(productsResponse.data.data || productsResponse.data);
@@ -84,11 +91,28 @@ const ProductManagement = () => {
 
   const handleAddProduct = async () => {
     try {
-      await createProduct(newProduct);
+      // नया प्रोडक्ट बनाने के लिए सही API कॉल
+      const formData = new FormData();
+      
+      // Append text fields
+      Object.keys(newProduct).forEach(key => {
+        if (key !== 'images') {
+          formData.append(key, newProduct[key]);
+        }
+      });
+      
+      // Append images if exists
+      if (newProduct.images && newProduct.images.length > 0) {
+        for (let i = 0; i < newProduct.images.length; i++) {
+          formData.append('images', newProduct.images[i]);
+        }
+      }
+      
+      await productManagementApi.createProduct(formData);
       
       // API से प्रोडक्ट्स को फिर से लोड करना
-      const response = await getAllProducts();
-      setProducts(response.data);
+      const response = await productManagementApi.getAllProducts();
+      setProducts(response.data.data || response.data);
       
       toast.success('Product added successfully');
       setNewProduct({ name: '', category: 'Electronics', price: '', stock: '', status: 'Active' });
@@ -97,6 +121,11 @@ const ProductManagement = () => {
       toast.error('Failed to add product');
       console.error('Error adding product:', err);
     }
+  };
+
+  const handleViewClick = (product) => {
+    setViewProduct(product);
+    setShowViewModal(true);
   };
 
   const handleEditClick = (product) => {
@@ -109,11 +138,27 @@ const ProductManagement = () => {
 
   const handleEditProduct = async () => {
     try {
-      await updateProduct(editProduct._id, editProduct);
+      const formData = new FormData();
+      
+      // Append text fields
+      Object.keys(editProduct).forEach(key => {
+        if (key !== 'images' && key !== '_id' && key !== 'id') {
+          formData.append(key, editProduct[key]);
+        }
+      });
+      
+      // Append images if exists
+      if (editProduct.images && editProduct.images.length > 0) {
+        for (let i = 0; i < editProduct.images.length; i++) {
+          formData.append('images', editProduct.images[i]);
+        }
+      }
+      
+      await productManagementApi.updateProduct(editProduct._id || editProduct.id, formData);
       
       // API से प्रोडक्ट्स को फिर से लोड करना
-      const response = await getAllProducts();
-      setProducts(response.data);
+      const response = await productManagementApi.getAllProducts();
+      setProducts(response.data.data || response.data);
       
       toast.success('Product updated successfully');
       setShowEditModal(false);
@@ -126,11 +171,11 @@ const ProductManagement = () => {
   const handleDeleteProduct = async (id) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        await deleteProduct(id);
+        await productManagementApi.deleteProduct(id);
         
         // API से प्रोडक्ट्स को फिर से लोड करना
-        const response = await getAllProducts();
-        setProducts(response.data);
+        const response = await productManagementApi.getAllProducts();
+        setProducts(response.data.data || response.data);
         
         toast.success('Product deleted successfully');
       } catch (err) {
@@ -209,6 +254,12 @@ const ProductManagement = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <button 
+                    className="text-blue-600 hover:text-blue-900 mr-3"
+                    onClick={() => handleViewClick(product)}
+                  >
+                    <FaEye />
+                  </button>
+                  <button 
                     className="text-indigo-600 hover:text-indigo-900 mr-3"
                     onClick={() => handleEditClick(product)}
                   >
@@ -216,7 +267,7 @@ const ProductManagement = () => {
                   </button>
                   <button 
                     className="text-red-600 hover:text-red-900"
-                    onClick={() => handleDeleteProduct(product.id)}
+                    onClick={() => handleDeleteProduct(product._id || product.id)}
                   >
                     <FaTrash />
                   </button>
@@ -230,7 +281,7 @@ const ProductManagement = () => {
       {/* Add Product Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Add New Product</h2>
               <button 
@@ -256,10 +307,20 @@ const ProductManagement = () => {
                 value={newProduct.category}
                 onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
               >
+                <option value="">Select Category</option>
                 {categories.map((category, index) => (
                   <option key={index} value={category}>{category}</option>
                 ))}
               </select>
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">Description</label>
+              <textarea
+                className="border rounded-md w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
+                value={newProduct.description}
+                onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
+                rows="3"
+              />
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">Price (₹)</label>
@@ -277,6 +338,15 @@ const ProductManagement = () => {
                 className="border rounded-md w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
                 value={newProduct.stock}
                 onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">Images</label>
+              <input
+                type="file"
+                multiple
+                className="border rounded-md w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
+                onChange={(e) => setNewProduct({...newProduct, images: e.target.files})}
               />
             </div>
             <div className="mb-4">
@@ -343,6 +413,15 @@ const ProductManagement = () => {
               </select>
             </div>
             <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">Description</label>
+              <textarea
+                className="border rounded-md w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
+                value={editProduct.description}
+                onChange={(e) => setEditProduct({...editProduct, description: e.target.value})}
+                rows="3"
+              />
+            </div>
+            <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">Price (₹)</label>
               <input
                 type="text"
@@ -358,6 +437,15 @@ const ProductManagement = () => {
                 className="border rounded-md w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
                 value={editProduct.stock}
                 onChange={(e) => setEditProduct({...editProduct, stock: e.target.value})}
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">Images</label>
+              <input
+                type="file"
+                multiple
+                className="border rounded-md w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
+                onChange={(e) => setEditProduct({...editProduct, images: e.target.files})}
               />
             </div>
             <div className="mb-4">
@@ -383,6 +471,90 @@ const ProductManagement = () => {
                 onClick={handleEditProduct}
               >
                 <FaSave className="mr-2" /> Update Product
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Product Modal */}
+      {showViewModal && viewProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Product Details</h2>
+              <button 
+                onClick={() => setShowViewModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            
+            {viewProduct.images && viewProduct.images.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-gray-700 text-sm font-bold mb-2">Images</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {Array.isArray(viewProduct.images) ? (
+                    viewProduct.images.map((image, index) => (
+                      <img 
+                        key={index} 
+                        src={typeof image === 'string' ? image : URL.createObjectURL(image)} 
+                        alt={`Product ${index}`}
+                        className="w-full h-32 object-cover rounded"
+                      />
+                    ))
+                  ) : (
+                    <p>No images available</p>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <div className="mb-4">
+              <h3 className="text-gray-700 text-sm font-bold mb-2">Product Name</h3>
+              <p className="text-gray-600">{viewProduct.name}</p>
+            </div>
+            
+            <div className="mb-4">
+              <h3 className="text-gray-700 text-sm font-bold mb-2">Category</h3>
+              <p className="text-gray-600">
+                {viewProduct.category && typeof viewProduct.category === 'object' 
+                  ? viewProduct.category.name 
+                  : viewProduct.category}
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <h3 className="text-gray-700 text-sm font-bold mb-2">Description</h3>
+              <p className="text-gray-600">{viewProduct.description || 'No description available'}</p>
+            </div>
+            
+            <div className="mb-4">
+              <h3 className="text-gray-700 text-sm font-bold mb-2">Price</h3>
+              <p className="text-gray-600">₹{viewProduct.price}</p>
+            </div>
+            
+            <div className="mb-4">
+              <h3 className="text-gray-700 text-sm font-bold mb-2">Stock</h3>
+              <p className="text-gray-600">{viewProduct.stock}</p>
+            </div>
+            
+            <div className="mb-4">
+              <h3 className="text-gray-700 text-sm font-bold mb-2">Status</h3>
+              <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                viewProduct.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              }`}>
+                {viewProduct.status}
+              </span>
+            </div>
+            
+            <div className="flex justify-end">
+              <button
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md"
+                onClick={() => setShowViewModal(false)}
+              >
+                Close
               </button>
             </div>
           </div>

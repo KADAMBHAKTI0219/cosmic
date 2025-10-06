@@ -56,7 +56,7 @@ const Blogs = () => {
               </div>
               
               <div className="p-4">
-                <Link to={blog.link} className="text-lg font-semibold text-gray-800 hover:text-green-600 line-clamp-2 mb-2">
+                <Link to={blog.link} className="text-lg font-semibold text-gray-800 hover:text-main line-clamp-2 mb-2">
                   {blog.title}
                 </Link>
                 <div className="flex items-center text-sm text-gray-500 mt-2">
@@ -72,7 +72,7 @@ const Blogs = () => {
         <div className="flex justify-center mt-8">
           <Link 
             to="/blogs" 
-            className="px-6 py-2 border border-green-600 text-green-600 rounded-md hover:bg-green-600 hover:text-white transition-colors duration-300"
+            className="px-6 py-2 border border-main text-main rounded-md hover:bg-main hover:text-white transition-colors duration-300"
           >
             Read More
           </Link>

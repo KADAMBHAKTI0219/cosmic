@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { resetPassword } from '../../services/api';
+import { authApi } from '../../services/api';
 
 const ResetPassword = () => {
   const [passwords, setPasswords] = useState({
@@ -43,11 +43,7 @@ const ResetPassword = () => {
     
     try {
       setLoading(true);
-      await resetPassword({
-        email: location.state.email,
-        otp: location.state.otp,
-        newPassword: passwords.password,
-      });
+      await authApi.resetPassword(location.state.otp, passwords.password);
       
       toast.success('Password reset successful');
       navigate('/auth/login');

@@ -8,49 +8,49 @@ const SolarConsiderations = () => {
       title: 'Rooftop Space Availability',
       description: 'Ensure you have sufficient, shadow-free space for solar panel installation. A 1kW system typically requires 80-100 sq. ft. of usable rooftop space.',
       icon: 'home',
-      color: 'bg-green-800',
+      color: 'bg-main-dark',
     },
     {
       id: 2,
       title: 'Sunlight Exposure',
       description: 'Your rooftop should get at least 4-6 hours of direct sunlight daily for optimal efficiency. Avoid obstructions like trees, water tanks, or high-rise buildings.',
       icon: 'sun',
-      color: 'bg-green-800',
+      color: 'bg-main-dark',
     },
     {
       id: 3,
       title: 'Load Assessment',
       description: 'Review your electricity bills to understand your average monthly consumption. Helps in determining the correct solar system capacity (in kW).',
       icon: 'bolt',
-      color: 'bg-green-800',
+      color: 'bg-main-dark',
     },
     {
       id: 4,
       title: 'Structural Strength',
       description: 'Roof should be strong enough to bear the weight of solar panels and mounting structures. Most quality-approved RCC rooftops are ideal.',
       icon: 'building',
-      color: 'bg-green-800',
+      color: 'bg-main-dark',
     },
     {
       id: 5,
       title: 'Grid Connection & Net Metering',
       description: 'Check with your local DISCOM (distribution company) for grid connectivity rules. Apply for net metering to track energy usage and excess power sent to the grid.',
       icon: 'plug',
-      color: 'bg-green-800',
+      color: 'bg-main-dark',
     },
     {
       id: 6,
       title: 'Budget & Financing',
       description: 'Solar systems are a long-term investment. Assess costs and available subsidies. Explore government schemes, loans, or EMI options to make it affordable.',
       icon: 'money',
-      color: 'bg-green-800',
+      color: 'bg-main-dark',
     },
     {
       id: 7,
       title: 'Inverter & Battery Selection (if applicable)',
       description: 'Choose the right inverter based on system size and type (on-grid, off-grid, hybrid). Batteries are required for off-grid systems or backup needs.',
       icon: 'battery',
-      color: 'bg-green-800',
+      color: 'bg-main-dark',
     }
   ];
 
@@ -59,12 +59,12 @@ const SolarConsiderations = () => {
       <div className="max-w-7xl mx-auto">
         {/* Heading */}
         <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-center mb-2 sm:mb-3 md:mb-4">
-          Key Solar Considerations
+          Key Solar Considerations by Cosmic PowerTech
         </h2>
         
         {/* Subheading */}
         <p className="text-center text-sm sm:text-base md:text-lg mb-6 sm:mb-8 md:mb-10 lg:mb-12 max-w-4xl mx-auto px-2">
-          Before installing solar panels, consider these important factors to ensure you get the <span className="text-green-600 font-medium">maximum benefits</span> from your solar investment.
+          Before installing solar panels, consider these important factors to ensure you get the <span className="text-main font-medium">maximum benefits</span> from your solar investment.
         </p>
         
         {/* Considerations Grid */}
@@ -144,8 +144,8 @@ const SolarConsiderations = () => {
         
         {/* CTA Button */}
         <div className="text-center mt-10">
-          <button className="bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-8 rounded-lg inline-flex items-center">
-            <span>Get a Quote</span>
+          <button className="bg-main hover:bg-main-dark text-white font-bold py-3 px-8 rounded-lg inline-flex items-center">
+            <span>Get a Quote from Cosmic PowerTech</span>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>

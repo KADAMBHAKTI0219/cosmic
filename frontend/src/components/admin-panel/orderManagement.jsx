@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaSearch, FaEye, FaEdit, FaTrash, FaTimes, FaSave, FaSpinner } from 'react-icons/fa';
-import { getAllOrders, getOrderById, updateOrderStatus } from '../../services/api';
+import { orderManagementApi } from '../../services/adminApi';
 import { toast } from 'react-toastify';
 
 const OrderManagement = () => {
@@ -13,8 +13,11 @@ const OrderManagement = () => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const response = await getAllOrders();
-        setOrders(response.data);
+        const response = await orderManagementApi.getAllOrders();
+        // Check if response.data is an array, if not, try to extract the array from response.data
+        const ordersData = Array.isArray(response.data) ? response.data : 
+                          (response.data.data || response.data.orders || []);
+        setOrders(Array.isArray(ordersData) ? ordersData : []);
         setError(null);
       } catch (err) {
         setError('Failed to load orders. Please try again.');
@@ -68,11 +71,13 @@ const OrderManagement = () => {
 
   const handleUpdateStatus = async (id, newStatus) => {
     try {
-      await updateOrderStatus(id, newStatus);
+      await orderManagementApi.updateOrderStatus(id, newStatus);
       
       // API से ऑर्डर्स को फिर से लोड करना
-      const response = await getAllOrders();
-      setOrders(response.data);
+      const response = await orderManagementApi.getAllOrders();
+      const ordersData = Array.isArray(response.data) ? response.data : 
+                        (response.data.data || response.data.orders || []);
+      setOrders(Array.isArray(ordersData) ? ordersData : []);
       
       toast.success('Order status updated successfully');
       setShowDetailsModal(false);

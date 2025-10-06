@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { FaUsers, FaShoppingCart, FaBoxOpen, FaChartLine, FaDollarSign, FaSpinner } from 'react-icons/fa';
+import { FaUsers, FaShoppingCart, FaBoxOpen, FaChartLine, FaDollarSign, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Line, Bar, Pie } from 'react-chartjs-2';
-import { getUserStats, getProductStats, getOrderStats } from '../../services/api';
+import { dashboardApi } from '../../services/adminApi';
+import { useAdminAuth } from '../../context/AdminAuthContext';
 
 // Chart.js रजिस्ट्रेशन
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement);
@@ -10,9 +11,8 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userStats, setUserStats] = useState(null);
-  const [productStats, setProductStats] = useState(null);
-  const [orderStats, setOrderStats] = useState(null);
+  const [dashboardStats, setDashboardStats] = useState(null);
+  const { adminToken } = useAdminAuth();
   
   // API से स्टैट्स लोड करना
   useEffect(() => {
@@ -20,16 +20,9 @@ const Dashboard = () => {
       try {
         setLoading(true);
         
-        // सभी स्टैट्स एक साथ फेच करना
-        const [userResponse, productResponse, orderResponse] = await Promise.all([
-          getUserStats(),
-          getProductStats(),
-          getOrderStats()
-        ]);
-        
-        setUserStats(userResponse.data);
-        setProductStats(productResponse.data);
-        setOrderStats(orderResponse.data);
+        // Dashboard stats fetch करना
+        const response = await dashboardApi.getDashboardStats();
+        setDashboardStats(response.data);
         setError(null);
       } catch (err) {
         setError('Failed to load dashboard stats');
@@ -39,15 +32,55 @@ const Dashboard = () => {
       }
     };
     
-    fetchStats();
-  }, []);
+    if (adminToken) {
+      fetchStats();
+    }
+  }, [adminToken]);
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <FaSpinner className="text-4xl text-primary animate-spin" />
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <FaExclamationTriangle className="text-4xl text-red-500 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-800">{error}</h2>
+        <p className="text-gray-600 mt-2">Please try refreshing the page or contact support.</p>
+      </div>
+    );
+  }
   
   // फेलबैक स्टैट्स (API फेल होने पर)
   const stats = [
-    { title: 'Total Users', value: userStats?.totalUsers || '1,245', icon: <FaUsers className="text-blue-500" />, change: userStats?.growth || '+12%' },
-    { title: 'Total Orders', value: orderStats?.totalOrders || '845', icon: <FaShoppingCart className="text-green-500" />, change: orderStats?.growth || '+23%' },
-    { title: 'Total Products', value: productStats?.totalProducts || '356', icon: <FaBoxOpen className="text-yellow-500" />, change: productStats?.growth || '+7%' },
-    { title: 'Total Revenue', value: orderStats?.totalRevenue || '₹1,25,456', icon: <FaDollarSign className="text-purple-500" />, change: orderStats?.revenueGrowth || '+18%' },
+    { 
+      title: 'Total Users', 
+      value: dashboardStats?.userStats?.totalUsers || '0', 
+      icon: <FaUsers className="text-blue-500" />, 
+      change: dashboardStats?.userStats?.growth || '0%' 
+    },
+    { 
+      title: 'Total Orders', 
+      value: dashboardStats?.orderStats?.totalOrders || '0', 
+      icon: <FaShoppingCart className="text-green-500" />, 
+      change: dashboardStats?.orderStats?.growth || '0%' 
+    },
+    { 
+      title: 'Total Products', 
+      value: dashboardStats?.productStats?.totalProducts || '0', 
+      icon: <FaBoxOpen className="text-yellow-500" />, 
+      change: dashboardStats?.productStats?.growth || '0%' 
+    },
+    { 
+      title: 'Total Revenue', 
+      value: dashboardStats?.orderStats?.totalRevenue ? `₹${dashboardStats.orderStats.totalRevenue.toLocaleString()}` : '₹0', 
+      icon: <FaDollarSign className="text-purple-500" />, 
+      change: dashboardStats?.orderStats?.revenueGrowth || '0%' 
+    },
   ];
 
   return (
@@ -74,123 +107,18 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-lg font-semibold mb-4">Sales Overview</h2>
-          {loading ? (
-            <div className="h-64 flex items-center justify-center">
-              <FaSpinner className="text-4xl text-gray-400 animate-spin" />
-            </div>
-          ) : error ? (
-            <div className="h-64 flex items-center justify-center">
-              <p className="text-red-500">Failed to load sales data</p>
-            </div>
-          ) : (
-            <div className="h-64">
-              <Line 
-                data={{
-                  labels: orderStats?.monthlySales?.map(item => item.month) || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                  datasets: [
-                    {
-                      label: 'Sales',
-                      data: orderStats?.monthlySales?.map(item => item.count) || [30, 45, 60, 75, 90, 105],
-                      borderColor: '#92c51b',
-                      backgroundColor: 'rgba(146, 197, 27, 0.1)',
-                      tension: 0.4,
-                    }
-                  ]
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'top',
-                    },
-                    title: {
-                      display: false,
-                    },
-                  },
-                }}
-              />
-            </div>
-          )}
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold mb-4">Revenue Breakdown</h2>
-          {loading ? (
-            <div className="h-64 flex items-center justify-center">
-              <FaSpinner className="text-4xl text-gray-400 animate-spin" />
-            </div>
-          ) : error ? (
-            <div className="h-64 flex items-center justify-center">
-              <p className="text-red-500">Failed to load revenue data</p>
-            </div>
-          ) : (
-            <div className="h-64">
-              <Bar
-                data={{
-                  labels: orderStats?.categoryRevenue?.map(item => item.category) || ['Electronics', 'Clothing', 'Books', 'Home', 'Beauty'],
-                  datasets: [
-                    {
-                      label: 'Revenue',
-                      data: orderStats?.categoryRevenue?.map(item => item.revenue) || [12000, 8000, 5000, 7500, 4000],
-                      backgroundColor: [
-                        'rgba(54, 162, 235, 0.6)',
-                        'rgba(255, 99, 132, 0.6)',
-                        'rgba(255, 206, 86, 0.6)',
-                        'rgba(75, 192, 192, 0.6)',
-                        'rgba(153, 102, 255, 0.6)',
-                      ],
-                      borderColor: [
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(255, 206, 86, 1)',
-                        'rgba(75, 192, 192, 1)',
-                        'rgba(153, 102, 255, 1)',
-                      ],
-                      borderWidth: 1,
-                    }
-                  ]
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'top',
-                    },
-                    title: {
-                      display: false,
-                    },
-                  },
-                }}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-      
-      {/* Additional Chart - User Growth */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-lg font-semibold mb-4">User Growth</h2>
-        {loading ? (
-          <div className="h-64 flex items-center justify-center">
-            <FaSpinner className="text-4xl text-gray-400 animate-spin" />
-          </div>
-        ) : error ? (
-          <div className="h-64 flex items-center justify-center">
-            <p className="text-red-500">Failed to load user data</p>
-          </div>
-        ) : (
           <div className="h-64">
             <Line 
               data={{
-                labels: userStats?.monthlyGrowth?.map(item => item.month) || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                labels: dashboardStats?.orderStats?.monthlySales?.map(item => item.month) || 
+                  ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
                 datasets: [
                   {
-                    label: 'New Users',
-                    data: userStats?.monthlyGrowth?.map(item => item.count) || [25, 35, 40, 50, 65, 80],
-                    borderColor: '#4f46e5',
-                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    label: 'Sales',
+                    data: dashboardStats?.orderStats?.monthlySales?.map(item => item.count) || 
+                      [0, 0, 0, 0, 0, 0],
+                    borderColor: '#92c51b',
+                    backgroundColor: 'rgba(146, 197, 27, 0.1)',
                     tension: 0.4,
                   }
                 ]
@@ -198,53 +126,124 @@ const Dashboard = () => {
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    position: 'top',
-                  },
-                  title: {
-                    display: false,
-                  },
-                },
+                scales: {
+                  y: {
+                    beginAtZero: true
+                  }
+                }
               }}
             />
           </div>
-        )}
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-lg font-semibold mb-4">Product Categories</h2>
+          <div className="h-64">
+            <Pie 
+              data={{
+                labels: dashboardStats?.productStats?.categoriesDistribution?.map(item => item.category) || 
+                  ['Category 1', 'Category 2', 'Category 3'],
+                datasets: [
+                  {
+                    data: dashboardStats?.productStats?.categoriesDistribution?.map(item => item.count) || 
+                      [0, 0, 0],
+                    backgroundColor: [
+                      'rgba(146, 197, 27, 0.7)',
+                      'rgba(54, 162, 235, 0.7)',
+                      'rgba(255, 206, 86, 0.7)',
+                      'rgba(75, 192, 192, 0.7)',
+                      'rgba(153, 102, 255, 0.7)',
+                    ],
+                    borderWidth: 1,
+                  }
+                ]
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+              }}
+            />
+          </div>
+        </div>
       </div>
       
-      {/* Recent Orders */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-lg font-semibold mb-4">Recent Orders</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {[1, 2, 3, 4, 5].map((item) => (
-                <tr key={item}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">ORD-{1000 + item}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Customer {item}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2023-06-{10 + item}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{item * 1000 + 500}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      item % 3 === 0 ? 'bg-yellow-100 text-yellow-800' : 
-                      item % 3 === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {item % 3 === 0 ? 'Processing' : item % 3 === 1 ? 'Completed' : 'Cancelled'}
-                    </span>
-                  </td>
+      {/* Recent Orders & Low Stock Products */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-lg font-semibold mb-4">Recent Orders</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead>
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {(dashboardStats?.orderStats?.recentOrders || []).map((order, index) => (
+                  <tr key={index}>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">#{order.orderId}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{order.customerName}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">₹{order.amount}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        ${order.status === 'Delivered' ? 'bg-green-100 text-green-800' : 
+                          order.status === 'Processing' ? 'bg-yellow-100 text-yellow-800' : 
+                          order.status === 'Pending' ? 'bg-blue-100 text-blue-800' : 
+                          'bg-red-100 text-red-800'}`}>
+                        {order.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {(!dashboardStats?.orderStats?.recentOrders || dashboardStats.orderStats.recentOrders.length === 0) && (
+                  <tr>
+                    <td colSpan="4" className="px-4 py-3 text-center text-sm text-gray-500">No recent orders</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-lg font-semibold mb-4">Low Stock Products</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead>
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {(dashboardStats?.productStats?.lowStockProducts || []).map((product, index) => (
+                  <tr key={index}>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{product.name}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{product.category}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{product.stock}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        ${product.stock > 10 ? 'bg-green-100 text-green-800' : 
+                          product.stock > 5 ? 'bg-yellow-100 text-yellow-800' : 
+                          'bg-red-100 text-red-800'}`}>
+                        {product.stock > 10 ? 'In Stock' : product.stock > 5 ? 'Low Stock' : 'Critical Stock'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {(!dashboardStats?.productStats?.lowStockProducts || dashboardStats.productStats.lowStockProducts.length === 0) && (
+                  <tr>
+                    <td colSpan="4" className="px-4 py-3 text-center text-sm text-gray-500">No low stock products</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

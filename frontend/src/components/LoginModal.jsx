@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { login } from '../services/api';
+import { authApi } from '../services/api';
 
 const LoginModal = ({ isOpen, onClose }) => {
   const [credentials, setCredentials] = useState({
@@ -58,7 +58,7 @@ const LoginModal = ({ isOpen, onClose }) => {
     
     try {
       setLoading(true);
-      const response = await login(credentials);
+      const response = await authApi.login(credentials);
       
       // Store user data and token in localStorage
       localStorage.setItem('token', response.data.token);
@@ -123,7 +123,7 @@ const LoginModal = ({ isOpen, onClose }) => {
               name="email"
               value={credentials.email}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-[#92c51b] text-sm"
+              className="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-main focus:border-main text-sm"
               required
             />
           </div>
@@ -136,14 +136,14 @@ const LoginModal = ({ isOpen, onClose }) => {
               name="password"
               value={credentials.password}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-[#92c51b] text-sm"
+              className="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-main focus:border-main text-sm"
               required
             />
           </div>
           
           <button 
             type="submit" 
-            className="w-full bg-[#92c51b] text-white py-2 sm:py-3 rounded font-medium hover:bg-[#83b118] transition duration-200 text-sm"
+            className="w-full bg-main text-white py-2 sm:py-3 rounded font-medium hover:bg-main-dark transition duration-200 text-sm"
             disabled={loading}
           >
             {loading ? 'Processing...' : 'Sign In'}
@@ -155,7 +155,7 @@ const LoginModal = ({ isOpen, onClose }) => {
           <Link 
             to="/auth/register" 
             onClick={onClose}
-            className="block mt-2 border border-[#92c51b] text-[#92c51b] py-1.5 sm:py-2 rounded font-medium hover:bg-[#f0f7e6] transition duration-200 text-sm"
+            className="block mt-2 border border-main text-main py-1.5 sm:py-2 rounded font-medium hover:bg-main-light transition duration-200 text-sm"
           >
             <span className="flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 sm:h-5 w-4 sm:w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -167,7 +167,7 @@ const LoginModal = ({ isOpen, onClose }) => {
         </div>
         
         <div className="text-center mt-3 sm:mt-4">
-          <Link to="/auth/forgot-password" onClick={onClose} className="text-[#92c51b] hover:underline text-sm">
+          <Link to="/auth/forgot-password" onClick={onClose} className="text-main hover:underline text-sm">
             Forgot your password?
           </Link>
         </div>

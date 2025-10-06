@@ -22,7 +22,7 @@ const sliderData = [
     alt: "Solar panels on house roof",
     heading1: "YOUR SATISFACTION",
     heading2: "OUR PROMISE",
-    description: "LETS BUILD A GREENER INDIA TOGETHER",
+    description: "COSMIC POWERTECH - LETS BUILD A GREENER INDIA TOGETHER",
     buttonText: "Learn More"
   },
   {
@@ -31,7 +31,7 @@ const sliderData = [
     alt: "Solar installation on house",
     heading1: "YOUR SATISFACTION",
     heading2: "OUR PROMISE",
-    description: "#LETSBUILDAGREENERINDIATOGETHER",
+    description: "COSMIC POWERTECH #LETSBUILDAGREENERINDIATOGETHER",
     buttonText: "Contact Us"
   }
 ];
@@ -67,8 +67,7 @@ const HeroSlider = () => {
                 <h2 className="text-white text-xl sm:text-2xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-6">{slide.heading2}</h2>
                 <p className="text-white text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-medium mb-4 sm:mb-8">{slide.description}</p>
                 <button 
-                  style={{backgroundColor: 'var(--main-color)'}} 
-                  className="hover:brightness-90 text-white font-bold py-2 px-4 sm:py-3 sm:px-6 rounded-lg w-fit transition duration-300 ease-in-out transform hover:scale-105 text-sm sm:text-base"
+                  className="bg-main hover:bg-main-dark text-white font-bold py-2 px-4 sm:py-3 sm:px-6 rounded-lg w-fit transition duration-300 ease-in-out transform hover:scale-105 text-sm sm:text-base"
                 >
                   {slide.buttonText}
                 </button>

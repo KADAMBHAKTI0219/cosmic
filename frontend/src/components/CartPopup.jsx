@@ -39,13 +39,13 @@ const CartPopup = ({ isOpen, onClose }) => {
         <div className="mt-3 sm:mt-4 grid grid-cols-2 gap-2">
           <Link 
             to="/cart" 
-            className="text-center py-1.5 sm:py-2 px-2 sm:px-4 border border-green-600 text-green-600 rounded hover:bg-green-50 transition-colors duration-200 text-xs sm:text-sm font-medium"
+            className="text-center py-1.5 sm:py-2 px-2 sm:px-4 border border-main text-main rounded hover:bg-main-light transition-colors duration-200 text-xs sm:text-sm font-medium"
           >
             View Cart
           </Link>
           <Link 
             to="/checkout" 
-            className="text-center py-1.5 sm:py-2 px-2 sm:px-4 bg-green-600 text-white rounded hover:bg-green-700 transition-colors duration-200 text-xs sm:text-sm font-medium"
+            className="text-center py-1.5 sm:py-2 px-2 sm:px-4 bg-main text-white rounded hover:bg-main-dark transition-colors duration-200 text-xs sm:text-sm font-medium"
           >
             Check Out Now
           </Link>

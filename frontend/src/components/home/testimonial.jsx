@@ -12,19 +12,19 @@ const Testimonial = () => {
     {
       id: 1,
       name: 'Rick Verma',
-      text: 'Being a researcher in PV solar cell technology, I found Waaree\'s products of highest quality. Looking for solar panels for my home, I was impressed by the performance of the solar modules in maintaining a steady flow of power. I had a great experience with Waaree\'s team. They were very professional and helpful. I highly recommend everyone to buy Waaree solar panels for betterment of climate and society.',
+      text: 'Being a researcher in PV solar cell technology, I found Cosmic PowerTech\'s products of highest quality. Looking for solar panels for my home, I was impressed by the performance of the solar modules in maintaining a steady flow of power. I had a great experience with Cosmic PowerTech\'s team. They were very professional and helpful. I highly recommend everyone to buy Cosmic PowerTech solar panels for betterment of climate and society.',
       rating: 5,
     },
     {
       id: 2,
       name: 'Mukul Kumar',
-      text: 'Recently I bought Waaree Solar panels and I received them in good condition without any damages or any delay. Waaree representative Mani Priya was doing great job and support on my purchase from booking to the delivery. She was very responsive and provided me with all the necessary updates on time. I really appreciate the whole team of Waaree. Thanks all.',
+      text: 'Recently I bought Cosmic PowerTech Solar panels and I received them in good condition without any damages or any delay. Cosmic PowerTech representative Mani Priya was doing great job and support on my purchase from booking to the delivery. She was very responsive and provided me with all the necessary updates on time. I really appreciate the whole team of Cosmic PowerTech. Thanks all.',
       rating: 5,
     },
     {
       id: 3,
       name: 'Vishnu P',
-      text: 'Very good and reliable product. Later to my site getting, I had received a mail providing the link through their service. Waaree has been very supportive through their service. Would highly recommend their products and would like to order more in the future for other locations for a long, economical and good.',
+      text: 'Very good and reliable product. Later to my site getting, I had received a mail providing the link through their service. Cosmic PowerTech has been very supportive through their service. Would highly recommend their products and would like to order more in the future for other locations for a long, economical and good.',
       rating: 5,
     }
   ];
@@ -74,7 +74,7 @@ const Testimonial = () => {
           {testimonials.map((testimonial) => (
             <SwiperSlide key={testimonial.id}>
               <div className="bg-white rounded-lg shadow-lg overflow-hidden h-full flex flex-col">
-                <div className={`p-3 sm:p-4 md:p-6 ${testimonial.id === 2 ? 'bg-green-700 text-white' : 'bg-gray-100'}`}>
+                <div className={`p-3 sm:p-4 md:p-6 ${testimonial.id === 2 ? 'bg-main text-white' : 'bg-gray-100'}`}>
                   <p className="text-xs sm:text-sm mb-2 sm:mb-3 md:mb-4">
                     "{testimonial.text}"
                   </p>
@@ -88,7 +88,7 @@ const Testimonial = () => {
                     </div>
                   </div>
                 </div>
-                <div className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 mt-auto ${testimonial.id === 2 ? 'bg-green-700 text-white' : 'bg-gray-100'}`}>
+                <div className={`px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 mt-auto ${testimonial.id === 2 ? 'bg-main text-white' : 'bg-gray-100'}`}>
                   <p className="text-right text-xs sm:text-sm font-medium">-By {testimonial.name}</p>
                 </div>
               </div>
@@ -115,7 +115,7 @@ const Testimonial = () => {
         }
         
         .swiper-pagination-bullet-active {
-          background-color: #15803d; /* green-700 */
+          background-color: var(--main-color); /* main-color */
         }
         
         .swiper-button-next:after,

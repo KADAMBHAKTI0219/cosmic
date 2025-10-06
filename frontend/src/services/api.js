@@ -1,250 +1,102 @@
 import axios from 'axios';
 
-// Set API base URL - Using direct URL to ensure connection
-const API_URL = 'http://localhost:5000/api';
-
-// Create axios instance
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+// Create axios instance with base URL
+const API = axios.create({
+  baseURL: 'http://localhost:5000/api', // Adjust this to your backend URL
 });
 
-// Request interceptor - Add token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
+// Add token to requests if available
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Auth API
+export const authApi = {
+  register: (userData) => API.post('/auth/register', userData),
+  verifyOtp: (data) => API.post('/auth/verify-otp', data),
+  resendOtp: (data) => API.post('/auth/resend-otp', data),
+  login: (credentials) => API.post('/auth/login', credentials),
+  forgotPassword: (email) => API.post('/auth/forgot-password', { email }),
+  resetPassword: (token, password) => API.post(`/auth/reset-password/${token}`, { password }),
+  getProfile: (id) => API.get(`/auth/customers/${id}`),
+  updateProfile: (id, userData) => API.put(`/auth/customers/${id}`, userData),
+  deleteAccount: (id) => API.delete(`/auth/customers/${id}`),
+};
+
+// Products API
+export const productsApi = {
+  getAllProducts: (page = 1, limit = 10, filters = {}) => {
+    const { category, search, sortBy, sortOrder } = filters;
+    return API.get('/products', { 
+      params: { page, limit, category, search, sortBy, sortOrder } 
+    });
   },
-  (error) => Promise.reject(error)
-);
-
-// Response interceptor - Error handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    // Logout on token expiration
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/register';
-    }
-    return Promise.reject(error);
-  }
-);
-
-// ============ Authentication API Functions ============
-
-// === Registration and Login ===
-export const register = (userData) => api.post('/auth/register', userData);
-export const verifyOtp = (otpData) => api.post('/auth/verify-otp', otpData);
-export const resendOtp = (email) => api.post('/auth/resend-otp', { email });
-export const login = (credentials) => api.post('/auth/login', credentials);
-export const forgotPassword = (email) => api.post('/auth/forgot-password', { email });
-export const resetPassword = (token, passwordData) => api.post(`/auth/reset-password/${token}`, passwordData);
-export const createAdmin = (adminData) => api.post('/auth/create-admin', adminData);
-
-// === User Profile ===
-export const getProfile = () => api.get('/auth/customers/me');
-export const updateProfile = (userData) => api.put('/auth/customers/me', userData);
-export const deleteAccount = () => api.delete('/auth/customers/me');
-
-// ============ Admin API Functions ============
-
-// === User Management ===
-export const getAllUsers = (params = {}) => {
-  const { page = 1, limit = 10, status, search, sortBy = 'createdAt', sortOrder = 'desc' } = params;
-  return api.get('/admin/users', { 
-    params: { page, limit, status, search, sortBy, sortOrder } 
-  });
+  getProductById: (id) => API.get(`/products/${id}`),
 };
 
-export const getUserById = (id) => api.get(`/admin/users/${id}`);
-export const updateUser = (id, userData) => api.put(`/admin/users/${id}`, userData);
-export const deleteUser = (id) => api.delete(`/admin/users/${id}`);
-export const toggleUserStatus = (id, isActive) => api.put(`/admin/users/${id}`, { isActive });
-export const getAllCustomers = () => api.get('/auth/customers');
-export const getCustomer = (id) => api.get(`/auth/customers/${id}`);
-export const getUserStats = () => api.get('/admin/user-stats');
-
-// === Product Management ===
-export const getAllProducts = (params = {}) => {
-  const { 
-    page = 1, 
-    limit = 10, 
-    category,
-    status,
-    search,
-    sortBy = 'createdAt',
-    sortOrder = 'desc'
-  } = params;
-  
-  return api.get('/admin/products', { 
-    params: { page, limit, category, status, search, sortBy, sortOrder } 
-  });
+// Cart API
+export const cartApi = {
+  getCart: () => API.get('/cart'),
+  addToCart: (productData) => API.post('/cart', productData),
+  updateCartItem: (itemId, quantity) => API.put(`/cart/${itemId}`, { quantity }),
+  removeCartItem: (itemId) => API.delete(`/cart/${itemId}`),
+  clearCart: () => API.delete('/cart'),
 };
 
-export const getProductById = (id) => api.get(`/admin/products/${id}`);
-
-export const createProduct = (productData) => {
-  const formData = new FormData();
-  
-  // Add product data to FormData
-  Object.keys(productData).forEach(key => {
-    if (key !== 'images') {
-      formData.append(key, productData[key]);
-    }
-  });
-  
-  // Add images to FormData
-  if (productData.images && productData.images.length) {
-    productData.images.forEach(image => {
-      formData.append('images', image);
-    });
-  }
-  
-  return api.post('/admin/products', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+// Orders API
+export const ordersApi = {
+  placeOrder: (orderData) => API.post('/orders', orderData),
+  getMyOrders: () => API.get('/orders'),
+  getOrderById: (id) => API.get(`/orders/${id}`),
 };
 
-export const updateProduct = (id, productData) => {
-  const formData = new FormData();
-  
-  // Add product data to FormData
-  Object.keys(productData).forEach(key => {
-    if (key !== 'images') {
-      formData.append(key, productData[key]);
-    }
-  });
-  
-  // Add images to FormData
-  if (productData.images && productData.images.length) {
-    productData.images.forEach(image => {
-      formData.append('images', image);
-    });
-  }
-  
-  return api.put(`/admin/products/${id}`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+// Wishlist API
+export const wishlistApi = {
+  getWishlist: () => API.get('/wishlist'),
+  addToWishlist: (productId) => API.post('/wishlist', { productId }),
+  removeFromWishlist: (productId) => API.delete(`/wishlist/${productId}`),
 };
 
-export const deleteProduct = (id) => api.delete(`/admin/products/${id}`);
-export const updateStock = (id, stockData) => api.put(`/admin/products/${id}/stock`, stockData);
-export const getProductStats = () => api.get('/admin/product-stats');
-
-// === Category Management ===
-export const getAllCategories = () => api.get('/admin/categories');
-export const getCategoryById = (id) => api.get(`/admin/categories/${id}`);
-
-export const createCategory = (categoryData) => {
-  // If categoryData is already FormData, use it directly
-  if (categoryData instanceof FormData) {
-    return api.post('/admin/categories', categoryData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-  }
-  
-  // Otherwise, create a new FormData object
-  const formData = new FormData();
-  
-  // Add category data to FormData
-  Object.keys(categoryData).forEach(key => {
-    if (categoryData[key] !== null && categoryData[key] !== undefined) {
-      formData.append(key, categoryData[key]);
-    }
-  });
-  
-  return api.post('/admin/categories', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+// Category API
+export const categoryApi = {
+  getAllCategories: () => API.get('/admin/categories'),
+  getCategoryById: (id) => API.get(`/admin/categories/${id}`),
+  createCategory: (categoryData) => API.post('/admin/categories', categoryData),
+  updateCategory: (id, categoryData) => API.put(`/admin/categories/${id}`, categoryData),
+  deleteCategory: (id) => API.delete(`/admin/categories/${id}`),
 };
 
-export const updateCategory = (id, categoryData) => {
-  const formData = new FormData();
-  
-  // Add category data to FormData
-  Object.keys(categoryData).forEach(key => {
-    if (key !== 'image') {
-      formData.append(key, categoryData[key]);
-    }
-  });
-  
-  // Add image to FormData
-  if (categoryData.image) {
-    formData.append('image', categoryData.image);
-  }
-  
-  return api.put(`/admin/categories/${id}`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+// Review API
+export const reviewApi = {
+  getProductReviews: (productId) => API.get(`/review/product/${productId}`),
+  addReview: (reviewData) => API.post('/review', reviewData),
+  updateReview: (reviewId, reviewData) => API.put(`/review/${reviewId}`, reviewData),
+  deleteReview: (reviewId) => API.delete(`/review/${reviewId}`),
 };
 
-export const deleteCategory = (id) => api.delete(`/admin/categories/${id}`);
-
-// === Order Management ===
-export const getAllOrders = (params = {}) => {
-  const { 
-    page = 1, 
-    limit = 10, 
-    status,
-    search,
-    sortBy = 'createdAt',
-    sortOrder = 'desc',
-    startDate,
-    endDate
-  } = params;
-  
-  return api.get('/admin/orders', { 
-    params: { page, limit, status, search, sortBy, sortOrder, startDate, endDate } 
-  });
+// Coupon API
+export const couponApi = {
+  validateCoupon: (code) => API.post('/coupon/validate', { code }),
 };
 
-export const getOrderById = (id) => api.get(`/admin/orders/${id}`);
-export const updateOrderStatus = (id, status) => api.put(`/admin/orders/${id}/status`, { status });
-
-// === Inventory Management ===
-export const getInventoryLogs = (params = {}) => {
-  const { page = 1, limit = 10, productId, action, sortBy = 'createdAt', sortOrder = 'desc' } = params;
-  return api.get('/inventory', { 
-    params: { page, limit, productId, action, sortBy, sortOrder } 
-  });
+// Newsletter API
+export const newsletterApi = {
+  subscribe: (email) => API.post('/newsletter', { email }),
+  unsubscribe: (email) => API.delete(`/newsletter/${email}`),
 };
 
-export const addInventoryLog = (logData) => api.post('/inventory', logData);
-
-// === Notification Management ===
-export const getNotifications = (params = {}) => {
-  const { page = 1, limit = 10, read, type } = params;
-  return api.get('/admin/notifications', { 
-    params: { page, limit, read, type } 
-  });
+export default {
+  auth: authApi,
+  products: productsApi,
+  cart: cartApi,
+  orders: ordersApi,
+  wishlist: wishlistApi,
+  category: categoryApi,
+  review: reviewApi,
+  coupon: couponApi,
+  newsletter: newsletterApi,
 };
-
-export const markAsRead = (id) => api.put(`/admin/notifications/${id}/read`);
-export const markAllAsRead = () => api.put('/admin/notifications/read-all');
-export const deleteNotification = (id) => api.delete(`/admin/notifications/${id}`);
-
-export const getActivityLogs = () => api.get('/admin/activity-logs');
-export const getErrorLogs = () => api.get('/admin/error-logs');
-
-
-
-export const getOrderStats = () => api.get('/admin/stats/orders');
-// === Dashboard Stats ===
-
-export default api;

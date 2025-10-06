@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { forgotPassword } from '../../services/api';
+import { authApi } from '../../services/api';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -18,7 +18,7 @@ const ForgotPassword = () => {
     
     try {
       setLoading(true);
-      await forgotPassword(email);
+      await authApi.forgotPassword(email);
       toast.success('Password reset link has been sent to your email');
       navigate('/auth/verify-otp', { state: { email } });
     } catch (error) {

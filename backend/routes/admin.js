@@ -20,7 +20,8 @@ router.get('/users/:id', userManagementController.getUserById);
 router.put('/users/:id', userManagementController.updateUser);
 router.delete('/users/:id', userManagementController.deleteUser);
 router.put('/users/:id/status', userManagementController.toggleUserStatus);
-router.get('/user-stats', userManagementController.getUserStats);
+router.get('/users/stats', userManagementController.getUserStats);
+router.get('/user-stats', userManagementController.getUserStats); // Keep for backward compatibility
 
 // Product Management Routes
 router.get('/products', productManagementController.getAllProducts);

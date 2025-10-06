@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { verifyOtp, resendOtp } from '../../services/api';
+import { authApi } from '../../services/api';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
@@ -113,7 +113,7 @@ const VerifyOtp = () => {
       console.log('Sending payload:', payload);
       
       // Use the API service function
-      const response = await verifyOtp(payload);
+      const response = await authApi.verifyOtp(payload);
       
       toast.success(response.data.message || 'OTP verified successfully');
       
@@ -146,7 +146,7 @@ const VerifyOtp = () => {
       setResendDisabled(true);
       setCountdown(60);
       // Send both email and userId if available
-      await resendOtp({ email, userId });
+      await authApi.resendOtp({ email, userId });
       toast.success('New OTP has been sent to your email');
     } catch (error) {
       console.error('OTP resend error:', error);

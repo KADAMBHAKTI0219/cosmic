@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaSearch, FaEdit, FaTrash, FaPlus, FaTimes, FaSave, FaSpinner } from 'react-icons/fa';
-import { getAllCategories, getCategoryById, createCategory, updateCategory, deleteCategory } from '../../services/api';
+import { categoryManagementApi } from '../../services/adminApi';
 import { toast } from 'react-toastify';
 
 const CategoryManagement = () => {
@@ -32,7 +32,7 @@ const CategoryManagement = () => {
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const response = await getAllCategories();
+        const response = await categoryManagementApi.getAllCategories();
         const categoryData = response.data.data || response.data;
         setCategories(Array.isArray(categoryData) ? categoryData : []);
         setError(null);
@@ -111,11 +111,11 @@ const CategoryManagement = () => {
         image: newCategory.image ? 'Image present' : 'No image'
       });
 
-      const response = await createCategory(formData);
+      const response = await categoryManagementApi.createCategory(formData);
       console.log('Category added response:', response);
       
       // API से कैटेगरीज़ को फिर से लोड करना
-      const categoriesResponse = await getAllCategories();
+      const categoriesResponse = await categoryManagementApi.getAllCategories();
       const categoryData = categoriesResponse.data.data || categoriesResponse.data;
       setCategories(Array.isArray(categoryData) ? categoryData : []);
       
@@ -132,7 +132,7 @@ const CategoryManagement = () => {
 
   const handleEditClick = async (categoryId) => {
     try {
-      const response = await getCategoryById(categoryId);
+      const response = await categoryManagementApi.getCategoryById(categoryId);
       const category = response.data.data || response.data;
       
       setEditCategory({ 
@@ -173,11 +173,11 @@ const CategoryManagement = () => {
         formData.append('image', editCategory.image);
       }
 
-      const response = await updateCategory(editCategory._id, formData);
+      const response = await categoryManagementApi.updateCategory(editCategory._id, formData);
       console.log('Category updated response:', response);
       
       // API से कैटेगरीज़ को फिर से लोड करना
-      const categoriesResponse = await getAllCategories();
+      const categoriesResponse = await categoryManagementApi.getAllCategories();
       const categoryData = categoriesResponse.data.data || categoriesResponse.data;
       setCategories(Array.isArray(categoryData) ? categoryData : []);
       
@@ -193,10 +193,10 @@ const CategoryManagement = () => {
   const handleDeleteCategory = async (id) => {
     if (window.confirm('Are you sure you want to delete this category?')) {
       try {
-        await deleteCategory(id);
+        await categoryManagementApi.deleteCategory(id);
         
         // API से कैटेगरीज़ को फिर से लोड करना
-        const response = await getAllCategories();
+        const response = await categoryManagementApi.getAllCategories();
         const categoryData = response.data.data || response.data;
         setCategories(Array.isArray(categoryData) ? categoryData : []);
         

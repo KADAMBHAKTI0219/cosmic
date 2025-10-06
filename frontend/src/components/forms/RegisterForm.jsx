@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { register } from '../../services/api';
+import { authApi } from '../../services/api';
 import { toast } from 'react-toastify';
 
 const RegisterForm = () => {
@@ -74,7 +74,7 @@ const RegisterForm = () => {
       };
       
       try {
-        const response = await register(userData);
+        const response = await authApi.register(userData);
         
         // Show success message
         toast.success(response.data.message || "Registration successful! Please verify your email.");

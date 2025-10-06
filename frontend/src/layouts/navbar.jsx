@@ -65,8 +65,7 @@ const Navbar = () => {
   // SVG for Cosmic logo
   const CosmicLogo = () => (
     <div className="flex items-center">
-      <span style={{color: 'var(--main-color)'}} className="font-bold text-xl">WAAREE</span>
-      <span className="text-xs text-gray-500 ml-1 hidden sm:inline">One with the Sun</span>
+     <img src="/src/assets/images/navbar-logo.png" alt="Cosmic Logo" className="h-12 w-auto" />
     </div>
   );
 
@@ -125,7 +124,7 @@ const Navbar = () => {
               <div key={index} className="relative group">
                 <Link 
                   to={category.path} 
-                  className="px-3 py-2 text-gray-700 hover:text-green-600 flex items-center"
+                  className="px-3 py-2 text-gray-700 hover:text-main flex items-center"
                 >
                   {category.name}
                   {category.dropdown && (
@@ -158,7 +157,7 @@ const Navbar = () => {
             {/* Search Icon */}
             <button 
               onClick={toggleSearch}
-              className="p-1 sm:p-2 text-gray-700 hover:text-green-600 rounded-full hover:bg-gray-100"
+              className="p-1 sm:p-2 text-gray-700 hover:text-main rounded-full hover:bg-gray-100"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -169,12 +168,12 @@ const Navbar = () => {
             <div className="relative">
               <button 
                 onClick={toggleCart}
-                className="p-1 sm:p-2 text-gray-700 hover:text-green-600 rounded-full hover:bg-gray-100 relative"
+                className="p-1 sm:p-2 text-gray-700 hover:text-main rounded-full hover:bg-gray-100 relative"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-main text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
                   3
                 </span>
               </button>
@@ -185,7 +184,7 @@ const Navbar = () => {
             {/* User Icon (replaces Login button on mobile) */}
             <button 
               onClick={isLoggedIn ? handleLogout : toggleLogin} 
-              className={`p-1 sm:p-2 ${isLoggedIn ? 'text-red-600 hover:text-red-700' : 'text-gray-700 hover:text-green-600'} rounded-full hover:bg-gray-100 md:hidden`}
+              className={`p-1 sm:p-2 ${isLoggedIn ? 'text-red-600 hover:text-red-700' : 'text-gray-700 hover:text-main'} rounded-full hover:bg-gray-100 md:hidden`}
             >
               {isLoggedIn ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -207,7 +206,7 @@ const Navbar = () => {
                 </svg>
               </button>
             ) : (
-              <button onClick={toggleLogin} className="hidden md:flex ml-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 items-center">
+              <button onClick={toggleLogin} className="hidden md:flex ml-2 px-4 py-2 bg-main text-white rounded-md hover:bg-main-dark items-center">
                 Login
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />

@@ -15,25 +15,23 @@ export const AdminAuthProvider = ({ children }) => {
       
       if (token) {
         try {
-          // Create API instance with token
-          const API = axios.create({
-            baseURL: 'http://localhost:5000/api',
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          });
+          // Set default Authorization header for all axios requests
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           
           // Verify token by fetching admin profile
-          const response = await API.get('/admin/user-stats');
+          const response = await axios.get('http://localhost:5000/api/admin/user-stats');
           
           // If successful response, user is authenticated as admin
           setAdmin({
+            ...response.data.data,
             role: 'admin',
             token: token
           });
         } catch (err) {
           console.error('Admin auth error:', err);
+          // Clear token if invalid
           localStorage.removeItem('adminToken');
+          delete axios.defaults.headers.common['Authorization'];
         }
       }
       
@@ -52,9 +50,19 @@ export const AdminAuthProvider = ({ children }) => {
       const response = await axios.post('http://localhost:5000/api/auth/login', { email, password });
       
       if (response.data.success && response.data.data.role === 'admin') {
-        localStorage.setItem('adminToken', response.data.token);
-        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-        setAdmin(response.data.data);
+        // Store token in localStorage
+        const token = response.data.token;
+        localStorage.setItem('adminToken', token);
+        
+        // Set default Authorization header for all future axios requests
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        // Set admin state
+        setAdmin({
+          ...response.data.data,
+          token: token
+        });
+        
         return true;
       } else {
         setError('Unauthorized: Admin access required');

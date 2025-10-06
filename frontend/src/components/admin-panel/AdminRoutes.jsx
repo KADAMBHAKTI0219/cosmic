@@ -2,21 +2,19 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import Dashboard from './Dashboard';
-import UserManagement from './UserManagement';
-import OrderManagement from './OrderManagement';
+import UserManagement from './userManagement';
+import OrderManagement from './orderManagement';
 import ProductManagement from './ProductManagement';
 import NotificationsManagement from './NotificationsManagement';
 import ReportsManagement from './ReportsManagement';
 import CategoryManagement from './CategoryManagement';
-
-// Placeholder components
-const InventoryManagement = () => <div>Inventory Management</div>;
-const OffersManagement = () => <div>Offers Management</div>;
-const CouponsManagement = () => <div>Coupons Management</div>;
-const NewsletterManagement = () => <div>Newsletter Management</div>;
-const ReviewsManagement = () => <div>Reviews Management</div>;
-const WishlistAnalytics = () => <div>Wishlist Analytics</div>;
-const EmiManagement = () => <div>EMI Management</div>;
+import InventoryManagement from './InventoryManagement';
+import OffersManagement from './OffersManagement';
+import CouponsMangement from './CouponsMangement';
+import NewsletterManagement from './NewsletterManagement';
+import ReviewsManagement from './ReviewsManagement';
+import WishlistAnalytics from './WishlistAnalytics';
+import EmiManagement from './EmiManagement';
 
 const AdminRoutes = () => {
   return (
@@ -29,7 +27,7 @@ const AdminRoutes = () => {
         <Route path="categories" element={<CategoryManagement />} />
         <Route path="inventory" element={<InventoryManagement />} />
         <Route path="offers" element={<OffersManagement />} />
-        <Route path="coupons" element={<CouponsManagement />} />
+        <Route path="coupons" element={<CouponsMangement />} />
         <Route path="reports" element={<ReportsManagement />} />
         <Route path="newsletter" element={<NewsletterManagement />} />
         <Route path="notifications" element={<NotificationsManagement />} />

@@ -49,7 +49,12 @@ export const userManagementApi = {
 
 // Category Management API
 export const categoryManagementApi = {
-  getAllCategories: () => API.get('/admin/categories'),
+  getAllCategories: (page = 1, limit = 10, filters = {}) => {
+    const { status, search, sortBy, sortOrder } = filters;
+    return API.get('/admin/categories', { 
+      params: { page, limit, status, search, sortBy, sortOrder } 
+    });
+  },
   getCategoryById: (id) => API.get(`/admin/categories/${id}`),
   createCategory: (categoryData) => {
     const formData = new FormData();
@@ -90,6 +95,7 @@ export const categoryManagementApi = {
     });
   },
   deleteCategory: (id) => API.delete(`/admin/categories/${id}`),
+  getCategoryStats: () => API.get('/admin/categories/stats')
 };
 
 // Product Management API
@@ -154,6 +160,8 @@ export const productManagementApi = {
     });
   },
   deleteProduct: (id) => API.delete(`/admin/products/${id}`),
+  updateStock: (id, stockData) => API.put(`/admin/products/${id}/stock`, stockData),
+  getProductStats: () => API.get('/admin/product-stats'),
 };
 
 // Order Management API
@@ -173,46 +181,61 @@ export const orderManagementApi = {
 export const inventoryManagementApi = {
   getAllInventoryLogs: (page = 1, limit = 10, filters = {}) => {
     const { productId, action, sortBy, sortOrder, startDate, endDate } = filters;
-    return API.get('/inventory', { 
+    return API.get('/inventory/logs', { 
       params: { page, limit, productId, action, sortBy, sortOrder, startDate, endDate } 
     });
   },
+  getInventorySummary: () => API.get('/inventory/summary'),
+  getInventoryLog: (id) => API.get(`/inventory/logs/${id}`),
   updateInventory: (productId, quantity, action, notes) => 
-    API.post('/inventory', { productId, quantity, action, notes }),
+    API.post('/inventory/adjust', { productId, quantity, action, notes }),
 };
 
 // Coupon Management API
 export const couponManagementApi = {
-  getAllCoupons: () => API.get('/coupon'),
-  getCouponById: (id) => API.get(`/coupon/${id}`),
-  createCoupon: (couponData) => API.post('/coupon', couponData),
-  updateCoupon: (id, couponData) => API.put(`/coupon/${id}`, couponData),
-  deleteCoupon: (id) => API.delete(`/coupon/${id}`),
+  getAllCoupons: (page = 1, limit = 10, filters = {}) => {
+    const { status, search, sortBy, sortOrder } = filters;
+    return API.get('/admin/coupons', { 
+      params: { page, limit, status, search, sortBy, sortOrder } 
+    });
+  },
+  getCouponById: (id) => API.get(`/admin/coupons/${id}`),
+  createCoupon: (couponData) => API.post('/admin/coupons', couponData),
+  updateCoupon: (id, couponData) => API.put(`/admin/coupons/${id}`, couponData),
+  deleteCoupon: (id) => API.delete(`/admin/coupons/${id}`),
+  validateCoupon: (code) => API.post('/admin/coupons/validate', { code }),
+  getCouponStats: () => API.get('/admin/coupons/stats'),
 };
 
 // Offer Management API
 export const offerManagementApi = {
-  getAllOffers: () => API.get('/offers'),
-  getOfferById: (id) => API.get(`/offers/${id}`),
-  createOffer: (offerData) => API.post('/offers', offerData),
-  updateOffer: (id, offerData) => API.put(`/offers/${id}`, offerData),
-  deleteOffer: (id) => API.delete(`/offers/${id}`),
+  getAllOffers: (page = 1, limit = 10, filters = {}) => {
+    const { status, search, sortBy, sortOrder } = filters;
+    return API.get('/admin/offers', { 
+      params: { page, limit, status, search, sortBy, sortOrder } 
+    });
+  },
+  getOfferById: (id) => API.get(`/admin/offers/${id}`),
+  createOffer: (offerData) => API.post('/admin/offers', offerData),
+  updateOffer: (id, offerData) => API.put(`/admin/offers/${id}`, offerData),
+  deleteOffer: (id) => API.delete(`/admin/offers/${id}`),
+  getOfferStats: () => API.get('/admin/offers/stats'),
 };
 
 // Reports API
 export const reportsApi = {
   getSalesReport: (filters = {}) => {
     const { startDate, endDate, groupBy } = filters;
-    return API.get('/reports/sales', { params: { startDate, endDate, groupBy } });
+    return API.get('/admin/reports/sales', { params: { startDate, endDate, groupBy } });
   },
-  getInventoryReport: () => API.get('/reports/inventory'),
+  getInventoryReport: () => API.get('/admin/reports/inventory'),
   getCustomerReport: (filters = {}) => {
     const { startDate, endDate } = filters;
-    return API.get('/reports/customers', { params: { startDate, endDate } });
+    return API.get('/admin/reports/customers', { params: { startDate, endDate } });
   },
   getProductPerformance: (filters = {}) => {
     const { startDate, endDate, limit } = filters;
-    return API.get('/reports/products/performance', { params: { startDate, endDate, limit } });
+    return API.get('/admin/reports/products/performance', { params: { startDate, endDate, limit } });
   },
 };
 
@@ -225,10 +248,10 @@ export const newsletterManagementApi = {
 
 // EMI Management API
 export const emiManagementApi = {
-  getAllEMIs: () => API.get('/emi'),
-  createEMI: (emiData) => API.post('/emi', emiData),
-  updateEMI: (id, emiData) => API.put(`/emi/${id}`, emiData),
-  deleteEMI: (id) => API.delete(`/emi/${id}`),
+  getAllEMIs: () => API.get('/admin/emi'),
+  createEMI: (emiData) => API.post('/admin/emi', emiData),
+  updateEMI: (id, emiData) => API.put(`/admin/emi/${id}`, emiData),
+  deleteEMI: (id) => API.delete(`/admin/emi/${id}`),
 };
 
 export default {

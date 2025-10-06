@@ -37,7 +37,7 @@ const ProductManagement = () => {
 
   const [categories, setCategories] = useState(['Electronics', 'Fashion', 'Footwear', 'Home Appliances', 'Books', 'Sports']);
 
-  // API से प्रोडक्ट्स और कैटेगरीज़ लोड करना
+  // Load products and categories from API
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -49,14 +49,27 @@ const ProductManagement = () => {
         
         setProducts(productsResponse.data.data || productsResponse.data);
         
-        // कैटेगरी डेटा को सही तरीके से हैंडल करना
+        // Handle category data properly
         const categoryData = categoriesResponse.data.data || categoriesResponse.data;
         if (Array.isArray(categoryData)) {
-          setCategories(categoryData.map(cat => cat.name));
+          // Store both category ID and name
+          const formattedCategories = categoryData.map(cat => ({
+            id: cat._id || cat.id,
+            name: cat.name
+          }));
+          console.log('Formatted categories:', formattedCategories);
+          setCategories(formattedCategories);
         } else {
           console.error('Unexpected category data format:', categoriesResponse.data);
-          // फॉलबैक कैटेगरीज़
-          setCategories(['Electronics', 'Fashion', 'Footwear', 'Home Appliances', 'Books', 'Sports']);
+          // Fallback categories
+          setCategories([
+            { id: 'electronics', name: 'Electronics' },
+            { id: 'fashion', name: 'Fashion' },
+            { id: 'footwear', name: 'Footwear' },
+            { id: 'home-appliances', name: 'Home Appliances' },
+            { id: 'books', name: 'Books' },
+            { id: 'sports', name: 'Sports' }
+          ]);
         }
         
         setError(null);
@@ -64,8 +77,15 @@ const ProductManagement = () => {
         setError('Failed to load data. Please try again.');
         console.error('Error fetching data:', err);
         toast.error('Failed to load products');
-        // फॉलबैक कैटेगरीज़
-        setCategories(['Electronics', 'Fashion', 'Footwear', 'Home Appliances', 'Books', 'Sports']);
+        // Fallback categories
+        setCategories([
+          { id: 'electronics', name: 'Electronics' },
+          { id: 'fashion', name: 'Fashion' },
+          { id: 'footwear', name: 'Footwear' },
+          { id: 'home-appliances', name: 'Home Appliances' },
+          { id: 'books', name: 'Books' },
+          { id: 'sports', name: 'Sports' }
+        ]);
       } finally {
         setLoading(false);
       }
@@ -81,44 +101,73 @@ const ProductManagement = () => {
   const filteredProducts = products.filter(product => {
     const matchesSearch = 
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      (product.category && product.category.name && product.category.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      (product.category && 
+        ((typeof product.category === 'string' && product.category.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (product.category.name && product.category.name.toLowerCase().includes(searchTerm.toLowerCase()))));
     
     const matchesCategory = categoryFilter === 'All' || 
-      (product.category && product.category.name === categoryFilter);
+      (product.category && 
+        ((typeof product.category === 'string' && product.category === categoryFilter) ||
+        (product.category.name && product.category.name === categoryFilter)));
     
     return matchesSearch && matchesCategory;
   });
 
   const handleAddProduct = async () => {
     try {
-      // नया प्रोडक्ट बनाने के लिए सही API कॉल
+      // Create FormData for API call
       const formData = new FormData();
       
+      // Handle category ID correctly
+      const productData = {...newProduct};
+      
+      // Find category ID
+      const selectedCategory = categories.find(cat => cat.name === newProduct.category);
+      if (!selectedCategory) {
+        console.error('Category not found in categories list:', newProduct.category);
+        toast.error('Selected category is invalid. Please select a valid category.');
+        return; // Don't proceed if category not found
+      }
+      
+      // Use category ID, not name
+      // Make sure to send the correct category ID to the backend
+      productData.category = selectedCategory.id; 
+      console.log('Using category ID:', selectedCategory.id);
+      
       // Append text fields
-      Object.keys(newProduct).forEach(key => {
+      Object.keys(productData).forEach(key => {
         if (key !== 'images') {
-          formData.append(key, newProduct[key]);
+          formData.append(key, productData[key]);
         }
       });
       
       // Append images if exists
-      if (newProduct.images && newProduct.images.length > 0) {
-        for (let i = 0; i < newProduct.images.length; i++) {
-          formData.append('images', newProduct.images[i]);
+      if (productData.images && productData.images.length > 0) {
+        for (let i = 0; i < productData.images.length; i++) {
+          formData.append('images', productData.images[i]);
         }
       }
       
+      console.log('Sending product data with category ID:', productData.category);
       await productManagementApi.createProduct(formData);
       
-      // API से प्रोडक्ट्स को फिर से लोड करना
+      // Reload products from API
       const response = await productManagementApi.getAllProducts();
       setProducts(response.data.data || response.data);
       
       toast.success('Product added successfully');
-      setNewProduct({ name: '', category: 'Electronics', price: '', stock: '', status: 'Active' });
+      setNewProduct({ 
+        name: '', 
+        category: categories[0]?.name || 'Electronics', 
+        description: '',
+        price: '', 
+        stock: '', 
+        status: 'Active',
+        images: []
+      });
       setShowAddModal(false);
     } catch (err) {
-      toast.error('Failed to add product');
+      toast.error('Failed to add product: ' + (err.response?.data?.message || err.message));
       console.error('Error adding product:', err);
     }
   };
@@ -131,7 +180,7 @@ const ProductManagement = () => {
   const handleEditClick = (product) => {
     setEditProduct({ 
       ...product,
-      category: product.category ? product.category.name : ''
+      category: product.category ? (product.category.name || product.category) : ''
     });
     setShowEditModal(true);
   };
@@ -139,11 +188,27 @@ const ProductManagement = () => {
   const handleEditProduct = async () => {
     try {
       const formData = new FormData();
+      const productData = {...editProduct};
+      
+      // Find category ID
+      const selectedCategory = categories.find(cat => cat.name === editProduct.category);
+      if (!selectedCategory) {
+        console.error('Category not found in categories list for edit:', editProduct.category);
+        toast.error('Selected category is invalid. Please select a valid category.');
+        return; // Don't proceed if category not found
+      }
+      
+      // Use category ID instead of name
+      productData.category = selectedCategory.id;
+      
+      // Use category ID, not name
+      productData.category = selectedCategory.id;
+      console.log('Using category ID for edit:', selectedCategory.id);
       
       // Append text fields
-      Object.keys(editProduct).forEach(key => {
+      Object.keys(productData).forEach(key => {
         if (key !== 'images' && key !== '_id' && key !== 'id') {
-          formData.append(key, editProduct[key]);
+          formData.append(key, productData[key]);
         }
       });
       
@@ -154,16 +219,23 @@ const ProductManagement = () => {
         }
       }
       
-      await productManagementApi.updateProduct(editProduct._id || editProduct.id, formData);
+      console.log('Sending product data with category ID for edit:', productData.category);
+      const productId = editProduct._id || editProduct.id;
+      if (!productId) {
+        toast.error('Product ID is missing');
+        return;
+      }
       
-      // API से प्रोडक्ट्स को फिर से लोड करना
+      await productManagementApi.updateProduct(productId, formData);
+      
+      // Reload products from API
       const response = await productManagementApi.getAllProducts();
       setProducts(response.data.data || response.data);
       
       toast.success('Product updated successfully');
       setShowEditModal(false);
     } catch (err) {
-      toast.error('Failed to update product');
+      toast.error('Failed to update product: ' + (err.response?.data?.message || err.message));
       console.error('Error updating product:', err);
     }
   };
@@ -213,15 +285,15 @@ const ProductManagement = () => {
         </div>
         <div>
           <select
-            className="border rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-          >
-            <option value="All">All Categories</option>
-            {categories.map((category, index) => (
-              <option key={index} value={category}>{category}</option>
-            ))}
-          </select>
+          className="border rounded-md py-1 px-2 focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+        >
+          <option value="All">All Categories</option>
+          {categories.map((category, index) => (
+            <option key={index} value={category.name}>{category.name}</option>
+          ))}
+        </select>
         </div>
       </div>
       
@@ -309,7 +381,7 @@ const ProductManagement = () => {
               >
                 <option value="">Select Category</option>
                 {categories.map((category, index) => (
-                  <option key={index} value={category}>{category}</option>
+                  <option key={index} value={category.name}>{category.name}</option>
                 ))}
               </select>
             </div>
@@ -408,7 +480,7 @@ const ProductManagement = () => {
                 onChange={(e) => setEditProduct({...editProduct, category: e.target.value})}
               >
                 {categories.map((category, index) => (
-                  <option key={index} value={category}>{category}</option>
+                  <option key={index} value={category.name}>{category.name}</option>
                 ))}
               </select>
             </div>

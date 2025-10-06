@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, Outlet } from 'react-router-dom';
+import axios from 'axios';
 import { FaUsers, FaShoppingCart, FaBoxOpen, FaChartBar, FaTags, FaPercent, FaClipboardList, FaNewspaper, FaBell, FaHeart, FaCommentAlt, FaCreditCard, FaWarehouse } from 'react-icons/fa';
 
 const AdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
 
+  const location = useLocation();
+  const pathname = location.pathname;
+  
   const menuItems = [
     { name: 'Dashboard', path: '/admin', icon: <FaChartBar /> },
     { name: 'User Management', path: '/admin/users', icon: <FaUsers /> },
@@ -14,9 +18,9 @@ const AdminLayout = () => {
     { name: 'Inventory', path: '/admin/inventory', icon: <FaWarehouse /> },
     { name: 'Offers', path: '/admin/offers', icon: <FaPercent /> },
     { name: 'Coupons', path: '/admin/coupons', icon: <FaPercent /> },
-    { name: 'Reports', path: '/admin/reports', icon: <FaChartBar /> },
+    { name: 'Reports', path: '/admin/reports', icon: <FaChartBar />, hasNew: true },
     { name: 'Newsletter', path: '/admin/newsletter', icon: <FaNewspaper /> },
-    { name: 'Notifications', path: '/admin/notifications', icon: <FaBell /> },
+    { name: 'Notifications', path: '/admin/notifications', icon: <FaBell />, hasNew: true },
     { name: 'Reviews', path: '/admin/reviews', icon: <FaCommentAlt /> },
     { name: 'Wishlist Analytics', path: '/admin/wishlist', icon: <FaHeart /> },
     { name: 'EMI Options', path: '/admin/emi', icon: <FaCreditCard /> },
@@ -40,10 +44,11 @@ const AdminLayout = () => {
             <Link
               key={index}
               to={item.path}
-              className="flex items-center p-4 hover:bg-[#7ba515] transition-colors duration-200"
+              className={`flex items-center p-4 hover:bg-[#7ba515] transition-colors duration-200 ${pathname === item.path ? 'bg-[#7ba515]' : ''}`}
             >
               <span className="text-xl">{item.icon}</span>
               {!collapsed && <span className="ml-4">{item.name}</span>}
+              {!collapsed && item.hasNew && <span className="ml-auto px-2 py-1 text-xs bg-white text-[#92c51b] rounded-full">New</span>}
             </Link>
           ))}
         </nav>

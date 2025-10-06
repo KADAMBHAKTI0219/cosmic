@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import SearchModal from '../components/SearchModal';
 import CartPopup from '../components/CartPopup';
 import LoginModal from '../components/LoginModal';
+import { toast } from 'react-toastify';
 
 const Navbar = () => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -24,6 +26,40 @@ const Navbar = () => {
   
   const toggleLogin = () => {
     setIsLoginOpen(!isLoginOpen);
+  };
+  
+  // Check if user is logged in
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+  
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    
+    if (token && userData && userData !== 'undefined' && userData !== undefined) {
+      try {
+        const parsedData = userData === "undefined" ? null : JSON.parse(userData);
+        if (parsedData) {
+          setIsLoggedIn(true);
+          setUser(parsedData);
+        }
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        // Handle invalid JSON by clearing localStorage
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        setIsLoggedIn(false);
+      }
+    }
+  }, [isLoginOpen]);
+  
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    setUser(null);
+    toast.success('Logged out successfully');
+    navigate('/');
   };
 
   // SVG for Cosmic logo
@@ -143,25 +179,41 @@ const Navbar = () => {
                 </span>
               </button>
               {isCartOpen && <CartPopup isOpen={isCartOpen} onClose={toggleCart} />}
+            {isLoginOpen && <LoginModal isOpen={isLoginOpen} onClose={toggleLogin} />}
             </div>
             
             {/* User Icon (replaces Login button on mobile) */}
             <button 
-              onClick={toggleLogin} 
-              className="p-1 sm:p-2 text-gray-700 hover:text-green-600 rounded-full hover:bg-gray-100 md:hidden"
+              onClick={isLoggedIn ? handleLogout : toggleLogin} 
+              className={`p-1 sm:p-2 ${isLoggedIn ? 'text-red-600 hover:text-red-700' : 'text-gray-700 hover:text-green-600'} rounded-full hover:bg-gray-100 md:hidden`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
+              {isLoggedIn ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              )}
             </button>
             
-            {/* Login Button (desktop only) */}
-            <button onClick={toggleLogin} className="hidden md:flex ml-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 items-center">
-              Login
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-              </svg>
-            </button>
+            {/* Login/Logout Button (desktop only) */}
+            {isLoggedIn ? (
+              <button onClick={handleLogout} className="hidden md:flex ml-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 items-center">
+                Logout
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            ) : (
+              <button onClick={toggleLogin} className="hidden md:flex ml-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 items-center">
+                Login
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            )}
             
             {/* Mobile menu button */}
             <button

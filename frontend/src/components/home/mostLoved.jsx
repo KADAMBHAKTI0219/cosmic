@@ -154,7 +154,7 @@ const MostLoved = () => {
             spaceBetween={16}
             slidesPerView={1}
             centeredSlides={false}
-            loop={true}
+            loop={false}
             autoplay={{
               delay: 5000,
               disableOnInteraction: false,

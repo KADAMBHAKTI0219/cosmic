@@ -53,8 +53,14 @@ exports.verifyOtp = async (req, res) => {
       });
     }
 
-    // Check if OTP matches
-    if (verification.otp !== otp) {
+    // Check if OTP matches - convert both to strings for comparison
+    if (verification.otp.toString() !== otp.toString()) {
+      console.log('OTP mismatch:', {
+        stored: verification.otp,
+        received: otp,
+        storedType: typeof verification.otp,
+        receivedType: typeof otp
+      });
       return res.status(400).json({
         success: false,
         message: 'Invalid OTP. Please try again.'

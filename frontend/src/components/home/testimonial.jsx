@@ -39,7 +39,7 @@ const Testimonial = () => {
           spaceBetween={20}
           slidesPerView={1}
           centeredSlides={true}
-          loop={true}
+          loop={false}
           autoplay={{
             delay: 5000,
             disableOnInteraction: false,
@@ -102,7 +102,7 @@ const Testimonial = () => {
         </div>
       </div>
       
-      <style jsx>{`
+      <style>{`
         .swiper-pagination-bullet {
           width: 10px;
           height: 10px;

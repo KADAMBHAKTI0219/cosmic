@@ -40,13 +40,25 @@ const ProductManagement = () => {
           getAllCategories()
         ]);
         
-        setProducts(productsResponse.data);
-        setCategories(categoriesResponse.data.map(cat => cat.name));
+        setProducts(productsResponse.data.data || productsResponse.data);
+        
+        // कैटेगरी डेटा को सही तरीके से हैंडल करना
+        const categoryData = categoriesResponse.data.data || categoriesResponse.data;
+        if (Array.isArray(categoryData)) {
+          setCategories(categoryData.map(cat => cat.name));
+        } else {
+          console.error('Unexpected category data format:', categoriesResponse.data);
+          // फॉलबैक कैटेगरीज़
+          setCategories(['Electronics', 'Fashion', 'Footwear', 'Home Appliances', 'Books', 'Sports']);
+        }
+        
         setError(null);
       } catch (err) {
         setError('Failed to load data. Please try again.');
         console.error('Error fetching data:', err);
         toast.error('Failed to load products');
+        // फॉलबैक कैटेगरीज़
+        setCategories(['Electronics', 'Fashion', 'Footwear', 'Home Appliances', 'Books', 'Sports']);
       } finally {
         setLoading(false);
       }

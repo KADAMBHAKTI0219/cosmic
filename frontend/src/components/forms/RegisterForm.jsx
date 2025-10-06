@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { register } from '../../services/api';
+import { toast } from 'react-toastify';
 
 const RegisterForm = () => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -30,10 +34,72 @@ const RegisterForm = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission logic here
-    console.log('Form submitted:', formData);
+    
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    
+    // Validate password length
+    if (formData.password.length < 6) {
+      toast.error("Password must be at least 6 characters long");
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      // Map frontend fields to backend expected fields
+      const userData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.password,
+        mobileNumber: formData.phoneNumber,
+        phoneNumber: formData.phoneNumber,
+        secondaryNumber: formData.secondaryNumber,
+        addressLine1: formData.addressLine1,
+        addressLine2: formData.addressLine2,
+        suburb: formData.suburbCity,
+        state: formData.stateProvince,
+        zipCode: formData.zipPostcode,
+        country: formData.country,
+        companyName: formData.companyName,
+        gstNumber: formData.gstNumber,
+        pan: formData.pan
+      };
+      
+      try {
+        const response = await register(userData);
+        
+        // Show success message
+        toast.success(response.data.message || "Registration successful! Please verify your email.");
+        
+        // Navigate to OTP verification page with userId and email
+        navigate(`/auth/verify-otp/${response.data.userId}?email=${formData.email}`);
+      } catch (error) {
+        console.error("Registration error:", error);
+        if (error.response && error.response.data) {
+          toast.error(error.response.data.message || "Registration failed. Please try again.");
+        } else {
+          toast.error("Network error. Please check your connection and try again.");
+        }
+      }
+      // Navigation is handled in the try block
+      
+    } catch (error) {
+      console.error("Registration error:", error);
+      
+      // Display error message from API or fallback message
+      const errorMessage = error.response?.data?.message || "Registration failed. Please try again.";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -320,9 +386,10 @@ const RegisterForm = () => {
         <div className="col-span-1 md:col-span-2 mt-4">
           <button
             type="submit"
-            className="w-full bg-green-600 text-white py-3 rounded font-medium hover:bg-green-700 transition duration-200"
+            className="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition duration-300"
+            disabled={isLoading}
           >
-            Create Account
+            {isLoading ? "Processing..." : "Create Account"}
           </button>
         </div>
       </form>

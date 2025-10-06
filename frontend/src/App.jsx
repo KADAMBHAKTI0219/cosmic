@@ -8,6 +8,12 @@ import Register from './pages/auth/register';
 import Products from './components/products/products';
 import ProductDetails from './components/products/productdetails';
 
+// Auth Components
+import Login from './components/auth/login';
+import ForgotPassword from './components/auth/forgotPassword';
+import VerifyOtp from './components/auth/verifyOtp';
+import ResetPassword from './components/auth/resetPassword';
+
 // Admin Panel Components
 import AdminRoutes from './components/admin-panel/AdminRoutes';
 
@@ -27,7 +33,14 @@ function App() {
               <main className="flex-grow">
                 <Routes>
                   <Route path="/" element={<Home />} />
+                  
+                  {/* Auth Routes */}
                   <Route path="/auth/register" element={<Register />} />
+                  <Route path="/auth/login" element={<Login />} />
+                  <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/auth/verify-otp" element={<VerifyOtp />} />
+                  <Route path="/auth/verify-otp/:token" element={<VerifyOtp />} />
+                  <Route path="/auth/reset-password" element={<ResetPassword />} />
                   
                   {/* Category Routes */}
                   <Route path="/solar-module" element={<Products />} />

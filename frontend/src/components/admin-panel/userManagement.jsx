@@ -1,26 +1,63 @@
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaTrash, FaSearch, FaUserPlus, FaTimes, FaSave, FaSpinner } from 'react-icons/fa';
-import { getAllUsers, updateUser, deleteUser, getUserById } from '../../services/api';
+import { FaEdit, FaTrash, FaSearch, FaUserPlus, FaTimes, FaSave, FaSpinner, FaFilter, FaUserShield, FaUser, FaUserCheck, FaUserTimes } from 'react-icons/fa';
+import { getAllUsers, updateUser, deleteUser, getUserById, createAdmin, getUserStats } from '../../services/api';
 import { toast } from 'react-toastify';
+import { format } from 'date-fns';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 1
+  });
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'Customer', status: 'Active' });
-  const [editUser, setEditUser] = useState({ id: null, name: '', email: '', role: '', status: '', joinDate: '' });
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'customer', isActive: true });
+  const [editUser, setEditUser] = useState({ _id: null, name: '', email: '', role: '', isActive: true });
+  const [filters, setFilters] = useState({
+    status: '',
+    sortBy: 'createdAt',
+    sortOrder: 'desc'
+  });
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    inactiveUsers: 0,
+    adminUsers: 0,
+    customerUsers: 0,
+    newUsersToday: 0,
+    newUsersThisWeek: 0,
+    newUsersThisMonth: 0
+  });
   
-  // API से यूजर्स लोड करना
+  // Load users from API with pagination and filters
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await getAllUsers();
-        setUsers(response.data);
+        const params = {
+          page: pagination.page,
+          limit: pagination.limit,
+          search: searchTerm,
+          status: filters.status,
+          sortBy: filters.sortBy,
+          sortOrder: filters.sortOrder
+        };
+        
+        const response = await getAllUsers(params);
+        setUsers(response.data.data);
+        setPagination({
+          page: response.data.pagination.page,
+          limit: response.data.pagination.limit,
+          total: response.data.pagination.total,
+          pages: response.data.pagination.pages
+        });
         setError(null);
       } catch (err) {
         setError('Failed to load users. Please try again.');
@@ -31,21 +68,46 @@ const UserManagement = () => {
     };
     
     fetchUsers();
+  }, [pagination.page, pagination.limit, searchTerm, filters]);
+  
+  // Load user statistics
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await getUserStats();
+        if (response.data && response.data.data) {
+          setStats(response.data.data);
+        }
+      } catch (err) {
+        console.error('Error fetching user stats:', err);
+        // Don't show error toast for stats as it's not critical
+      }
+    };
+    
+    fetchStats();
   }, []);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
+    setPagination(prev => ({...prev, page: 1})); // Reset to first page on search
   };
 
-  const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({...prev, [name]: value}));
+    setPagination(prev => ({...prev, page: 1})); // Reset to first page on filter change
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.pages) {
+      setPagination(prev => ({...prev, page: newPage}));
+    }
+  };
 
   const handleEditClick = async (user) => {
     try {
       const response = await getUserById(user._id);
-      setEditUser(response.data);
+      setEditUser(response.data.data);
       setShowEditModal(true);
     } catch (err) {
       toast.error('Failed to load user details');
@@ -55,11 +117,24 @@ const UserManagement = () => {
 
   const handleEditUser = async () => {
     try {
-      await updateUser(editUser._id, editUser);
+      await updateUser(editUser._id, {
+        name: editUser.name,
+        email: editUser.email,
+        isActive: editUser.isActive
+      });
       
-      // API से यूजर्स को फिर से लोड करना
-      const response = await getAllUsers();
-      setUsers(response.data);
+      // Refresh user list
+      const params = {
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchTerm,
+        status: filters.status,
+        sortBy: filters.sortBy,
+        sortOrder: filters.sortOrder
+      };
+      
+      const response = await getAllUsers(params);
+      setUsers(response.data.data);
       
       toast.success('User updated successfully');
       setShowEditModal(false);
@@ -74,9 +149,18 @@ const UserManagement = () => {
       try {
         await deleteUser(id);
         
-        // API से यूजर्स को फिर से लोड करना
-        const response = await getAllUsers();
-        setUsers(response.data);
+        // Refresh user list
+        const params = {
+          page: pagination.page,
+          limit: pagination.limit,
+          search: searchTerm,
+          status: filters.status,
+          sortBy: filters.sortBy,
+          sortOrder: filters.sortOrder
+        };
+        
+        const response = await getAllUsers(params);
+        setUsers(response.data.data);
         
         toast.success('User deleted successfully');
       } catch (err) {
@@ -88,15 +172,23 @@ const UserManagement = () => {
 
   const handleAddUser = async () => {
     try {
-      // API कॉल यहां जोड़ें - बैकएंड में यूजर क्रिएट करने के लिए
-      // await createUser(newUser);
+      await createAdmin(newUser);
       
-      // API से यूजर्स को फिर से लोड करना
-      const response = await getAllUsers();
-      setUsers(response.data);
+      // Refresh user list
+      const params = {
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchTerm,
+        status: filters.status,
+        sortBy: filters.sortBy,
+        sortOrder: filters.sortOrder
+      };
+      
+      const response = await getAllUsers(params);
+      setUsers(response.data.data);
       
       toast.success('User added successfully');
-      setNewUser({ name: '', email: '', password: '', role: 'Customer', status: 'Active' });
+      setNewUser({ name: '', email: '', password: '', role: 'customer', isActive: true });
       setShowAddModal(false);
     } catch (err) {
       toast.error('Failed to add user');
@@ -114,6 +206,75 @@ const UserManagement = () => {
         >
           <FaUserPlus className="mr-2" /> Add User
         </button>
+      </div>
+      
+      {/* Stats Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-blue-100 text-blue-500 mr-4">
+              <FaUser className="text-xl" />
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm">Total Users</p>
+              <p className="text-2xl font-bold">{stats.totalUsers || 0}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-green-100 text-green-500 mr-4">
+              <FaUserCheck className="text-xl" />
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm">Active Users</p>
+              <p className="text-2xl font-bold">{stats.activeUsers || 0}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-red-100 text-red-500 mr-4">
+              <FaUserTimes className="text-xl" />
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm">Inactive Users</p>
+              <p className="text-2xl font-bold">{stats.inactiveUsers || 0}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-purple-100 text-purple-500 mr-4">
+              <FaUserShield className="text-xl" />
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm">Admin Users</p>
+              <p className="text-2xl font-bold">{stats.adminUsers || 0}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* New Users Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="font-semibold text-gray-700 mb-2">New Users Today</h3>
+          <p className="text-2xl font-bold text-blue-600">{stats.newUsersToday || 0}</p>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="font-semibold text-gray-700 mb-2">New Users This Week</h3>
+          <p className="text-2xl font-bold text-blue-600">{stats.newUsersThisWeek || 0}</p>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-4">
+          <h3 className="font-semibold text-gray-700 mb-2">New Users This Month</h3>
+          <p className="text-2xl font-bold text-blue-600">{stats.newUsersThisMonth || 0}</p>
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -144,16 +305,16 @@ const UserManagement = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredUsers.map((user) => (
-              <tr key={user.id}>
+            {users.map((user) => (
+              <tr key={user._id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.role}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                   }`}>
-                    {user.status}
+                    {user.isActive ? 'Active' : 'Inactive'}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.joinDate}</td>

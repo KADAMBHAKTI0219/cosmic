@@ -1,5 +1,4 @@
-backend/npm
-
 backend/node-modules
-frontend/npm
 frontend/node-modules
+backend/.env
+frontend/.env

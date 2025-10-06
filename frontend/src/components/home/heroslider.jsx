@@ -79,7 +79,7 @@ const HeroSlider = () => {
       </Swiper>
       
       {/* Custom pagination styles */}
-      <style jsx>{`
+      <style>{`
         .swiper-pagination-bullet {
           width: 12px;
           height: 12px;

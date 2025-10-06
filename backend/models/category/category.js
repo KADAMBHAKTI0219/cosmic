@@ -16,11 +16,16 @@ const CategorySchema = new mongoose.Schema({
     type: String,
     validate: {
       validator: function(v) {
-        // Simple URL validation
-        return /^(http|https):\/\/[^ "]+$/.test(v) || v === '';
+        // Allow null or empty string or valid URL
+        return v === null || v === '' || /^(http|https):\/\/[^ "]+$/.test(v);
       },
       message: props => `${props.value} is not a valid URL!`
     }
+  },
+  status: {
+    type: String,
+    enum: ['Active', 'Inactive'],
+    default: 'Active'
   },
   createdAt: {
     type: Date,

@@ -12,18 +12,18 @@ const ForgotPassword = () => {
     e.preventDefault();
     
     if (!email) {
-      toast.error('कृपया अपना ईमेल दर्ज करें');
+      toast.error('Please enter your email');
       return;
     }
     
     try {
       setLoading(true);
       await forgotPassword(email);
-      toast.success('पासवर्ड रीसेट लिंक आपके ईमेल पर भेज दिया गया है');
+      toast.success('Password reset link has been sent to your email');
       navigate('/auth/verify-otp', { state: { email } });
     } catch (error) {
-      console.error('पासवर्ड रीसेट में त्रुटि:', error);
-      toast.error(error.response?.data?.message || 'पासवर्ड रीसेट में त्रुटि हुई');
+      console.error('Password reset error:', error);
+      toast.error(error.response?.data?.message || 'Error occurred during password reset');
     } finally {
       setLoading(false);
     }
@@ -31,20 +31,20 @@ const ForgotPassword = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            पासवर्ड भूल गए?
+          <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900">
+            Forgot Password?
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            अपना ईमेल दर्ज करें और हम आपको एक OTP भेजेंगे
+            Enter your email and we will send you an OTP
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email-address" className="sr-only">
-                ईमेल एड्रेस
+          <div className="rounded-md shadow-sm">
+            <div className="mb-4">
+              <label htmlFor="email-address" className="block text-sm font-medium text-gray-700 mb-1">
+                Email Address
               </label>
               <input
                 id="email-address"
@@ -52,8 +52,8 @@ const ForgotPassword = () => {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="ईमेल एड्रेस"
+                className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-[#92c51b] focus:z-10 sm:text-sm"
+                placeholder="Enter your email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -64,7 +64,7 @@ const ForgotPassword = () => {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#92c51b] hover:bg-[#83b118] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#92c51b] transition-colors duration-200"
             >
               {loading ? (
                 <span className="flex items-center">
@@ -72,18 +72,18 @@ const ForgotPassword = () => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  प्रोसेसिंग...
+                  Processing...
                 </span>
               ) : (
-                'OTP भेजें'
+                'Send OTP'
               )}
             </button>
           </div>
           
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mt-4">
             <div className="text-sm">
-              <Link to="/auth/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-                लॉगिन पेज पर वापस जाएं
+              <Link to="/auth/login" className="font-medium text-[#92c51b] hover:text-[#83b118] transition-colors duration-200">
+                Back to Login Page
               </Link>
             </div>
           </div>

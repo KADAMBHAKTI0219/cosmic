@@ -13,10 +13,10 @@ const {
 router.use(protect);
 router.use(authorize('admin'));
 
-router.get('/orders', getOrdersReport);
-router.get('/inventory', getInventoryReport);
-router.get('/customers', getCustomersReport);
-router.get('/coupons', getCouponsReport);
-router.get('/newsletter', getNewsletterReport);
+router.get('/ordersReports', getOrdersReport);
+router.get('/inventoryReports', getInventoryReport);
+router.get('/customersReports', getCustomersReport);
+router.get('/couponsReports', getCouponsReport);
+router.get('/newsletterReports', getNewsletterReport);
 
 module.exports = router;

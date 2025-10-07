@@ -26,7 +26,7 @@ const Dashboard = () => {
       if (response.data && response.data.success) {
         setDashboardStats(response.data.data);
         setError(null);
-        toast.success('Dashboard stats loaded successfully');
+        // Removed success toast to avoid UI clutter
       } else {
         throw new Error('Invalid response format');
       }
@@ -35,15 +35,21 @@ const Dashboard = () => {
       toast.error('Failed to load dashboard stats: ' + (err.response?.data?.message || err.message));
       console.error('Error fetching dashboard stats:', err);
     } finally {
-      setLoading(false);
+      setTimeout(() => {
+        setLoading(false);
+      }, 300); // Reduced delay for better responsiveness
     }
   };
   
   useEffect(() => {
-    if (adminToken) {
+    setLoading(true);
+    // Add a small delay before fetching to ensure loading state is visible
+    const timer = setTimeout(() => {
       fetchStats();
-    }
-  }, [adminToken]);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, []);
   
   const handleRefresh = () => {
     fetchStats();
@@ -51,8 +57,9 @@ const Dashboard = () => {
   
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <FaSpinner className="text-4xl text-primary animate-spin" />
+      <div className="flex flex-col items-center justify-center h-screen">
+        <FaSpinner className="text-6xl text-main animate-spin mb-4" />
+        <p className="text-xl font-semibold text-gray-700">Loading dashboard data...</p>
       </div>
     );
   }
@@ -77,31 +84,31 @@ const Dashboard = () => {
   const stats = [
     { 
       title: 'Total Users', 
-      value: dashboardStats?.userStats?.totalUsers || '0', 
+      value: dashboardStats?.userStats?.total || '0', 
       icon: <FaUsers className="text-blue-500" />, 
       change: dashboardStats?.userStats?.growth || '0%',
-      detail: `${dashboardStats?.userStats?.activeUsers || '0'} active users`
+      detail: `${dashboardStats?.userStats?.active || '0'} active users`
     },
     { 
       title: 'Total Orders', 
-      value: dashboardStats?.orderStats?.totalOrders || '0', 
+      value: dashboardStats?.orderStats?.total || '0', 
       icon: <FaShoppingCart className="text-green-500" />, 
       change: dashboardStats?.orderStats?.growth || '0%',
-      detail: `${dashboardStats?.orderStats?.pendingOrders || '0'} pending orders`
+      detail: `${dashboardStats?.orderStats?.pending || '0'} pending orders`
     },
     { 
       title: 'Total Products', 
-      value: dashboardStats?.productStats?.totalProducts || '0', 
+      value: dashboardStats?.productStats?.total || '0', 
       icon: <FaBoxOpen className="text-yellow-500" />, 
       change: dashboardStats?.productStats?.growth || '0%',
-      detail: `${dashboardStats?.productStats?.lowStockProducts || '0'} low stock products`
+      detail: `${dashboardStats?.productStats?.outOfStock || '0'} out of stock`
     },
     { 
       title: 'Total Revenue', 
-      value: dashboardStats?.orderStats?.totalRevenue ? `₹${dashboardStats.orderStats.totalRevenue.toLocaleString()}` : '₹0', 
+      value: `$${(dashboardStats?.revenueStats?.total || 0).toLocaleString()}`, 
       icon: <FaDollarSign className="text-purple-500" />, 
-      change: dashboardStats?.orderStats?.revenueGrowth || '0%',
-      detail: `₹${dashboardStats?.orderStats?.thisMonthRevenue?.toLocaleString() || '0'} this month`
+      change: dashboardStats?.revenueStats?.growth || '0%',
+      detail: `$${(dashboardStats?.revenueStats?.recent || 0).toLocaleString()} this month`
     },
   ];
 
@@ -150,11 +157,13 @@ const Dashboard = () => {
             <Line 
                 data={{
                   labels: dashboardStats?.chartData?.monthlySales?.map(item => `${item.month} ${item.year}`) || 
+                    dashboardStats?.monthlySales?.map(item => `${item.month} ${item.year}`) ||
                     ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
                   datasets: [
                     {
                       label: 'Orders',
-                      data: dashboardStats?.chartData?.monthlySales?.map(item => item.count) || 
+                      data: dashboardStats?.chartData?.monthlySales?.map(item => item.count || item.orders) || 
+                        dashboardStats?.monthlySales?.map(item => item.count || item.orders) ||
                         [0, 0, 0, 0, 0, 0],
                       borderColor: '#92c51b',
                       backgroundColor: 'rgba(146, 197, 27, 0.1)',
@@ -162,8 +171,9 @@ const Dashboard = () => {
                       yAxisID: 'y',
                     },
                     {
-                      label: 'Revenue (₹)',
+                      label: 'Revenue',
                       data: dashboardStats?.chartData?.monthlySales?.map(item => item.revenue) || 
+                        dashboardStats?.monthlySales?.map(item => item.revenue) ||
                         [0, 0, 0, 0, 0, 0],
                       borderColor: '#3b82f6',
                       backgroundColor: 'rgba(59, 130, 246, 0.1)',

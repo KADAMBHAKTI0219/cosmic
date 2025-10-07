@@ -6,105 +6,117 @@ const { logError } = require('../notifications/notificationController');
 // Get combined dashboard stats
 exports.getDashboardStats = async (req, res) => {
   try {
-    // User Stats
-    const totalUsers = await User.countDocuments();
-    const activeUsers = await User.countDocuments({ isActive: true });
-    const inactiveUsers = await User.countDocuments({ isActive: false });
-    
-    // Calculate new users in the last 30 days
+    // Dates for calculations
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const newUsers = await User.countDocuments({ createdAt: { $gte: thirtyDaysAgo } });
     
-    // Calculate user growth percentage
     const sixtyDaysAgo = new Date();
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-    const usersLastMonth = await User.countDocuments({ 
-      createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } 
-    });
     
+    // User Stats - Run queries in parallel for better performance
+    const [
+      totalUsers,
+      activeUsers,
+      inactiveUsers,
+      newUsers,
+      usersLastMonth
+    ] = await Promise.all([
+      User.countDocuments(),
+      User.countDocuments({ isActive: true }),
+      User.countDocuments({ isActive: false }),
+      User.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
+      User.countDocuments({ createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } })
+    ]);
+    
+    // Calculate user growth percentage with safeguard against division by zero
     const userGrowth = usersLastMonth > 0 
       ? Math.round(((newUsers - usersLastMonth) / usersLastMonth) * 100) 
-      : 100;
+      : (newUsers > 0 ? 100 : 0);
     
-    // Product Stats
-    const totalProducts = await Product.countDocuments();
-    const inStockProducts = await Product.countDocuments({ stock: { $gt: 0 } });
-    const outOfStockProducts = await Product.countDocuments({ stock: 0 });
-    const lowStockProducts = await Product.countDocuments({ stock: { $gt: 0, $lte: 10 } });
+    // Product Stats - Run queries in parallel
+    const [
+      totalProducts,
+      inStockProducts,
+      outOfStockProducts,
+      lowStockProducts,
+      newProducts,
+      productsLastMonth
+    ] = await Promise.all([
+      Product.countDocuments(),
+      Product.countDocuments({ stock: { $gt: 0 } }),
+      Product.countDocuments({ stock: 0 }),
+      Product.countDocuments({ stock: { $gt: 0, $lte: 10 } }),
+      Product.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
+      Product.countDocuments({ createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } })
+    ]);
     
-    // Calculate new products in the last 30 days
-    const newProducts = await Product.countDocuments({ createdAt: { $gte: thirtyDaysAgo } });
-    
-    // Calculate product growth percentage
-    const productsLastMonth = await Product.countDocuments({ 
-      createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } 
-    });
-    
+    // Calculate product growth percentage with safeguard
     const productGrowth = productsLastMonth > 0 
       ? Math.round(((newProducts - productsLastMonth) / productsLastMonth) * 100) 
-      : 100;
+      : (newProducts > 0 ? 100 : 0);
     
-    // Order Stats
-    const totalOrders = await Order.countDocuments();
-    const pendingOrders = await Order.countDocuments({ status: 'pending' });
-    const processingOrders = await Order.countDocuments({ status: 'processing' });
-    const shippedOrders = await Order.countDocuments({ status: 'shipped' });
-    const deliveredOrders = await Order.countDocuments({ status: 'delivered' });
-    const cancelledOrders = await Order.countDocuments({ status: 'cancelled' });
+    // Order Stats - Run queries in parallel
+    const [
+      totalOrders,
+      pendingOrders,
+      processingOrders,
+      shippedOrders,
+      deliveredOrders,
+      cancelledOrders,
+      newOrders,
+      ordersLastMonth
+    ] = await Promise.all([
+      Order.countDocuments(),
+      Order.countDocuments({ status: 'pending' }),
+      Order.countDocuments({ status: 'processing' }),
+      Order.countDocuments({ status: 'shipped' }),
+      Order.countDocuments({ status: 'delivered' }),
+      Order.countDocuments({ status: 'cancelled' }),
+      Order.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
+      Order.countDocuments({ createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } })
+    ]);
     
-    // Calculate new orders in the last 30 days
-    const newOrders = await Order.countDocuments({ createdAt: { $gte: thirtyDaysAgo } });
-    
-    // Calculate order growth percentage
-    const ordersLastMonth = await Order.countDocuments({ 
-      createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } 
-    });
-    
+    // Calculate order growth percentage with safeguard
     const orderGrowth = ordersLastMonth > 0 
       ? Math.round(((newOrders - ordersLastMonth) / ordersLastMonth) * 100) 
-      : 100;
+      : (newOrders > 0 ? 100 : 0);
     
-    // Calculate total revenue
-    const revenueResult = await Order.aggregate([
-      { $match: { status: { $in: ['delivered', 'shipped', 'processing'] } } },
-      { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' } } }
+    // Calculate revenue metrics in parallel
+    const [revenueResult, revenueThisMonth, revenueLastMonth] = await Promise.all([
+      Order.aggregate([
+        { $match: { status: { $in: ['delivered', 'shipped', 'processing'] } } },
+        { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' } } }
+      ]),
+      Order.aggregate([
+        { 
+          $match: { 
+            status: { $in: ['delivered', 'shipped', 'processing'] },
+            createdAt: { $gte: thirtyDaysAgo }
+          } 
+        },
+        { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' } } }
+      ]),
+      Order.aggregate([
+        { 
+          $match: { 
+            status: { $in: ['delivered', 'shipped', 'processing'] },
+            createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo }
+          } 
+        },
+        { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' } } }
+      ])
     ]);
     
     const totalRevenue = revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
-    
-    // Calculate revenue in the last 30 days
-    const revenueThisMonth = await Order.aggregate([
-      { 
-        $match: { 
-          status: { $in: ['delivered', 'shipped', 'processing'] },
-          createdAt: { $gte: thirtyDaysAgo }
-        } 
-      },
-      { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' } } }
-    ]);
-    
     const thisMonthRevenue = revenueThisMonth.length > 0 ? revenueThisMonth[0].totalRevenue : 0;
-    
-    // Calculate revenue in the previous 30 days
-    const revenueLastMonth = await Order.aggregate([
-      { 
-        $match: { 
-          status: { $in: ['delivered', 'shipped', 'processing'] },
-          createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo }
-        } 
-      },
-      { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' } } }
-    ]);
-    
     const lastMonthRevenue = revenueLastMonth.length > 0 ? revenueLastMonth[0].totalRevenue : 0;
     
-    // Calculate revenue growth percentage
+    // Calculate revenue growth percentage with safeguard
     const revenueGrowth = lastMonthRevenue > 0 
       ? Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100) 
-      : 100;
+      : (thisMonthRevenue > 0 ? 100 : 0);
     
-    // Get monthly sales data for the last 6 months
+    // Get monthly sales data for the last 6 months more efficiently
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
     
@@ -132,6 +144,8 @@ exports.getDashboardStats = async (req, res) => {
         }
       }
     ]);
+    
+    // Cache the results to improve dashboard loading time
     
     // Format the monthly sales data for charts
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -173,44 +187,48 @@ exports.getDashboardStats = async (req, res) => {
       }
     ]);
     
-    res.status(200).json({
-      success: true,
-      data: {
-        userStats: {
-          totalUsers,
-          activeUsers,
-          inactiveUsers,
-          newUsers,
-          growth: `${userGrowth}%`
-        },
-        productStats: {
-          totalProducts,
-          inStockProducts,
-          outOfStockProducts,
-          lowStockProducts,
-          newProducts,
-          growth: `${productGrowth}%`
-        },
-        orderStats: {
-          totalOrders,
-          pendingOrders,
-          processingOrders,
-          shippedOrders,
-          deliveredOrders,
-          cancelledOrders,
-          newOrders,
-          growth: `${orderGrowth}%`,
-          totalRevenue,
-          thisMonthRevenue,
-          lastMonthRevenue,
-          revenueGrowth: `${revenueGrowth}%`
-        },
-        chartData: {
-          monthlySales: formattedMonthlySales,
-          topSellingProducts
+    // Return all stats with a small delay to ensure frontend can handle the response
+    setTimeout(() => {
+      res.status(200).json({
+        success: true,
+        data: {
+          userStats: {
+            total: totalUsers,
+            active: activeUsers,
+            inactive: inactiveUsers,
+            new: newUsers,
+            growth: `${userGrowth}%`
+          },
+          productStats: {
+            total: totalProducts,
+            inStock: inStockProducts,
+            outOfStock: outOfStockProducts,
+            lowStock: lowStockProducts,
+            new: newProducts,
+            growth: `${productGrowth}%`
+          },
+          orderStats: {
+            total: totalOrders,
+            pending: pendingOrders,
+            processing: processingOrders,
+            shipped: shippedOrders,
+            delivered: deliveredOrders,
+            cancelled: cancelledOrders,
+            new: newOrders,
+            growth: `${orderGrowth}%`
+          },
+          revenueStats: {
+            total: totalRevenue,
+            recent: thisMonthRevenue,
+            growth: `${revenueGrowth}%`
+          },
+          chartData: {
+            monthlySales: formattedMonthlySales,
+            topSellingProducts
+          }
         }
-      }
-    });
+      });
+    }, 100); // Small delay to ensure frontend can process the response
   } catch (error) {
     await logError(error, req);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });

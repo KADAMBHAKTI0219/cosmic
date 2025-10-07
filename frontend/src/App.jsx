@@ -32,6 +32,7 @@ import DashboardHome from './pages/dashboard/DashboardHome';
 import MyOrders from './pages/dashboard/MyOrders';
 import Profile from './pages/dashboard/Profile';
 import Settings from './pages/dashboard/Settings';
+import OrderDetails from './pages/dashboard/OrderDetails';
 
 // Admin Auth Context
 import { AdminAuthProvider } from './context/AdminAuthContext';
@@ -55,6 +56,7 @@ function App() {
             }>
               <Route index element={<DashboardHome />} />
               <Route path="my-orders" element={<MyOrders />} />
+              <Route path="orders/:id" element={<OrderDetails />} />
               <Route path="profile" element={<Profile />} />
               <Route path="settings" element={<Settings />} />
             </Route>

@@ -86,8 +86,15 @@ export const couponApi = {
 // Orders API
 export const ordersApi = {
   placeOrder: (orderData) => API.post('/orders', orderData),
-  getMyOrders: () => API.get('/orders'),
+  getMyOrders: (params = {}) => {
+    const { page = 1, limit = 5, status = '', search = '' } = params;
+    return API.get('/orders', { 
+      params: { page, limit, status, search } 
+    });
+  },
   getOrderById: (id) => API.get(`/orders/${id}`),
+  cancelOrder: (id) => API.put(`/orders/${id}/cancel`),
+  trackOrder: (id) => API.get(`/orders/${id}/track`),
 };
 
 // Wishlist API

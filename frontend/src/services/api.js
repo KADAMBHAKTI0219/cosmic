@@ -20,6 +20,7 @@ export const authApi = {
   verifyOtp: (data) => API.post('/auth/verify-otp', data),
   resendOtp: (data) => API.post('/auth/resend-otp', data),
   login: (credentials) => API.post('/auth/login', credentials),
+  getCurrentUser: () => API.get('/auth/me'),
   forgotPassword: (email) => API.post('/auth/forgot-password', { email }),
   resetPassword: (token, password) => API.post(`/auth/reset-password/${token}`, { password }),
   getProfile: (id) => API.get(`/auth/customers/${id}`),

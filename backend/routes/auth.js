@@ -9,6 +9,7 @@ const { resetPassword } = require('../controllers/auth/resetPassword');
 const { createAdmin } = require('../controllers/auth/createAdmin');
 const { verifyOtp } = require('../controllers/auth/verifyOtp');
 const { resendOtp } = require('../controllers/auth/resendOtp');
+const { getMe } = require('../controllers/auth/me');
 const { 
   getAllCustomers, 
   getCustomer, 
@@ -26,6 +27,7 @@ router.post('/resend-otp', resendOtp);
 router.post('/login', login);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:token', resetPassword);
+router.get('/me', protect, getMe); // Get current logged-in user
 
 router.post('/admin',createAdmin);//admin route
 router.post('/create-admin', protect, authorize('admin'), createAdmin); // Protected admin creation

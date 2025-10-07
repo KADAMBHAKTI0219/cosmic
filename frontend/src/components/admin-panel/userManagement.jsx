@@ -58,36 +58,46 @@ const UserManagement = () => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const params = {
-          page: pagination.page,
-          limit: pagination.limit,
-          search: searchTerm,
-          status: filters.status,
-          sortBy: filters.sortBy,
-          sortOrder: filters.sortOrder
-        };
         
-        const response = await userManagementApi.getAllUsers(params);
-        setUsers(response.data.data);
-        setPagination({
-          page: response.data.pagination.page,
-          limit: response.data.pagination.limit,
-          total: response.data.pagination.total,
-          pages: response.data.pagination.pages
-        });
-        setError(null);
+        // Fix: Pass individual parameters instead of the params object
+        const response = await userManagementApi.getAllUsers(
+          pagination.page,
+          pagination.limit,
+          {
+            search: searchTerm,
+            status: filters.status,
+            sortBy: filters.sortBy,
+            sortOrder: filters.sortOrder
+          }
+        );
+        
+        // Check if we have data and set it
+        if (response && response.data && response.data.data) {
+          setUsers(response.data.data);
+          setPagination({
+            page: response.data.pagination.page,
+            limit: response.data.pagination.limit,
+            total: response.data.pagination.total,
+            pages: response.data.pagination.pages
+          });
+          setError(null);
+        } else {
+          console.error('Invalid response format:', response);
+          setError('Failed to load users. Invalid response format.');
+        }
       } catch (err) {
         setError('Failed to load users. Please try again.');
         console.error('Error fetching users:', err);
+        toast.error('Failed to load users: ' + (err.response?.data?.message || err.message));
       } finally {
         setLoading(false);
       }
     };
     
-    if (adminToken) {
-      fetchUsers();
-    }
-  }, [pagination.page, pagination.limit, searchTerm, filters, adminToken]);
+    // Fetch users immediately when component mounts or dependencies change
+    fetchUsers();
+    
+  }, [pagination.page, pagination.limit, searchTerm, filters]);
   
   // Load user statistics
   useEffect(() => {

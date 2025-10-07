@@ -93,10 +93,22 @@ exports.login = async (req, res) => {
           success: true,
           token,
           user: {
+            _id: user._id,
             id: user._id,
             name: `${user.firstName} ${user.lastName}`,
+            firstName: user.firstName,
+            lastName: user.lastName,
             email: user.email,
-            role: user.role
+            role: user.role,
+            phone: user.phone,
+            address: user.address,
+            city: user.city,
+            state: user.state,
+            zipCode: user.zipCode,
+            country: user.country,
+            status: user.status,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
           }
         });
     }

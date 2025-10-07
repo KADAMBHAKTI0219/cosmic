@@ -129,13 +129,15 @@ const CouponsMangement = () => {
 
   const handleEdit = (coupon) => {
     setFormData({
-      code: coupon.code,
+      code: coupon.code || '',
       discountType: coupon.discountType || 'percentage',
-      discountValue: coupon.discountValue,
+      discountValue: coupon.discountValue || '',
+      minPurchase: coupon.minPurchase || '',
+      maxDiscount: coupon.maxDiscount || '',
       startDate: coupon.startDate?.split('T')[0] || '',
       endDate: coupon.endDate?.split('T')[0] || '',
       usageLimit: coupon.usageLimit || '',
-      isActive: coupon.isActive
+      isActive: coupon.isActive !== undefined ? coupon.isActive : true
     });
     setFormErrors({});
     setEditMode(true);
@@ -416,11 +418,26 @@ const CouponsMangement = () => {
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        coupon.isActive 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
+                      <button 
+                        onClick={async () => {
+                          try {
+                            await couponManagementApi.updateCoupon(coupon._id, {
+                              ...coupon,
+                              isActive: !coupon.isActive
+                            });
+                            toast.success(`Coupon ${!coupon.isActive ? 'activated' : 'deactivated'} successfully`);
+                            fetchCoupons();
+                          } catch (error) {
+                            console.error('Error toggling coupon status:', error);
+                            toast.error('Failed to update coupon status');
+                          }
+                        }}
+                        className={`px-2 py-1 rounded-full text-xs font-medium cursor-pointer ${
+                          coupon.isActive 
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                            : 'bg-red-100 text-red-800 hover:bg-red-200'
+                        }`}
+                      >
                         {coupon.isActive ? (
                           <span className="flex items-center">
                             <FaCheck className="mr-1" />
@@ -432,7 +449,7 @@ const CouponsMangement = () => {
                             Inactive
                           </span>
                         )}
-                      </span>
+                      </button>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex space-x-2">

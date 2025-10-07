@@ -26,6 +26,13 @@ import AdminLogin from './pages/auth/AdminLogin';
 // Admin Panel Components
 import AdminRoutes from './components/admin-panel/AdminRoutes';
 
+// Dashboard Components
+import DashboardLayout from './layouts/DashboardLayout';
+import DashboardHome from './pages/dashboard/DashboardHome';
+import MyOrders from './pages/dashboard/MyOrders';
+import Profile from './pages/dashboard/Profile';
+import Settings from './pages/dashboard/Settings';
+
 // Admin Auth Context
 import { AdminAuthProvider } from './context/AdminAuthContext';
 import CheckoutPage from './components/products/CheckoutPage';
@@ -39,6 +46,18 @@ function App() {
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/*" element={<AdminRoutes />} />
+            
+            {/* Dashboard Routes */}
+            <Route path="/dashboard" element={
+              <>
+                <DashboardLayout />
+              </>
+            }>
+              <Route index element={<DashboardHome />} />
+              <Route path="my-orders" element={<MyOrders />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
             
             {/* Public Routes */}
             <Route path="*" element={

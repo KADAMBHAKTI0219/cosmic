@@ -58,38 +58,91 @@ const LoginModal = ({ isOpen, onClose }) => {
     
     try {
       setLoading(true);
-      const response = await authApi.login(credentials);
       
-      // Store user data and token in localStorage
-      localStorage.setItem('token', response.data.token);
+      // Trim whitespace from email and password
+      const trimmedCredentials = {
+        email: credentials.email.trim(),
+        password: credentials.password.trim()
+      };
       
-      // Make sure user data exists before storing and using it
-      if (response.data && response.data.user) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+      console.log('Attempting login with:', { email: trimmedCredentials.email });
+      const response = await authApi.login(trimmedCredentials);
+      
+      // Store token in localStorage
+      if (response.data && response.data.token) {
+        localStorage.setItem('token', response.data.token);
         
-        // Show success message
-        toast.success('Login successful');
-        
-        // Redirect based on user role
-        if (response.data.user.role === 'admin') {
-          console.log('Admin login detected, redirecting to admin dashboard');
-          navigate('/admin');
-        } else {
-          console.log('User login detected, redirecting to home page');
-          navigate('/');
+        // If user data is available in the response, use it directly
+        if (response.data.user) {
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+          
+          // Show success message
+          toast.success('Login successful');
+          
+          // Redirect based on user role
+          if (response.data.user.role === 'admin') {
+            console.log('Admin login detected, redirecting to admin dashboard');
+            navigate('/admin');
+          } else {
+            console.log('User login detected, redirecting to home page');
+            navigate('/');
+          }
+          
+          // Close the modal after successful login
+          onClose();
+        } 
+        // If user data is missing or incomplete, fetch it from /me endpoint
+        else {
+          try {
+            const userResponse = await authApi.getCurrentUser();
+            if (userResponse.data && userResponse.data.data) {
+              localStorage.setItem('user', JSON.stringify(userResponse.data.data));
+              
+              // Show success message
+              toast.success('Login successful');
+              
+              // Redirect based on user role
+              if (userResponse.data.data.role === 'admin') {
+                console.log('Admin login detected, redirecting to admin dashboard');
+                navigate('/admin');
+              } else {
+                console.log('User login detected, redirecting to home page');
+                navigate('/');
+              }
+              
+              // Close the modal after successful login
+              onClose();
+            } else {
+              throw new Error('User data not found');
+            }
+          } catch (userError) {
+            console.error('Error fetching user data:', userError);
+            toast.error('Login successful but unable to fetch user data');
+            localStorage.removeItem('token');
+            navigate('/');
+            onClose();
+          }
         }
       } else {
-        // Handle case when user data is missing
-        console.error('Login response missing user data');
-        toast.error('Login successful but user data is incomplete');
-        navigate('/');
+        throw new Error('Token not found in response');
       }
-      
-      // Close the modal after successful login
-      onClose();
     } catch (error) {
       console.error('Login error:', error);
-      toast.error(error.response?.data?.message || 'Error occurred during login');
+      
+      // Provide more specific error messages based on the error
+      if (error.response) {
+        if (error.response.status === 401) {
+          toast.error('Invalid email or password. Please check your credentials and try again.');
+        } else if (error.response.data && error.response.data.message) {
+          toast.error(error.response.data.message);
+        } else {
+          toast.error('Login failed. Please try again.');
+        }
+      } else if (error.request) {
+        toast.error('Server not responding. Please check your internet connection.');
+      } else {
+        toast.error('An error occurred. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }

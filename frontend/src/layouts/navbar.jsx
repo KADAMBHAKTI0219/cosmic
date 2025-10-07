@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import SearchModal from '../components/SearchModal';
 import CartPopup from '../components/CartPopup';
@@ -117,7 +117,7 @@ const Navbar = () => {
 
   return (
     <nav className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
-      <div className="container mx-auto px-2 sm:px-4">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4">
         <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
@@ -127,7 +127,7 @@ const Navbar = () => {
           </div>
 
           {/* Desktop menu */}
-          <div className="hidden lg:flex lg:items-center lg:space-x-1 xl:space-x-4 flex-grow justify-center overflow-x-auto no-scrollbar">
+          <div className="hidden lg:flex lg:items-center lg:space-x-1 xl:space-x-3 justify-center max-w-4xl mx-auto">
             {/* Product Categories */}
             {categories.map((category, index) => (
               <div key={index} className="relative group">
@@ -145,12 +145,13 @@ const Navbar = () => {
                 
                 {/* Dropdown Menu */}
                 {category.dropdown && (
-                  <div className="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-10 hidden group-hover:block border border-gray-100">
+                  <div className="absolute left-1/2 transform -translate-x-1/2 mt-0 w-64 bg-white rounded-md shadow-lg py-2 z-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100 top-full">
+                    <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 rotate-45 bg-white border-t border-l border-gray-100"></div>
                     {category.dropdown.map((item, idx) => (
                       <Link
                         key={idx}
                         to={item.path}
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-main transition-colors"
                       >
                         {item.name}
                       </Link>
@@ -191,31 +192,83 @@ const Navbar = () => {
               {isCartOpen && <CartPopup isOpen={isCartOpen} onClose={toggleCart} />}
             </div>
             
-            {/* User Icon (replaces Login button on mobile) */}
-            <button 
-              onClick={isLoggedIn ? handleLogout : toggleLogin} 
-              className={`p-1 sm:p-2 ${isLoggedIn ? 'text-red-600 hover:text-red-700' : 'text-gray-700 hover:text-main'} rounded-full hover:bg-gray-100 lg:hidden`}
-              aria-label={isLoggedIn ? "Logout" : "Login"}
-            >
+            {/* User Icon (for mobile) */}
+            <div className="lg:hidden">
               {isLoggedIn ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
+                <div className="relative">
+                  <button 
+                    onClick={toggleMenu}
+                    className="p-1 sm:p-2 text-gray-700 hover:text-main rounded-full hover:bg-gray-100"
+                    aria-label="Profile"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </button>
+                </div>
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+                <button 
+                  onClick={toggleLogin}
+                  className="p-1 sm:p-2 text-gray-700 hover:text-main rounded-full hover:bg-gray-100"
+                  aria-label="Login"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </button>
               )}
-            </button>
+            </div>
             
-            {/* Login/Logout Button (desktop only) */}
+            {/* Profile Dropdown or Login Button (desktop only) */}
             {isLoggedIn ? (
-              <button onClick={handleLogout} className="hidden lg:flex ml-2 px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 items-center text-sm">
-                Logout
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              </button>
+              <div className="hidden lg:block relative group">
+                <button className="flex items-center ml-2 px-3 py-1.5 bg-main text-white rounded-md hover:bg-main-dark text-sm">
+                  {user?.name || 'Profile'}
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {/* Profile Dropdown Menu */}
+                <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg py-1 z-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 border border-gray-100">
+                  <div className="px-4 py-2 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                  </div>
+                  
+                  {user?.role === 'admin' ? (
+                    <>
+                      <Link to="/admin/dashboard" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-main">
+                        Admin Dashboard
+                      </Link>
+                      <Link to="/admin/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-main">
+                        Settings
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link to="/dashboard" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-main">
+                        Dashboard
+                      </Link>
+                      <Link to="/dashboard/my-orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-main">
+                        My Orders
+                      </Link>
+                      <Link to="/dashboard/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-main">
+                        Profile
+                      </Link>
+                      <Link to="/dashboard/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-main">
+                        Settings
+                      </Link>
+                    </>
+                  )}
+                  
+                  <div className="border-t border-gray-100">
+                    <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 hover:text-red-700">
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              </div>
             ) : (
               <button onClick={toggleLogin} className="hidden lg:flex ml-2 px-3 py-1.5 bg-main text-white rounded-md hover:bg-main-dark items-center text-sm">
                 Login
@@ -278,6 +331,51 @@ const Navbar = () => {
         id="mobile-menu"
       >
         <div className="px-2 pt-2 pb-3 bg-white border-t border-gray-200">
+          {/* User Profile Section (if logged in) */}
+          {isLoggedIn && (
+            <div className="mb-3 px-3 py-2 border-b border-gray-200">
+              <div className="flex items-center mb-2">
+                <div className="h-10 w-10 rounded-full bg-main text-white flex items-center justify-center mr-3">
+                  {user?.name?.charAt(0) || 'U'}
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">{user?.name || 'User'}</p>
+                  <p className="text-xs text-gray-500">{user?.email || ''}</p>
+                </div>
+              </div>
+              
+              {user?.role === 'admin' ? (
+                <div className="space-y-1 mt-2">
+                  <Link to="/admin/dashboard" className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100 hover:text-main" onClick={toggleMenu}>
+                    Admin Dashboard
+                  </Link>
+                  <Link to="/admin/settings" className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100 hover:text-main" onClick={toggleMenu}>
+                    Settings
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-1 mt-2">
+                  <Link to="/dashboard" className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100 hover:text-main" onClick={toggleMenu}>
+                    Dashboard
+                  </Link>
+                  <Link to="/dashboard/my-orders" className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100 hover:text-main" onClick={toggleMenu}>
+                    My Orders
+                  </Link>
+                  <Link to="/dashboard/profile" className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100 hover:text-main" onClick={toggleMenu}>
+                    Profile
+                  </Link>
+                  <Link to="/dashboard/settings" className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100 hover:text-main" onClick={toggleMenu}>
+                    Settings
+                  </Link>
+                </div>
+              )}
+              
+              <button onClick={() => {handleLogout(); toggleMenu();}} className="w-full mt-2 px-3 py-2 text-left rounded-md text-red-600 hover:bg-gray-100 hover:text-red-700">
+                Logout
+              </button>
+            </div>
+          )}
+          
           {/* Product Categories in mobile view */}
           {categories.map((category, index) => (
             <div key={index} className="mb-1">

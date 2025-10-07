@@ -522,24 +522,24 @@ const ProductDetails = () => {
                 </li>
                 {productData.categoryId && (
                   <li className="flex items-start text-xs">
-                    <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                    <FaCheck className="w-3 h-3 text-main mt-0.5 mr-2 flex-shrink-0" />
                     <span className="text-gray-700"><strong>Category:</strong> {productData.categoryId.name}</span>
                   </li>
                 )}
                 <li className="flex items-start text-xs">
-                  <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <FaCheck className="w-3 h-3 text-main mt-0.5 mr-2 flex-shrink-0" />
                   <span className="text-gray-700"><strong>Stock Status:</strong> {productData.isOutOfStock ? 'Out of Stock' : 'In Stock'}</span>
                 </li>
                 <li className="flex items-start text-xs">
-                  <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <FaCheck className="w-3 h-3 text-main mt-0.5 mr-2 flex-shrink-0" />
                   <span className="text-gray-700"><strong>Product ID:</strong> {productData._id}</span>
                 </li>
                 <li className="flex items-start text-xs">
-                  <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <FaCheck className="w-3 h-3 text-main mt-0.5 mr-2 flex-shrink-0" />
                   <span className="text-gray-700"><strong>Added On:</strong> {new Date(productData.createdAt).toLocaleDateString()}</span>
                 </li>
                 <li className="flex items-start text-xs">
-                  <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <FaCheck className="w-3 h-3 text-main mt-0.5 mr-2 flex-shrink-0" />
                   <span className="text-gray-700"><strong>Last Updated:</strong> {new Date(productData.updatedAt).toLocaleDateString()}</span>
                 </li>
               </ul>

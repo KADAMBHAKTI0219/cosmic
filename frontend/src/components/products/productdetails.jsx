@@ -245,7 +245,7 @@ const ProductDetails = () => {
       <nav className="flex bg-gray-50 p-2 rounded-lg shadow-sm mb-4" aria-label="Breadcrumb">
         <ol className="inline-flex items-center space-x-1 md:space-x-2 text-sm">
           <li className="inline-flex items-center">
-            <a href="/" className="flex items-center text-gray-700 hover:text-green-600">
+            <a href="/" className="flex items-center text-gray-700 hover:text-main">
               <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                 <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
               </svg>
@@ -257,7 +257,7 @@ const ProductDetails = () => {
               <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                 <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
               </svg>
-              <a href="/solar-module" className="text-gray-700 hover:text-green-600 ml-1 md:ml-2">Solar Panel</a>
+              <a href="/solar-module" className="text-gray-700 hover:text-main ml-1 md:ml-2">Solar Panel</a>
             </div>
           </li>
           <li aria-current="page">
@@ -281,7 +281,7 @@ const ProductDetails = () => {
                 {productData.images.slice(0, 5).map((image, index) => (
                   <div 
                     key={index} 
-                    className={`h-14 overflow-hidden bg-gray-100 flex items-center justify-center p-1 rounded cursor-pointer border ${activeImage === index ? 'border-green-500' : 'border-gray-200 hover:border-green-300'}`}
+                    className={`h-14 overflow-hidden bg-gray-100 flex items-center justify-center p-1 rounded cursor-pointer border ${activeImage === index ? 'border-main' : 'border-gray-200 hover:border-main'}`}
                     onClick={() => handleImageChange(index)}
                   >
                     <img 
@@ -324,7 +324,7 @@ const ProductDetails = () => {
           
           {/* Share Button */}
           <div className="flex justify-between mt-3">
-            <button className="flex items-center text-sm text-gray-600 hover:text-green-600 transition-colors">
+            <button className="flex items-center text-sm text-gray-600 hover:text-main transition-colors">
               <FaShareAlt className="w-4 h-4 mr-1" />
               Share
             </button>
@@ -355,7 +355,7 @@ const ProductDetails = () => {
                   <span className="text-base text-gray-500 line-through ml-2">₹{productData.originalPrice.toLocaleString()}</span>
                 )}
                 {productData.discount && (
-                  <span className="ml-2 bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded">
+                  <span className="ml-2 bg-main-light text-main text-xs font-medium px-2 py-0.5 rounded">
                     Save ₹{productData.discount.toLocaleString()}
                   </span>
                 )}
@@ -374,7 +374,7 @@ const ProductDetails = () => {
                     <div 
                       key={index}
                       onClick={() => handleEmiSelect(index)}
-                      className={`cursor-pointer border ${selectedEmi === index ? 'border-green-500 bg-green-50' : 'border-gray-200'} rounded p-2 text-center hover:border-green-300 transition-colors`}
+                      className={`cursor-pointer border ${selectedEmi === index ? 'border-main bg-main-light' : 'border-gray-200'} rounded p-2 text-center hover:border-main transition-colors`}
                     >
                       <p className="text-xs font-medium text-gray-800">{emi.months}m</p>
                       <p className="text-xs text-gray-600">₹{emi.amount}/mo</p>
@@ -384,7 +384,7 @@ const ProductDetails = () => {
                   <div className="col-span-6 text-sm text-gray-500">No EMI options available</div>
                 )}
               </div>
-              <div className="flex items-center text-xs text-green-600">
+              <div className="flex items-center text-xs text-main">
                 <FaInfoCircle className="w-3 h-3 mr-1" />
                 No Cost EMI available on select cards
               </div>
@@ -393,8 +393,8 @@ const ProductDetails = () => {
             {/* Stock Status */}
             <div className="mb-4 flex items-center">
               {productData.inStock ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                  <svg className="-ml-0.5 mr-1 h-2 w-2 text-green-400" fill="currentColor" viewBox="0 0 8 8">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-main-light text-main">
+                  <svg className="-ml-0.5 mr-1 h-2 w-2 text-main" fill="currentColor" viewBox="0 0 8 8">
                     <circle cx="4" cy="4" r="3" />
                   </svg>
                   In Stock
@@ -440,7 +440,7 @@ const ProductDetails = () => {
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <button 
-                className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded transition-colors duration-200 flex items-center justify-center text-sm"
+                className="bg-main hover:bg-main-dark text-white font-medium py-2 px-4 rounded transition-colors duration-200 flex items-center justify-center text-sm"
                 onClick={handleAddToCart}
                 disabled={product?.isOutOfStock}
               >
@@ -450,7 +450,7 @@ const ProductDetails = () => {
               <button 
                 onClick={handleBuyNow}
                 disabled={product?.isOutOfStock}
-                className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded transition-colors duration-200 flex items-center justify-center text-sm"
+                className="bg-main hover:bg-main-dark text-white font-medium py-2 px-4 rounded transition-colors duration-200 flex items-center justify-center text-sm"
               >
                 <FaBolt className="w-4 h-4 mr-2" />
                 Buy Now
@@ -459,22 +459,22 @@ const ProductDetails = () => {
             
             {/* Secure Transaction */}
             <div className="flex items-center justify-center mb-4 text-xs text-gray-600 bg-gray-50 py-2 rounded">
-              <FaUserShield className="w-3 h-3 mr-1 text-green-600" />
+              <FaUserShield className="w-3 h-3 mr-1 text-main" />
               100% Secure transaction
             </div>
             
             {/* Services */}
             <div className="grid grid-cols-3 gap-2 mb-4">
               <div className="flex flex-col items-center p-2 bg-white rounded border border-gray-200">
-                <FaShippingFast className="w-5 h-5 text-green-600 mb-1" />
+                <FaShippingFast className="w-5 h-5 text-main mb-1" />
                 <span className="text-xs text-center text-gray-700">Free Delivery</span>
               </div>
               <div className="flex flex-col items-center p-2 bg-white rounded border border-gray-200">
-                <FaRegCreditCard className="w-5 h-5 text-green-600 mb-1" />
+                <FaRegCreditCard className="w-5 h-5 text-main mb-1" />
                 <span className="text-xs text-center text-gray-700">Pay on Delivery</span>
               </div>
               <div className="flex flex-col items-center p-2 bg-white rounded border border-gray-200">
-                <FaShieldAlt className="w-5 h-5 text-green-600 mb-1" />
+                <FaShieldAlt className="w-5 h-5 text-main mb-1" />
                 <span className="text-xs text-center text-gray-700">Warranty</span>
               </div>
             </div>
@@ -500,7 +500,7 @@ const ProductDetails = () => {
                 <input 
                   type="text" 
                   placeholder="Enter pincode" 
-                  className="w-full border border-gray-300 rounded-l py-1.5 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
+                  className="w-full border border-gray-300 rounded-l py-1.5 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-main"
                 />
                 <button className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-1.5 px-3 rounded-r border border-l-0 border-gray-300 text-sm">
                   Check
@@ -513,11 +513,11 @@ const ProductDetails = () => {
               <h3 className="text-sm font-medium text-gray-700 mb-2">Product Details</h3>
               <ul className="grid grid-cols-1 gap-2">
                 <li className="flex items-start text-xs">
-                  <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <FaCheck className="w-3 h-3 text-main mt-0.5 mr-2 flex-shrink-0" />
                   <span className="text-gray-700"><strong>Price:</strong> ₹{productData.price}</span>
                 </li>
                 <li className="flex items-start text-xs">
-                  <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <FaCheck className="w-3 h-3 text-main mt-0.5 mr-2 flex-shrink-0" />
                   <span className="text-gray-700"><strong>Stock:</strong> {productData.stock} units available</span>
                 </li>
                 {productData.categoryId && (

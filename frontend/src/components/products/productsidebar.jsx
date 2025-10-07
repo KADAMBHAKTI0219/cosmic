@@ -189,11 +189,11 @@ const ProductSidebar = ({ onFilterChange }) => {
       {/* Header with filter count */}
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
         <h2 className="text-lg font-bold text-gray-800 flex items-center">
-          <FaFilter className="mr-2 text-green-600" />
+          <FaFilter className="mr-2 text-main" />
           Filters
         </h2>
         {activeFilters.length > 0 && (
-          <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
+          <span className="bg-main-light text-main text-xs font-medium px-2 py-1 rounded-full">
             {activeFilters.length}
           </span>
         )}
@@ -206,7 +206,7 @@ const ProductSidebar = ({ onFilterChange }) => {
           onClick={() => toggleSection('search')}
         >
           <h3 className="text-sm font-semibold text-gray-700 flex items-center">
-            <FaSearch className="mr-2 text-green-600" />
+            <FaSearch className="mr-2 text-main" />
             Search Products
           </h3>
           <button className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 text-gray-700">
@@ -229,7 +229,7 @@ const ProductSidebar = ({ onFilterChange }) => {
                     <input
                       type="text"
                       placeholder="Search products..."
-                      className="w-full p-2 pl-8 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-200 focus:border-green-500 transition"
+                      className="w-full p-2 pl-8 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-main-light focus:border-main transition"
                       value={searchQuery}
                       onChange={handleSearchChange}
                       onKeyPress={(e) => e.key === 'Enter' && applySearch()}
@@ -240,7 +240,7 @@ const ProductSidebar = ({ onFilterChange }) => {
               </div>
               <button
                 onClick={applySearch}
-                className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 px-3 rounded text-sm transition-colors"
+                className="w-full bg-main hover:bg-main-dark text-white py-1.5 px-3 rounded text-sm transition-colors"
               >
                 Search
               </button>
@@ -256,7 +256,7 @@ const ProductSidebar = ({ onFilterChange }) => {
             <h3 className="text-sm font-medium text-gray-700">Active Filters</h3>
             <button 
               onClick={resetAllFilters}
-              className="text-xs text-green-600 hover:text-green-800 font-medium"
+              className="text-xs text-main hover:text-main-dark font-medium"
             >
               Clear All
             </button>
@@ -287,7 +287,7 @@ const ProductSidebar = ({ onFilterChange }) => {
           onClick={() => toggleSection('category')}
         >
           <h3 className="text-sm font-semibold text-gray-700 flex items-center">
-            <FaBoxOpen className="mr-2 text-green-600" />
+            <FaBoxOpen className="mr-2 text-main" />
             Categories
           </h3>
           <button className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 text-gray-700">
@@ -314,7 +314,7 @@ const ProductSidebar = ({ onFilterChange }) => {
                         name="category"
                         checked={selectedCategory === category._id}
                         onChange={() => handleCategoryChange(category._id)}
-                        className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                        className="w-4 h-4 text-main border-gray-300 rounded focus:ring-main"
                       />
                       <label
                         htmlFor={`category-${category._id}`}
@@ -349,7 +349,7 @@ const ProductSidebar = ({ onFilterChange }) => {
           onClick={() => toggleSection('price')}
         >
           <h3 className="text-sm font-semibold text-gray-700 flex items-center">
-            <FaTag className="mr-2 text-green-600" />
+            <FaTag className="mr-2 text-main" />
             Price Range
           </h3>
           <button className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 text-gray-700">
@@ -374,7 +374,7 @@ const ProductSidebar = ({ onFilterChange }) => {
                     <input
                       type="text"
                       placeholder="0"
-                      className="w-full p-2 pl-6 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-200 focus:border-green-500 transition"
+                      className="w-full p-2 pl-6 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-main-light focus:border-main transition"
                       value={priceRange.min}
                       onChange={(e) => handlePriceChange(e, 'min')}
                     />
@@ -395,7 +395,7 @@ const ProductSidebar = ({ onFilterChange }) => {
                 </div>
               </div>
               <button 
-                className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition text-sm font-medium flex items-center justify-center"
+                className="w-full bg-main text-white py-2 rounded hover:bg-main-dark transition text-sm font-medium flex items-center justify-center"
                 onClick={applyPriceFilter}
               >
                 Apply
@@ -432,7 +432,7 @@ const ProductSidebar = ({ onFilterChange }) => {
               {[5, 4, 3, 2, 1].map((rating) => (
                 <div 
                   key={rating} 
-                  className={`flex items-center p-2 rounded cursor-pointer transition-colors ${selectedRating === rating ? 'bg-green-50 border border-green-200' : 'hover:bg-gray-50'}`}
+                  className={`flex items-center p-2 rounded cursor-pointer transition-colors ${selectedRating === rating ? 'bg-main-light border border-main' : 'hover:bg-gray-50'}`}
                   onClick={() => handleRatingChange(rating)}
                 >
                   <div className="flex items-center text-sm">
@@ -471,12 +471,12 @@ const ProductSidebar = ({ onFilterChange }) => {
               className="px-1"
             >
               <div 
-                className={`flex items-center p-2 rounded cursor-pointer transition-colors ${inStock ? 'bg-green-50 border border-green-200' : 'hover:bg-gray-50'}`}
+                className={`flex items-center p-2 rounded cursor-pointer transition-colors ${inStock ? 'bg-main-light border border-main' : 'hover:bg-gray-50'}`}
                 onClick={handleStockChange}
               >
                 <div className="w-5 h-5 flex items-center justify-center mr-2">
                   {inStock ? (
-                    <div className="w-4 h-4 bg-green-600 rounded-sm flex items-center justify-center">
+                    <div className="w-4 h-4 bg-main rounded-sm flex items-center justify-center">
                       <FaCheck className="text-white text-xs" />
                     </div>
                   ) : (
@@ -497,7 +497,7 @@ const ProductSidebar = ({ onFilterChange }) => {
           onClick={() => toggleSection('discount')}
         >
           <h3 className="text-sm font-semibold text-gray-700 flex items-center">
-            <FaPercent className="mr-2 text-green-600" />
+            <FaPercent className="mr-2 text-main" />
             Discount
           </h3>
           <button className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 text-gray-700">

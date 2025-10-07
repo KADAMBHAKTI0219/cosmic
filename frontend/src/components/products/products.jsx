@@ -139,7 +139,7 @@ const Products = () => {
           <nav className="flex py-2 overflow-x-auto" aria-label="Breadcrumb">
             <ol className="inline-flex items-center space-x-1 sm:space-x-3 whitespace-nowrap">
               <li className="inline-flex items-center">
-                <a href="/" className="flex items-center text-gray-700 hover:text-green-600 transition-colors">
+                <a href="/" className="flex items-center text-gray-700 hover:text-main transition-colors">
                   <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                     <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
                   </svg>
@@ -151,7 +151,7 @@ const Products = () => {
                   <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                     <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
                   </svg>
-                  <a href="/solar-module" className="ml-1 text-sm sm:text-base text-gray-700 hover:text-green-600 sm:ml-2 font-medium transition-colors">Solar Module</a>
+                  <a href="/solar-module" className="ml-1 text-sm sm:text-base text-gray-700 hover:text-main sm:ml-2 font-medium transition-colors">Solar Module</a>
                 </div>
               </li>
               <li aria-current="page">
@@ -177,7 +177,7 @@ const Products = () => {
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  className="w-full border border-gray-300 rounded-lg py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                  className="w-full border border-gray-300 rounded-lg py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-main focus:border-transparent transition-all"
                 />
                 <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 {searchQuery && (
@@ -198,7 +198,7 @@ const Products = () => {
                 <select
                   value={sortOption}
                   onChange={handleSortChange}
-                  className="appearance-none w-full bg-white border border-gray-300 rounded-lg py-2 px-4 pr-8 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all cursor-pointer"
+                  className="appearance-none w-full bg-white border border-gray-300 rounded-lg py-2 px-4 pr-8 focus:outline-none focus:ring-2 focus:ring-main focus:border-transparent transition-all cursor-pointer"
                 >
                   <option value="featured">Featured</option>
                   <option value="price-low">Price: Low to High</option>
@@ -215,7 +215,7 @@ const Products = () => {
             {/* Mobile Filter Toggle */}
             <button
               onClick={toggleMobileFilters}
-              className="md:hidden flex items-center justify-center bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors"
+              className="md:hidden flex items-center justify-center bg-main hover:bg-main-dark text-white py-2 px-4 rounded-lg transition-colors"
             >
               <FaFilter className="mr-2" />
               <span>Filters</span>
@@ -248,7 +248,7 @@ const Products = () => {
                   <div className="p-4 border-t">
                     <button
                       onClick={toggleMobileFilters}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors"
+                      className="w-full bg-main hover:bg-main-dark text-white py-2 rounded-lg transition-colors"
                     >
                       Apply Filters
                     </button>
@@ -270,7 +270,7 @@ const Products = () => {
           <div className="flex-grow">
             {loading ? (
               <div className="bg-white rounded-lg shadow-sm p-8 flex flex-col items-center justify-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mb-4"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-main mb-4"></div>
                 <p className="text-gray-500 animate-pulse">Loading products...</p>
               </div>
             ) : products.length > 0 ? (
@@ -295,21 +295,21 @@ const Products = () => {
                         disabled={currentPage === 1}
                         className={`px-3 py-1 rounded-l-md border ${currentPage === 1 
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                          : 'bg-white text-green-600 hover:bg-green-50'}`}
+                          : 'bg-white text-main hover:bg-main-light'}`}
                       >
                         Previous
                       </button>
                       
                       {[...Array(totalPages).keys()].map(page => (
                         <button
-                          key={page + 1}
-                          onClick={() => setCurrentPage(page + 1)}
-                          className={`px-3 py-1 border-t border-b ${
-                            currentPage === page + 1
-                              ? 'bg-green-600 text-white'
-                              : 'bg-white text-gray-700 hover:bg-green-50'
-                          }`}
-                        >
+                        key={page + 1}
+                        onClick={() => setCurrentPage(page + 1)}
+                        className={`px-3 py-1 border-t border-b ${
+                          currentPage === page + 1
+                            ? 'bg-main text-white'
+                            : 'bg-white text-gray-700 hover:bg-main-light'
+                        }`}
+                      >
                           {page + 1}
                         </button>
                       ))}
@@ -319,7 +319,7 @@ const Products = () => {
                         disabled={currentPage === totalPages}
                         className={`px-3 py-1 rounded-r-md border ${currentPage === totalPages
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-white text-green-600 hover:bg-green-50'}`}
+                          : 'bg-white text-main hover:bg-main-light'}`}
                       >
                         Next
                       </button>
@@ -346,7 +346,7 @@ const Products = () => {
                     setSearchQuery('');
                     setSortOption('featured');
                   }}
-                  className="bg-green-600 hover:bg-green-700 text-white py-2 px-6 rounded-lg transition-colors inline-flex items-center"
+                  className="bg-main hover:bg-main-dark text-white py-2 px-6 rounded-lg transition-colors inline-flex items-center"
                 >
                   <FaTimes className="mr-2" />
                   Clear All Filters

@@ -119,7 +119,7 @@ const ProductGrid = ({ products, loading }) => {
                 )}
               </div>
               {product.freeShipping && (
-                <span className="text-xs text-green-600 flex items-center">
+                <span className="text-xs text-main flex items-center">
                   <FaTruck className="mr-1" /> Free Shipping
                 </span>
               )}
@@ -132,7 +132,7 @@ const ProductGrid = ({ products, loading }) => {
                 className={`flex-1 py-2 px-3 rounded-md text-sm font-medium flex items-center justify-center ${
                   product.isOutOfStock
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-main text-white hover:bg-main-dark'
                 }`}
               >
                 <FaShoppingCart className="mr-1" /> Add to Cart

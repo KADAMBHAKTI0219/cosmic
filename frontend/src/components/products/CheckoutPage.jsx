@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaLock } from 'react-icons/fa';
 import { cartApi, ordersApi } from '../../services/api';
+import GuestCheckout from '../checkout/GuestCheckout';
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
@@ -9,6 +10,10 @@ const CheckoutPage = () => {
   const [loading, setLoading] = useState(true);
   const [orderLoading, setOrderLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
+  const [showGuestCheckout, setShowGuestCheckout] = useState(false);
+  const [verifiedEmail, setVerifiedEmail] = useState('');
+  const [verificationOtp, setVerificationOtp] = useState('');
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -69,13 +74,14 @@ const CheckoutPage = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     
     if (orderLoading) return;
     
+    setOrderLoading(true);
+    setError(null);
+    
     try {
-      setOrderLoading(true);
-      
       // Create order payload
       const orderData = {
         shippingAddress: {
@@ -92,8 +98,29 @@ const CheckoutPage = () => {
         shippingFee: calculateShipping()
       };
       
-      // Place order
-      const response = await ordersApi.placeOrder(orderData);
+      let response;
+      
+      // Handle guest checkout or logged-in user checkout
+      if (!isLoggedIn) {
+        if (!verifiedEmail || !verificationOtp) {
+          setShowGuestCheckout(true);
+          setOrderLoading(false);
+          return;
+        }
+        
+        // Place order as guest with verified email
+        response = await ordersApi.verifyEmailAndPlaceOrder({
+          email: verifiedEmail,
+          otp: verificationOtp,
+          shippingAddress: orderData.shippingAddress,
+          paymentMethod: formData.paymentMethod,
+          totalAmount: calculateTotal(),
+          shippingFee: calculateShipping()
+        });
+      } else {
+        // Place order as logged-in user
+        response = await ordersApi.placeOrder(orderData);
+      }
       
       if (response.data.success) {
         // Clear cart after successful order
@@ -106,10 +133,20 @@ const CheckoutPage = () => {
       }
     } catch (error) {
       console.error('Error placing order:', error);
-      setError('Failed to place order. Please try again.');
+      setError(error.response?.data?.message || 'Failed to place order. Please try again.');
     } finally {
       setOrderLoading(false);
     }
+  };
+  
+  const handleGuestVerification = (email, otp) => {
+    setVerifiedEmail(email);
+    setVerificationOtp(otp);
+    setShowGuestCheckout(false);
+    setFormData({
+      ...formData,
+      email: email
+    });
   };
 
   if (loading) {
@@ -129,6 +166,15 @@ const CheckoutPage = () => {
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
           {error}
+        </div>
+      )}
+      
+      {showGuestCheckout && (
+        <div className="mb-6">
+          <GuestCheckout 
+            onVerified={handleGuestVerification}
+            onCancel={() => setShowGuestCheckout(false)}
+          />
         </div>
       )}
       

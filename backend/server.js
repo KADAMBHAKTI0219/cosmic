@@ -15,15 +15,14 @@ connectDB();
 // Initialize main app
 const app = express();
 
-// Initialize uploads server
-const uploadsApp = express();
-
 // Middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 app.use(cors({
   origin: [process.env.CLIENT_URL || 'http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174'],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'HEAD'],
+  exposedHeaders: ['Content-Length', 'Content-Type']
 }));
 
 // Apply security middleware
@@ -61,36 +60,19 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Configure uploads server
-uploadsApp.use(cors({
-  origin: '*',  // Allow all origins for image access
-  credentials: true,
-  methods: ['GET', 'HEAD'],
-  exposedHeaders: ['Content-Length', 'Content-Type']
-}));
-
 // Set proper headers for static files
-uploadsApp.use('/uploads', (req, res, next) => {
+app.use('/uploads', (req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
 }, express.static(path.join(__dirname, 'uploads')));
 
 // Add direct access to uploads folder
-uploadsApp.use(express.static(path.join(__dirname)));
-
-uploadsApp.get('/', (req, res) => {
-  res.send('Uploads server is running...');
-});
+app.use(express.static(path.join(__dirname)));
 
 // Start main server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Main server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
-
-// Start uploads server
-const UPLOAD_PORT = process.env.UPLOAD_PORT || 3001;
-uploadsApp.listen(UPLOAD_PORT, () => {
-  console.log(`Uploads server running on port ${UPLOAD_PORT}`);
+  console.log(`Uploads are now being served on the main server (port ${PORT})`);
 });

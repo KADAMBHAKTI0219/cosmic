@@ -21,8 +21,8 @@ exports.createProduct = async (req, res) => {
     // Process uploaded images
     let productImages = [];
     if (req.files && req.files.length > 0) {
-      const uploadUrl = process.env.UPLOAD_URL || 'http://localhost:3001';
-      productImages = req.files.map(file => `${uploadUrl}/uploads/products/${file.filename}`);
+      const uploadUrl = process.env.UPLOAD_URL || 'http://localhost:5000';
+      productImages = req.files.map(file => `/uploads/products/${file.filename}`);
     }
 
     // Create product

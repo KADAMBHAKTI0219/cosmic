@@ -37,7 +37,7 @@ const InventoryManagement = () => {
     sortBy: 'createdAt',
     sortOrder: 'desc'
   });
-  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [filterDialog, setFilterDialog] = useState(false);
   
   // State for log details
   const [logDetailsDialog, setLogDetailsDialog] = useState(false);
@@ -177,7 +177,16 @@ const InventoryManagement = () => {
       
       {/* Action Buttons */}
       <div className="flex flex-wrap justify-between mb-6">
-       
+        <button 
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center"
+          onClick={() => setAdjustmentDialog(true)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+          </svg>
+          Add Adjustment
+        </button>
+        
         <div className="flex space-x-2">
           <button 
             className="border border-gray-300 hover:bg-gray-100 px-4 py-2 rounded-md flex items-center"
@@ -316,7 +325,309 @@ const InventoryManagement = () => {
         </div>
       </div>
       
-      {/* Dialogs will be added in the next update */}
+      {/* Adjustment Dialog */}
+      {adjustmentDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div className="bg-gray-100 px-6 py-4 rounded-t-lg">
+              <h2 className="text-xl font-semibold">Adjust Inventory</h2>
+            </div>
+            <div className="p-6">
+              {adjustmentSuccess ? (
+                <div className="text-center py-6">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-green-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p className="text-lg font-medium">Inventory Updated Successfully!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
+                    <select
+                      value={selectedProduct ? selectedProduct._id : ''}
+                      onChange={(e) => {
+                        const product = products.find(p => p._id === e.target.value);
+                        setSelectedProduct(product || null);
+                      }}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select Product</option>
+                      {products && products.length > 0 ? products.map(product => (
+                        <option key={product._id} value={product._id}>
+                          {product.name} (Current Stock: {product.stockQty || 0})
+                        </option>
+                      )) : <option disabled>Loading products...</option>}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Action</label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setAction('add')}
+                        className={`px-4 py-2 rounded-md ${
+                          action === 'add' 
+                            ? 'bg-green-600 text-white' 
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                        }`}
+                      >
+                        Add Stock
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAction('remove')}
+                        className={`px-4 py-2 rounded-md ${
+                          action === 'remove' 
+                            ? 'bg-red-600 text-white' 
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                        }`}
+                      >
+                        Remove Stock
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      value={quantity} 
+                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 0))}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                    <textarea 
+                      value={notes} 
+                      onChange={(e) => setNotes(e.target.value)}
+                      rows="3"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Add notes about this inventory adjustment..."
+                    ></textarea>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="bg-gray-50 px-6 py-4 rounded-b-lg flex justify-end">
+              <button 
+                onClick={() => setAdjustmentDialog(false)} 
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleInventoryAdjustment} 
+                disabled={!selectedProduct || loading}
+                className={`px-4 py-2 ml-2 rounded-md ${
+                  !selectedProduct || loading
+                    ? 'bg-blue-300 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {loading ? 'Updating...' : 'Submit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Dialog */}
+      {filterDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div className="bg-gray-100 px-6 py-4 rounded-t-lg">
+              <h2 className="text-xl font-semibold">Filter Inventory Logs</h2>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">From</label>
+                      <input
+                        type="date"
+                        value={filters.startDate}
+                        onChange={(e) => setFilters({...filters, startDate: e.target.value})}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">To</label>
+                      <input
+                        type="date"
+                        value={filters.endDate}
+                        onChange={(e) => setFilters({...filters, endDate: e.target.value})}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Action Type</label>
+                  <select
+                    value={filters.action}
+                    onChange={(e) => setFilters({...filters, action: e.target.value})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">All Actions</option>
+                    <option value="add">Added Stock</option>
+                    <option value="remove">Removed Stock</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <select
+                      value={filters.sortBy}
+                      onChange={(e) => setFilters({...filters, sortBy: e.target.value})}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="createdAt">Date</option>
+                      <option value="quantity">Quantity</option>
+                    </select>
+                    <select
+                      value={filters.sortOrder}
+                      onChange={(e) => setFilters({...filters, sortOrder: e.target.value})}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="desc">Newest First</option>
+                      <option value="asc">Oldest First</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-50 px-6 py-4 rounded-b-lg flex justify-end">
+              <button 
+                onClick={() => {
+                  setFilters(defaultFilters);
+                  fetchInventoryLogs();
+                  setFilterDialog(false);
+                }} 
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md"
+              >
+                Reset
+              </button>
+              <button 
+                onClick={() => {
+                  fetchInventoryLogs();
+                  setFilterDialog(false);
+                }} 
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md ml-2"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Log Details Dialog */}
+      {logDetailsDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl">
+            <div className="bg-gray-100 px-6 py-4 rounded-t-lg">
+              <h2 className="text-xl font-semibold">Inventory Log Details</h2>
+            </div>
+            <div className="p-6">
+              {selectedLog && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">Product Information</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm text-gray-500">Product Name</p>
+                          <p className="font-medium">{selectedLog.product?.name || 'Unknown Product'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">SKU</p>
+                          <p className="font-medium">{selectedLog.product?.sku || 'N/A'}</p>
+                        </div>
+                        {selectedLog.product?.images && selectedLog.product.images.length > 0 && (
+                          <div>
+                            <p className="text-sm text-gray-500">Product Image</p>
+                            <img 
+                              src={selectedLog.product.images[0]} 
+                              alt={selectedLog.product.name} 
+                              className="h-24 w-24 object-cover rounded-md mt-1"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">Adjustment Details</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm text-gray-500">Date & Time</p>
+                          <p className="font-medium">{format(new Date(selectedLog.createdAt), 'dd/MM/yyyy HH:mm:ss')}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Action</p>
+                          <p className={`font-medium ${selectedLog.action === 'add' ? 'text-green-600' : 'text-red-600'}`}>
+                            {selectedLog.action === 'add' ? 'Added Stock' : 'Removed Stock'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Quantity</p>
+                          <p className="font-medium">{selectedLog.quantity}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-gray-500">Previous Stock</p>
+                            <p className="font-medium">{selectedLog.previousStock}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-500">Current Stock</p>
+                            <p className="font-medium">{selectedLog.currentStock}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Updated By</h3>
+                    <div className="bg-gray-50 p-4 rounded-md">
+                      <p className="font-medium">{selectedLog.updatedBy?.name || 'System'}</p>
+                      {selectedLog.updatedBy?.email && (
+                        <p className="text-sm text-gray-500">{selectedLog.updatedBy.email}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {selectedLog.notes && (
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Notes</h3>
+                      <div className="bg-gray-50 p-4 rounded-md">
+                        <p>{selectedLog.notes}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="bg-gray-50 px-6 py-4 rounded-b-lg flex justify-end">
+              <button 
+                onClick={() => setLogDetailsDialog(false)} 
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

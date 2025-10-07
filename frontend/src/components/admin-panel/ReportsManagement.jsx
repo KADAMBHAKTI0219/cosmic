@@ -31,8 +31,18 @@ ChartJS.register(
 const ReportsManagement = () => {
   // State for different reports
   const [salesReport, setSalesReport] = useState([]);
-  const [inventoryReport, setInventoryReport] = useState([]);
-  const [customerReport, setCustomerReport] = useState([]);
+  const [inventoryReport, setInventoryReport] = useState({
+    summary: {},
+    lowStockProducts: [],
+    outOfStockProducts: [],
+    inventoryMovement: [],
+    topProductsByTurnover: []
+  });
+  const [customerReport, setCustomerReport] = useState({
+    summary: {},
+    customerGrowth: [],
+    topCustomers: []
+  });
   const [productPerformance, setProductPerformance] = useState([]);
   
   // State for loading indicators
@@ -75,7 +85,21 @@ const ReportsManagement = () => {
         endDate: dateFilters.endDate,
         groupBy: dateFilters.groupBy
       });
-      setSalesReport(response.data.data || []);
+      
+      if (response.data && response.data.data) {
+        const { timeSeries, statusDistribution, summary } = response.data.data;
+        setSalesReport({
+          timeSeries: timeSeries || [],
+          statusDistribution: statusDistribution || [],
+          summary: summary || {}
+        });
+      } else {
+        setSalesReport({
+          timeSeries: [],
+          statusDistribution: [],
+          summary: {}
+        });
+      }
     } catch (error) {
       console.error('Error fetching sales report:', error);
       toast.error('Failed to fetch sales report');
@@ -89,7 +113,9 @@ const ReportsManagement = () => {
     setLoading(prev => ({ ...prev, inventory: true }));
     try {
       const response = await reportsApi.getInventoryReport();
-      setInventoryReport(response.data.data || []);
+      if (response.data && response.data.data) {
+        setInventoryReport(response.data.data);
+      }
     } catch (error) {
       console.error('Error fetching inventory report:', error);
       toast.error('Failed to fetch inventory report');
@@ -106,7 +132,9 @@ const ReportsManagement = () => {
         startDate: dateFilters.startDate,
         endDate: dateFilters.endDate
       });
-      setCustomerReport(response.data.data || []);
+      if (response.data && response.data.data) {
+        setCustomerReport(response.data.data);
+      }
     } catch (error) {
       console.error('Error fetching customer report:', error);
       toast.error('Failed to fetch customer report');
@@ -124,7 +152,9 @@ const ReportsManagement = () => {
         endDate: dateFilters.endDate,
         limit: 10
       });
-      setProductPerformance(response.data.data || []);
+      if (response.data && response.data.data) {
+        setProductPerformance(response.data.data);
+      }
     } catch (error) {
       console.error('Error fetching product performance:', error);
       toast.error('Failed to fetch product performance');
@@ -152,23 +182,65 @@ const ReportsManagement = () => {
 
   // Prepare sales chart data
   const salesChartData = {
-    labels: salesReport.map(item => item.date),
+    labels: salesReport.timeSeries ? salesReport.timeSeries.map(item => item.date || `${item.year}-${item.month}`) : [],
     datasets: [
       {
         label: 'Revenue',
-        data: salesReport.map(item => item.totalRevenue),
+        data: salesReport.timeSeries ? salesReport.timeSeries.map(item => item.totalSales || 0) : [],
         borderColor: '#4F46E5',
         backgroundColor: 'rgba(79, 70, 229, 0.2)',
         fill: true,
       },
       {
         label: 'Orders',
-        data: salesReport.map(item => item.orderCount),
+        data: salesReport.timeSeries ? salesReport.timeSeries.map(item => item.count || 0) : [],
         borderColor: '#10B981',
         backgroundColor: 'rgba(16, 185, 129, 0.2)',
         fill: true,
       }
     ],
+  };
+
+  // Prepare inventory chart data
+  const inventoryChartData = {
+    labels: inventoryReport.topProductsByTurnover ? inventoryReport.topProductsByTurnover.map(item => item.title) : [],
+    datasets: [
+      {
+        label: 'Units Sold',
+        data: inventoryReport.topProductsByTurnover ? inventoryReport.topProductsByTurnover.map(item => item.totalSold) : [],
+        backgroundColor: 'rgba(79, 70, 229, 0.7)',
+        borderColor: '#4F46E5',
+        borderWidth: 1,
+      }
+    ]
+  };
+
+  // Prepare customer chart data
+  const customerChartData = {
+    labels: customerReport.customerGrowth ? customerReport.customerGrowth.map(item => item.date || `${item.year}-${item.month}`) : [],
+    datasets: [
+      {
+        label: 'New Customers',
+        data: customerReport.customerGrowth ? customerReport.customerGrowth.map(item => item.count) : [],
+        borderColor: '#F59E0B',
+        backgroundColor: 'rgba(245, 158, 11, 0.2)',
+        fill: true,
+      }
+    ]
+  };
+
+  // Prepare product performance chart data
+  const productChartData = {
+    labels: productPerformance.topProducts ? productPerformance.topProducts.map(item => item.title) : [],
+    datasets: [
+      {
+        label: 'Revenue',
+        data: productPerformance.topProducts ? productPerformance.topProducts.map(item => item.revenue) : [],
+        backgroundColor: 'rgba(16, 185, 129, 0.7)',
+        borderColor: '#10B981',
+        borderWidth: 1,
+      }
+    ]
   };
 
   // Chart options
@@ -282,32 +354,84 @@ const ReportsManagement = () => {
               <div className="flex justify-center items-center h-64">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
               </div>
-            ) : salesReport.length > 0 ? (
+            ) : salesReport.timeSeries && salesReport.timeSeries.length > 0 ? (
               <div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
                     <h3 className="text-lg font-medium text-gray-700">Total Revenue</h3>
                     <p className="text-2xl font-bold text-indigo-600">
-                      ₹{salesReport.reduce((sum, item) => sum + (item.totalRevenue || 0), 0).toLocaleString()}
+                      ₹{salesReport.summary && salesReport.summary.totalRevenue ? salesReport.summary.totalRevenue.toLocaleString() : '0'}
                     </p>
                   </div>
                   <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
                     <h3 className="text-lg font-medium text-gray-700">Total Orders</h3>
                     <p className="text-2xl font-bold text-indigo-600">
-                      {salesReport.reduce((sum, item) => sum + (item.orderCount || 0), 0).toLocaleString()}
+                      {salesReport.summary && salesReport.summary.totalOrders ? salesReport.summary.totalOrders.toLocaleString() : '0'}
                     </p>
                   </div>
                   <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
                     <h3 className="text-lg font-medium text-gray-700">Average Order Value</h3>
                     <p className="text-2xl font-bold text-indigo-600">
-                      ₹{(salesReport.reduce((sum, item) => sum + (item.totalRevenue || 0), 0) / 
-                         Math.max(1, salesReport.reduce((sum, item) => sum + (item.orderCount || 0), 0))).toFixed(2)}
+                      ₹{salesReport.summary && salesReport.summary.avgOrderValue ? salesReport.summary.avgOrderValue.toFixed(2) : '0.00'}
                     </p>
                   </div>
                 </div>
                 <div className="h-80">
                   <Line data={salesChartData} options={chartOptions} />
                 </div>
+                
+                {salesReport.statusDistribution && salesReport.statusDistribution.length > 0 && (
+                  <div className="mt-8">
+                    <h3 className="text-lg font-medium text-gray-700 mb-4">Order Status Distribution</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="h-64">
+                        <Pie 
+                          data={{
+                            labels: salesReport.statusDistribution.map(item => item.status),
+                            datasets: [{
+                              data: salesReport.statusDistribution.map(item => item.count),
+                              backgroundColor: [
+                                'rgba(79, 70, 229, 0.7)',
+                                'rgba(16, 185, 129, 0.7)',
+                                'rgba(245, 158, 11, 0.7)',
+                                'rgba(239, 68, 68, 0.7)',
+                                'rgba(107, 114, 128, 0.7)'
+                              ]
+                            }]
+                          }}
+                          options={{
+                            plugins: {
+                              title: {
+                                display: true,
+                                text: 'Orders by Status'
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {salesReport.statusDistribution.map((item, index) => (
+                              <tr key={index}>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.status}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.count}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.totalAmount ? item.totalAmount.toLocaleString() : '0'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-12">
@@ -324,9 +448,71 @@ const ReportsManagement = () => {
               <div className="flex justify-center items-center h-64">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
               </div>
+            ) : inventoryReport.summary ? (
+              <div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                    <h3 className="text-lg font-medium text-gray-700">Total Products</h3>
+                    <p className="text-2xl font-bold text-indigo-600">
+                      {inventoryReport.summary.totalProducts || 0}
+                    </p>
+                  </div>
+                  <div className="bg-red-50 p-4 rounded-lg border border-red-100">
+                    <h3 className="text-lg font-medium text-gray-700">Out of Stock</h3>
+                    <p className="text-2xl font-bold text-red-600">
+                      {inventoryReport.summary.outOfStockCount || 0}
+                    </p>
+                  </div>
+                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
+                    <h3 className="text-lg font-medium text-gray-700">Low Stock</h3>
+                    <p className="text-2xl font-bold text-yellow-600">
+                      {inventoryReport.summary.lowStockCount || 0}
+                    </p>
+                  </div>
+                </div>
+                
+                {inventoryReport.topProductsByTurnover && inventoryReport.topProductsByTurnover.length > 0 && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-medium text-gray-700 mb-4">Top Products by Turnover</h3>
+                    <div className="h-80">
+                      <Bar data={inventoryChartData} options={chartOptions} />
+                    </div>
+                  </div>
+                )}
+                
+                {inventoryReport.lowStockProducts && inventoryReport.lowStockProducts.length > 0 && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-medium text-gray-700 mb-4">Low Stock Products</h3>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock Qty</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {inventoryReport.lowStockProducts.map((product, index) => (
+                            <tr key={index}>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.title}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.sku}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.stockQty === 0 ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                  {product.stockQty}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-gray-500">Inventory report will be displayed here.</p>
+                <p className="text-gray-500">No inventory data available.</p>
               </div>
             )}
           </div>
@@ -339,9 +525,65 @@ const ReportsManagement = () => {
               <div className="flex justify-center items-center h-64">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
               </div>
+            ) : customerReport.summary ? (
+              <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                    <h3 className="text-lg font-medium text-gray-700">Total Customers</h3>
+                    <p className="text-2xl font-bold text-indigo-600">
+                      {customerReport.summary.totalCustomers || 0}
+                    </p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+                    <h3 className="text-lg font-medium text-gray-700">New Customers (Last 30 Days)</h3>
+                    <p className="text-2xl font-bold text-green-600">
+                      {customerReport.summary.newCustomers || 0}
+                    </p>
+                  </div>
+                </div>
+                
+                {customerReport.customerGrowth && customerReport.customerGrowth.length > 0 && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-medium text-gray-700 mb-4">Customer Growth</h3>
+                    <div className="h-80">
+                      <Line data={customerChartData} options={chartOptions} />
+                    </div>
+                  </div>
+                )}
+                
+                {customerReport.topCustomers && customerReport.topCustomers.length > 0 && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-medium text-gray-700 mb-4">Top Customers by Spend</h3>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Spent</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. Order Value</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {customerReport.topCustomers.map((customer, index) => (
+                            <tr key={index}>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{customer.name}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.email}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.orderCount}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{customer.totalSpent.toLocaleString()}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{customer.avgOrderValue.toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-gray-500">Customer report will be displayed here.</p>
+                <p className="text-gray-500">No customer data available for the selected period.</p>
               </div>
             )}
           </div>
@@ -354,9 +596,43 @@ const ReportsManagement = () => {
               <div className="flex justify-center items-center h-64">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
               </div>
+            ) : productPerformance.topProducts && productPerformance.topProducts.length > 0 ? (
+              <div>
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium text-gray-700 mb-4">Top Performing Products</h3>
+                  <div className="h-80">
+                    <Bar data={productChartData} options={chartOptions} />
+                  </div>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Units Sold</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Conversion Rate</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {productPerformance.topProducts.map((product, index) => (
+                        <tr key={index}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.title}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.sku}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.unitsSold}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{product.revenue.toLocaleString()}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.conversionRate}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-gray-500">Product performance report will be displayed here.</p>
+                <p className="text-gray-500">No product performance data available for the selected period.</p>
               </div>
             )}
           </div>

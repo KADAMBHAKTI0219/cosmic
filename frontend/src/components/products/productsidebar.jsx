@@ -1,23 +1,72 @@
 import React, { useState, useEffect } from 'react';
-import { FaStar, FaStarHalfAlt, FaRegStar, FaCheck, FaTag, FaPercent, FaBoxOpen, FaFilter, FaTimes } from 'react-icons/fa';
+import { FaStar, FaStarHalfAlt, FaRegStar, FaCheck, FaTag, FaPercent, FaBoxOpen, FaFilter, FaTimes, FaSearch } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import { categoryApi } from '../../services/api';
 
 const ProductSidebar = ({ onFilterChange }) => {
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [inStock, setInStock] = useState(false);
   const [selectedRating, setSelectedRating] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [expandedSections, setExpandedSections] = useState({
+    search: true,
     price: true,
     rating: true,
     stock: true,
     discount: true,
-    category: false
+    category: true
   });
   const [activeFilters, setActiveFilters] = useState([]);
+  
+  // Fetch categories when component mounts
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await categoryApi.getAllCategories();
+        if (response && response.data && response.data.success) {
+          setCategories(response.data.data || []);
+        } else {
+          // Fallback to empty array if API fails
+          setCategories([]);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        // Set empty array on error to prevent UI issues
+        setCategories([]);
+      }
+    };
+    
+    fetchCategories();
+  }, []);
 
   // Update active filters whenever filter values change
   useEffect(() => {
     const newActiveFilters = [];
+    
+    if (searchQuery) {
+      newActiveFilters.push({
+        type: 'search',
+        label: `Search: ${searchQuery}`,
+        clearFn: () => {
+          setSearchQuery('');
+          onFilterChange({ type: 'search', value: '' });
+        }
+      });
+    }
+    
+    if (selectedCategory) {
+      const category = categories.find(cat => cat._id === selectedCategory);
+      newActiveFilters.push({
+        type: 'category',
+        label: `Category: ${category ? category.name : selectedCategory}`,
+        clearFn: () => {
+          setSelectedCategory('');
+          onFilterChange({ type: 'category', value: '' });
+        }
+      });
+    }
     
     if (priceRange.min !== '' || priceRange.max !== '') {
       const priceFilter = [];
@@ -56,7 +105,7 @@ const ProductSidebar = ({ onFilterChange }) => {
     }
     
     setActiveFilters(newActiveFilters);
-  }, [priceRange, inStock, selectedRating]);
+  }, [priceRange, inStock, selectedRating, searchQuery, selectedCategory, categories]);
 
   const handlePriceChange = (e, type) => {
     const value = e.target.value;
@@ -94,9 +143,26 @@ const ProductSidebar = ({ onFilterChange }) => {
     setPriceRange({ min: '', max: '' });
     setInStock(false);
     setSelectedRating(null);
+    setSearchQuery('');
+    setSelectedCategory('');
     onFilterChange({ type: 'price', value: { min: '', max: '' } });
     onFilterChange({ type: 'stock', value: false });
     onFilterChange({ type: 'rating', value: null });
+    onFilterChange({ type: 'search', value: '' });
+    onFilterChange({ type: 'category', value: '' });
+  };
+  
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+  
+  const applySearch = () => {
+    onFilterChange({ type: 'search', value: searchQuery });
+  };
+  
+  const handleCategoryChange = (categoryId) => {
+    setSelectedCategory(categoryId);
+    onFilterChange({ type: 'category', value: categoryId });
   };
 
   // Animation variants
@@ -132,6 +198,56 @@ const ProductSidebar = ({ onFilterChange }) => {
           </span>
         )}
       </div>
+      
+      {/* Search Section */}
+      <div className="mb-4">
+        <div 
+          className="flex justify-between items-center mb-2 bg-gray-50 p-2 rounded cursor-pointer hover:bg-gray-100 transition-colors"
+          onClick={() => toggleSection('search')}
+        >
+          <h3 className="text-sm font-semibold text-gray-700 flex items-center">
+            <FaSearch className="mr-2 text-green-600" />
+            Search Products
+          </h3>
+          <button className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 text-gray-700">
+            {expandedSections.search ? '−' : '+'}
+          </button>
+        </div>
+        
+        <AnimatePresence>
+          {expandedSections.search && (
+            <motion.div
+              variants={sectionVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="space-y-3 px-1"
+            >
+              <div className="flex space-x-2">
+                <div className="w-full">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search products..."
+                      className="w-full p-2 pl-8 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-200 focus:border-green-500 transition"
+                      value={searchQuery}
+                      onChange={handleSearchChange}
+                      onKeyPress={(e) => e.key === 'Enter' && applySearch()}
+                    />
+                    <FaSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={applySearch}
+                className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 px-3 rounded text-sm transition-colors"
+              >
+                Search
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Active filters */}
       {activeFilters.length > 0 && (
@@ -163,6 +279,68 @@ const ProductSidebar = ({ onFilterChange }) => {
           </div>
         </div>
       )}
+      
+      {/* Category Filter */}
+      <div className="mb-4">
+        <div 
+          className="flex justify-between items-center mb-2 bg-gray-50 p-2 rounded cursor-pointer hover:bg-gray-100 transition-colors"
+          onClick={() => toggleSection('category')}
+        >
+          <h3 className="text-sm font-semibold text-gray-700 flex items-center">
+            <FaBoxOpen className="mr-2 text-green-600" />
+            Categories
+          </h3>
+          <button className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 text-gray-700">
+            {expandedSections.category ? '−' : '+'}
+          </button>
+        </div>
+        
+        <AnimatePresence>
+          {expandedSections.category && (
+            <motion.div
+              variants={sectionVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              className="space-y-2 px-1 mb-4"
+            >
+              {categories.length > 0 ? (
+                <div className="max-h-40 overflow-y-auto pr-2">
+                  {categories.map((category) => (
+                    <div key={category._id} className="flex items-center mb-2">
+                      <input
+                        type="radio"
+                        id={`category-${category._id}`}
+                        name="category"
+                        checked={selectedCategory === category._id}
+                        onChange={() => handleCategoryChange(category._id)}
+                        className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                      />
+                      <label
+                        htmlFor={`category-${category._id}`}
+                        className="ml-2 text-sm text-gray-700 cursor-pointer"
+                      >
+                        {category.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">Loading categories...</p>
+              )}
+              
+              {selectedCategory && (
+                <button
+                  onClick={() => handleCategoryChange('')}
+                  className="text-xs text-green-600 hover:text-green-800 font-medium"
+                >
+                  Clear Selection
+                </button>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
       
       {/* Price Filter */}
       <div className="mb-4">

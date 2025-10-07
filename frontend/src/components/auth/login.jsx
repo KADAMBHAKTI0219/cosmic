@@ -45,7 +45,7 @@ const Login = () => {
     try {
       setLoading(true);
       const response = await authApi.login(credentials);
-      
+      console.log(response.data.user.role)
       // Store user data and token in localStorage
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));

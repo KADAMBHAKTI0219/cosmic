@@ -11,9 +11,12 @@ const Navbar = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState(null);
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
+    // Reset expanded category when closing menu
+    if (isOpen) setExpandedCategory(null);
   };
   
   const toggleSearch = () => {
@@ -26,6 +29,10 @@ const Navbar = () => {
   
   const toggleLogin = () => {
     setIsLoginOpen(!isLoginOpen);
+  };
+
+  const toggleCategoryExpand = (index) => {
+    setExpandedCategory(expandedCategory === index ? null : index);
   };
   
   // Check if user is logged in
@@ -63,9 +70,13 @@ const Navbar = () => {
   };
 
   // SVG for Cosmic logo
-  const CosmicLogo = () => (
+  const CosmicLogo = ({ isMobile }) => (
     <div className="flex items-center">
-     <img src="/src/assets/images/navbar-logo.png" alt="Cosmic Logo" className="h-12 w-auto" />
+     <img 
+       src="/src/assets/images/navbar-logo.png" 
+       alt="Cosmic Logo" 
+       className={isMobile ? "h-8 w-auto" : "h-10 w-auto"} 
+     />
     </div>
   );
 
@@ -105,26 +116,24 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="bg-white border-b border-gray-200 shadow-sm">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+    <nav className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+      <div className="container mx-auto px-2 sm:px-4">
+        <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link to="/" className="flex items-center">
-              <CosmicLogo />
+              <CosmicLogo isMobile={true} />
             </Link>
           </div>
 
-
-
           {/* Desktop menu */}
-          <div className="hidden md:flex md:items-center md:space-x-4 flex-grow justify-center">
+          <div className="hidden lg:flex lg:items-center lg:space-x-1 xl:space-x-4 flex-grow justify-center overflow-x-auto no-scrollbar">
             {/* Product Categories */}
             {categories.map((category, index) => (
               <div key={index} className="relative group">
                 <Link 
                   to={category.path} 
-                  className="px-3 py-2 text-gray-700 hover:text-main flex items-center"
+                  className="px-2 xl:px-3 py-2 text-gray-700 hover:text-main flex items-center text-sm xl:text-base whitespace-nowrap"
                 >
                   {category.name}
                   {category.dropdown && (
@@ -158,6 +167,7 @@ const Navbar = () => {
             <button 
               onClick={toggleSearch}
               className="p-1 sm:p-2 text-gray-700 hover:text-main rounded-full hover:bg-gray-100"
+              aria-label="Search"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -169,6 +179,7 @@ const Navbar = () => {
               <button 
                 onClick={toggleCart}
                 className="p-1 sm:p-2 text-gray-700 hover:text-main rounded-full hover:bg-gray-100 relative"
+                aria-label="Cart"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -178,13 +189,13 @@ const Navbar = () => {
                 </span>
               </button>
               {isCartOpen && <CartPopup isOpen={isCartOpen} onClose={toggleCart} />}
-            {isLoginOpen && <LoginModal isOpen={isLoginOpen} onClose={toggleLogin} />}
             </div>
             
             {/* User Icon (replaces Login button on mobile) */}
             <button 
               onClick={isLoggedIn ? handleLogout : toggleLogin} 
-              className={`p-1 sm:p-2 ${isLoggedIn ? 'text-red-600 hover:text-red-700' : 'text-gray-700 hover:text-main'} rounded-full hover:bg-gray-100 md:hidden`}
+              className={`p-1 sm:p-2 ${isLoggedIn ? 'text-red-600 hover:text-red-700' : 'text-gray-700 hover:text-main'} rounded-full hover:bg-gray-100 lg:hidden`}
+              aria-label={isLoggedIn ? "Logout" : "Login"}
             >
               {isLoggedIn ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -199,14 +210,14 @@ const Navbar = () => {
             
             {/* Login/Logout Button (desktop only) */}
             {isLoggedIn ? (
-              <button onClick={handleLogout} className="hidden md:flex ml-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 items-center">
+              <button onClick={handleLogout} className="hidden lg:flex ml-2 px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 items-center text-sm">
                 Logout
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
               </button>
             ) : (
-              <button onClick={toggleLogin} className="hidden md:flex ml-2 px-4 py-2 bg-main text-white rounded-md hover:bg-main-dark items-center">
+              <button onClick={toggleLogin} className="hidden lg:flex ml-2 px-3 py-1.5 bg-main text-white rounded-md hover:bg-main-dark items-center text-sm">
                 Login
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
@@ -218,9 +229,9 @@ const Navbar = () => {
             <button
               onClick={toggleMenu}
               type="button"
-              className="inline-flex items-center justify-center p-1 sm:p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 focus:outline-none md:hidden"
+              className="inline-flex items-center justify-center p-1 sm:p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 focus:outline-none lg:hidden"
               aria-controls="mobile-menu"
-              aria-expanded="false"
+              aria-expanded={isOpen}
             >
               <span className="sr-only">Open main menu</span>
               {!isOpen ? (
@@ -262,29 +273,47 @@ const Navbar = () => {
       </div>
 
       {/* Mobile menu, show/hide based on menu state */}
-      <div className={`${isOpen ? 'block' : 'hidden'} md:hidden`} id="mobile-menu">
-        <div className="px-2 pt-2 pb-3 space-y-1 bg-white border-t border-gray-200">
+      <div 
+        className={`${isOpen ? 'block' : 'hidden'} lg:hidden max-h-[calc(100vh-3.5rem)] overflow-y-auto`} 
+        id="mobile-menu"
+      >
+        <div className="px-2 pt-2 pb-3 bg-white border-t border-gray-200">
           {/* Product Categories in mobile view */}
           {categories.map((category, index) => (
-            <div key={index}>
-              <Link
-                to={category.path}
-                className="block px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100 flex items-center justify-between"
-              >
-                {category.name}
+            <div key={index} className="mb-1">
+              <div className="flex items-center">
+                <Link
+                  to={category.path}
+                  className="flex-grow px-3 py-2 rounded-md text-gray-700 hover:bg-gray-100"
+                  onClick={() => !category.dropdown && toggleMenu()}
+                >
+                  {category.name}
+                </Link>
                 {category.dropdown && (
-                  <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
+                  <button
+                    onClick={() => toggleCategoryExpand(index)}
+                    className="p-2 text-gray-500 hover:text-gray-700"
+                    aria-label={`Expand ${category.name} menu`}
+                  >
+                    <svg 
+                      className={`h-4 w-4 transition-transform ${expandedCategory === index ? 'transform rotate-180' : ''}`} 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      viewBox="0 0 20 20" 
+                      fill="currentColor"
+                    >
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
                 )}
-              </Link>
-              {category.dropdown && (
-                <div className="pl-4 mt-1 space-y-1">
+              </div>
+              {category.dropdown && expandedCategory === index && (
+                <div className="pl-4 mt-1 space-y-1 border-l-2 border-gray-100 ml-3">
                   {category.dropdown.map((item, idx) => (
                     <Link
                       key={idx}
                       to={item.path}
-                      className="block px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                      className="block px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                      onClick={toggleMenu}
                     >
                       {item.name}
                     </Link>
@@ -293,8 +322,6 @@ const Navbar = () => {
               )}
             </div>
           ))}
-          
-
         </div>
       </div>
       

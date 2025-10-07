@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { toast } from 'react-toastify';
+import { newsletterManagementApi } from '../../services/adminApi';
 
 const NewsletterManagement = () => {
   const [subscribers, setSubscribers] = useState([]);
@@ -20,10 +20,7 @@ const NewsletterManagement = () => {
   const fetchSubscribers = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.get('http://localhost:5000/api/newsletter/subscribers', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await newsletterManagementApi.getAllSubscribers();
       setSubscribers(response.data.data || []);
     } catch (error) {
       console.error('Error fetching subscribers:', error);
@@ -79,13 +76,10 @@ const NewsletterManagement = () => {
 
     setSendingEmail(true);
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.post('http://localhost:5000/api/newsletter/send', {
+      await newsletterManagementApi.sendNewsletter({
         subject: emailContent.subject,
         content: emailContent.content,
         recipients: emailContent.sendToAll ? 'all' : emailContent.selectedSubscribers
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       
       toast.success('Newsletter sent successfully');
@@ -106,10 +100,7 @@ const NewsletterManagement = () => {
   const handleDeleteSubscriber = async (id) => {
     if (window.confirm('Are you sure you want to remove this subscriber?')) {
       try {
-        const token = localStorage.getItem('adminToken');
-        await axios.delete(`http://localhost:5000/api/newsletter/subscribers/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await newsletterManagementApi.deleteSubscriber(id);
         toast.success('Subscriber removed successfully');
         fetchSubscribers();
       } catch (error) {

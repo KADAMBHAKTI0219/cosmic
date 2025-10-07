@@ -7,6 +7,14 @@ import Home from './pages/home';
 import Register from './pages/auth/register';
 import Products from './components/products/products';
 import ProductDetails from './components/products/productdetails';
+import CartPage from './components/products/CartPage';
+import OrdersPage from './pages/orders/OrdersPage';
+import OrderDetailsPage from './pages/orders/OrderDetailsPage';
+import OrderConfirmationPage from './pages/orders/OrderConfirmationPage';
+import ReviewsPage from './pages/reviews/ReviewsPage';
+import ReviewForm from './pages/reviews/ReviewForm';
+import NotificationsPage from './pages/notifications/NotificationsPage';
+import EMIPage from './pages/emi/EMIPage';
 
 // Auth Components
 import Login from './components/auth/login';
@@ -20,6 +28,7 @@ import AdminRoutes from './components/admin-panel/AdminRoutes';
 
 // Admin Auth Context
 import { AdminAuthProvider } from './context/AdminAuthContext';
+import CheckoutPage from './components/products/CheckoutPage';
 
 function App() {
   return (
@@ -66,6 +75,25 @@ function App() {
                     
                     {/* Product Details Route */}
                     <Route path="/product/:id" element={<ProductDetails />} />
+                    
+                    {/* Cart Route */}
+                    <Route path="/cart" element={<CartPage />} />
+                    
+                    {/* Order Routes */}
+                    <Route path="/orders" element={<OrdersPage />} />
+                    <Route path="/orders/:id" element={<OrderDetailsPage />} />
+                    <Route path="/order-confirmation/:id" element={<OrderConfirmationPage />} />
+                    
+                    {/* Review Routes */}
+                    <Route path="/reviews" element={<ReviewsPage />} />
+                    <Route path="/reviews/edit/:id" element={<ReviewForm />} />
+                    <Route path="/reviews/new/:productId" element={<ReviewForm />} />
+                    
+                    {/* Notification Routes */}
+                    <Route path="/notifications" element={<NotificationsPage />} />
+                    
+                    {/* EMI Routes */}
+                    <Route path="/emi" element={<EMIPage />} />
                   </Routes>
                 </main>
                 <Footer />

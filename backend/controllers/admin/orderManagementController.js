@@ -18,8 +18,8 @@ exports.getAllOrders = async (req, res) => {
     const query = {};
     
     // Filter by status if provided
-    if (status) {
-      query.status = status;
+    if (status && status !== 'All') {
+      query.orderStatus = status;
     }
     
     // Filter by date range
@@ -29,12 +29,10 @@ exports.getAllOrders = async (req, res) => {
       if (endDate) query.createdAt.$lte = new Date(endDate);
     }
     
-    // Search by order ID or customer name/email
+    // Search by order ID
     if (search) {
       query.$or = [
-        { orderId: { $regex: search, $options: 'i' } },
-        { 'customer.name': { $regex: search, $options: 'i' } },
-        { 'customer.email': { $regex: search, $options: 'i' } }
+        { orderId: { $regex: search, $options: 'i' } }
       ];
     }
     
@@ -46,7 +44,7 @@ exports.getAllOrders = async (req, res) => {
       sort,
       limit: parseInt(limit),
       skip: (parseInt(page) - 1) * parseInt(limit),
-      populate: 'user'
+      populate: 'userId'
     };
     
     const orders = await Order.find(query, null, options);
@@ -63,6 +61,7 @@ exports.getAllOrders = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Error in getAllOrders:', error);
     await logError(error, req);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
@@ -73,7 +72,7 @@ exports.getOrderById = async (req, res) => {
   try {
     const { id } = req.params;
     
-    const order = await Order.findById(id).populate('user').populate('items.product');
+    const order = await Order.findById(id).populate('userId').populate('items.productId');
     
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
@@ -84,6 +83,7 @@ exports.getOrderById = async (req, res) => {
       data: order
     });
   } catch (error) {
+    console.error('Error in getOrderById:', error);
     await logError(error, req);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
@@ -93,15 +93,15 @@ exports.getOrderById = async (req, res) => {
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { orderStatus } = req.body;
     
-    if (!status) {
-      return res.status(400).json({ success: false, message: 'Status is required' });
+    if (!orderStatus) {
+      return res.status(400).json({ success: false, message: 'Order status is required' });
     }
     
     // Validate status
-    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
-    if (!validStatuses.includes(status)) {
+    const validStatuses = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+    if (!validStatuses.includes(orderStatus)) {
       return res.status(400).json({ 
         success: false, 
         message: `Status must be one of: ${validStatuses.join(', ')}` 
@@ -111,17 +111,10 @@ exports.updateOrderStatus = async (req, res) => {
     const order = await Order.findByIdAndUpdate(
       id,
       { 
-        status,
-        statusHistory: { 
-          $push: { 
-            status, 
-            timestamp: Date.now(),
-            updatedBy: req.user._id
-          } 
-        }
+        orderStatus: orderStatus
       },
       { new: true }
-    ).populate('user');
+    ).populate('userId');
     
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
@@ -136,6 +129,7 @@ exports.updateOrderStatus = async (req, res) => {
       data: order
     });
   } catch (error) {
+    console.error('Error in updateOrderStatus:', error);
     await logError(error, req);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
@@ -147,21 +141,21 @@ exports.getOrderStats = async (req, res) => {
     const totalOrders = await Order.countDocuments();
     
     // Count orders by status
-    const pendingOrders = await Order.countDocuments({ status: 'pending' });
-    const processingOrders = await Order.countDocuments({ status: 'processing' });
-    const shippedOrders = await Order.countDocuments({ status: 'shipped' });
-    const deliveredOrders = await Order.countDocuments({ status: 'delivered' });
-    const cancelledOrders = await Order.countDocuments({ status: 'cancelled' });
+    const pendingOrders = await Order.countDocuments({ orderStatus: 'pending' });
+    const confirmedOrders = await Order.countDocuments({ orderStatus: 'confirmed' });
+    const shippedOrders = await Order.countDocuments({ orderStatus: 'shipped' });
+    const deliveredOrders = await Order.countDocuments({ orderStatus: 'delivered' });
+    const cancelledOrders = await Order.countDocuments({ orderStatus: 'cancelled' });
     
     // Calculate total revenue
     const revenueResult = await Order.aggregate([
       {
-        $match: { status: { $ne: 'cancelled' } }
+        $match: { orderStatus: { $ne: 'cancelled' } }
       },
       {
         $group: {
           _id: null,
-          totalRevenue: { $sum: '$totalAmount' }
+          totalRevenue: { $sum: '$totalPrice' }
         }
       }
     ]);
@@ -176,7 +170,7 @@ exports.getOrderStats = async (req, res) => {
       {
         $match: {
           createdAt: { $gte: sixMonthsAgo },
-          status: { $ne: 'cancelled' }
+          orderStatus: { $ne: 'cancelled' }
         }
       },
       {
@@ -186,7 +180,7 @@ exports.getOrderStats = async (req, res) => {
             month: { $month: '$createdAt' }
           },
           orderCount: { $sum: 1 },
-          revenue: { $sum: '$totalAmount' }
+          revenue: { $sum: '$totalPrice' }
         }
       },
       {
@@ -203,7 +197,7 @@ exports.getOrderStats = async (req, res) => {
         totalOrders,
         ordersByStatus: {
           pending: pendingOrders,
-          processing: processingOrders,
+          confirmed: confirmedOrders,
           shipped: shippedOrders,
           delivered: deliveredOrders,
           cancelled: cancelledOrders
@@ -213,6 +207,7 @@ exports.getOrderStats = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Error in getOrderStats:', error);
     await logError(error, req);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
@@ -227,7 +222,7 @@ exports.exportOrders = async (req, res) => {
     
     // Filter by status if provided
     if (status) {
-      query.status = status;
+      query.orderStatus = status;
     }
     
     // Filter by date range
@@ -238,7 +233,7 @@ exports.exportOrders = async (req, res) => {
     }
     
     const orders = await Order.find(query)
-      .populate('user', 'name email')
+      .populate('userId', 'name email')
       .sort({ createdAt: -1 });
     
     if (format === 'csv') {
@@ -247,10 +242,10 @@ exports.exportOrders = async (req, res) => {
       
       orders.forEach(order => {
         const itemsText = order.items.map(item => 
-          `${item.quantity}x ${item.productName}`
+          `${item.quantity}x ${item.price}`
         ).join('; ');
         
-        csvData += `${order.orderId},${order.user ? order.user.name : 'N/A'},${order.user ? order.user.email : 'N/A'},${order.createdAt.toISOString().split('T')[0]},${order.status},${itemsText},${order.totalAmount}\n`;
+        csvData += `${order.orderId},${order.userId ? order.userId.name : 'N/A'},${order.userId ? order.userId.email : 'N/A'},${order.createdAt.toISOString().split('T')[0]},${order.orderStatus},${itemsText},${order.totalPrice}\n`;
       });
       
       res.setHeader('Content-Type', 'text/csv');
@@ -264,6 +259,7 @@ exports.exportOrders = async (req, res) => {
       });
     }
   } catch (error) {
+    console.error('Error in exportOrders:', error);
     await logError(error, req);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }

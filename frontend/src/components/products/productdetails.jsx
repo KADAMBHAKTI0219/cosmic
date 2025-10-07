@@ -1,24 +1,120 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { productsApi, cartApi, reviewApi } from '../../services/api';
 import power1 from '../../assets/images/power1.webp';
 import power2 from '../../assets/images/power2.webp';
 import power3 from '../../assets/images/power3.webp';
 import power4 from '../../assets/images/power4.webp';
 import power5 from '../../assets/images/power5.webp';
 import power6 from '../../assets/images/power6.jpg';
-import { FaHeart, FaShareAlt, FaShippingFast, FaShieldAlt,FaSun ,FaLeaf, FaRegCreditCard, FaTruck, FaBox, FaChartLine, FaMedal, FaAward, FaCheck, FaStar, FaListUl, FaFileAlt, FaDownload, FaPencilAlt, FaBoxOpen, FaArrowRight, FaChevronDown, FaStarHalfAlt, FaRegStar, FaShoppingCart, FaBolt, FaInfoCircle, FaUserShield, FaStore, FaMapMarkerAlt, FaQuestionCircle } from 'react-icons/fa';
+import { FaHeart, FaShareAlt, FaShippingFast, FaShieldAlt,FaSun ,FaLeaf, FaRegCreditCard, FaTruck, FaBox, FaChartLine, FaMedal, FaAward, FaCheck, FaStar, FaListUl, FaFileAlt, FaDownload, FaPencilAlt, FaBoxOpen, FaArrowRight, FaChevronDown, FaStarHalfAlt, FaRegStar, FaShoppingCart, FaBolt, FaInfoCircle, FaUserShield, FaStore, FaMapMarkerAlt, FaQuestionCircle, FaRegHeart } from 'react-icons/fa';
+import { fixImageUrl } from '../../utils/imageUtils';
 
 const ProductDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
-  const [showZoom, setShowZoom] = useState("false");
+  const [showZoom, setShowZoom] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const zoomRef = useRef(null);
   const [selectedEmi, setSelectedEmi] = useState(null);
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [relatedProducts, setRelatedProducts] = useState([]);
 
-  // Sample product data
-  const productData = {
+  // Fetch product data
+  useEffect(() => {
+    const fetchProductData = async () => {
+      setLoading(true);
+      try {
+        const response = await productsApi.getProductById(id);
+        console.log(response.data.data)
+        if (response.data && response.data.success) {
+          setProduct(response.data.data);
+          
+          // Fetch related products
+          try {
+            const relatedResponse = await productsApi.getAllProducts(1, 4, {
+              category: response.data.data.categoryId?._id
+            });
+            if (relatedResponse.data && relatedResponse.data.success) {
+              // Make sure we have an array and filter out the current product
+              const relatedProductsData = relatedResponse.data.data || [];
+              setRelatedProducts(relatedProductsData.filter(p => p._id !== id));
+            }
+          } catch (relatedError) {
+            console.error('Error fetching related products:', relatedError);
+          }
+          
+          // Fetch reviews for this product
+          try {
+            const reviewsResponse = await reviewApi.getProductReviews(id);
+            if (reviewsResponse.data && reviewsResponse.data.success) {
+              setReviews(reviewsResponse.data.reviews || []);
+            }
+          } catch (reviewError) {
+            console.error('Error fetching reviews:', reviewError);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching product:', err);
+        setError('Failed to load product. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchProductData();
+    }
+  }, [id]);
+
+  // Handle add to cart and wishlist functionality is defined below
+
+  // If loading, show loading state
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="h-96 bg-gray-200 rounded"></div>
+            <div>
+              <div className="h-8 bg-gray-200 rounded w-1/2 mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
+              <div className="h-10 bg-gray-200 rounded w-1/3 mb-6"></div>
+              <div className="h-12 bg-gray-200 rounded mb-4"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If error, show error message
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <p>{error}</p>
+          <button 
+            onClick={() => navigate('/products')}
+            className="mt-4 bg-primary-600 text-white px-4 py-2 rounded"
+          >
+            Back to Products
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Use actual product data or fallback to sample data
+  const productData = product || {
     id: 1,
     name: 'WAAREE 100 Watt Mono PERC Solar Panel',
     price: 4199.00,
@@ -81,6 +177,39 @@ const ProductDetails = () => {
   const handleImageChange = (index) => {
     setActiveImage(index);
   };
+  
+  // Add to cart
+  const handleAddToCart = async () => {
+    try {
+      const response = await cartApi.addToCart({
+        productId: id,
+        quantity: quantity
+      });
+      
+      if (response.data && response.data.success) {
+        // Show success toast notification
+        toast.success('Product added to cart successfully!');
+        console.log(`Added ${quantity} of product ${id} to cart`);
+      } else {
+        toast.error('Failed to add product to cart');
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error(error.response?.data?.message || 'Error adding to cart. Please try again.');
+    }
+  };
+
+  // Buy now function
+  const handleBuyNow = async () => {
+    try {
+      await handleAddToCart();
+      navigate('/checkout');
+    } catch (error) {
+      console.error('Error with buy now:', error);
+    }
+  };
+
+  // No wishlist functionality needed
 
   // Render star ratings
   const renderStars = (rating) => {
@@ -156,7 +285,7 @@ const ProductDetails = () => {
                     onClick={() => handleImageChange(index)}
                   >
                     <img 
-                      src={image} 
+                      src={fixImageUrl(image)} 
                       alt={`${productData.name} - view ${index + 1}`} 
                       className="object-contain h-full w-full"
                     />
@@ -185,7 +314,7 @@ const ProductDetails = () => {
                 }}
               >
                 <img 
-                  src={productData.images[activeImage]} 
+                  src={fixImageUrl(productData.images[activeImage])} 
                   alt={productData.name} 
                   className="object-contain h-full w-full transition-transform duration-300"
                 />
@@ -193,15 +322,11 @@ const ProductDetails = () => {
             </div>
           </div>
           
-          {/* Share and Wishlist Buttons */}
+          {/* Share Button */}
           <div className="flex justify-between mt-3">
             <button className="flex items-center text-sm text-gray-600 hover:text-green-600 transition-colors">
               <FaShareAlt className="w-4 h-4 mr-1" />
               Share
-            </button>
-            <button className="flex items-center text-sm text-gray-600 hover:text-red-500 transition-colors">
-              <FaHeart className="w-4 h-4 mr-1" />
-              Add to Wishlist
             </button>
           </div>
         </div>
@@ -244,16 +369,20 @@ const ProductDetails = () => {
             <div className="mb-4 border border-gray-200 rounded-lg p-3 bg-gray-50">
               <h3 className="text-sm font-medium text-gray-700 mb-2">Offers & EMI</h3>
               <div className="grid grid-cols-6 gap-2 mb-2">
-                {productData.emiOptions.map((emi, index) => (
-                  <div 
-                    key={index}
-                    onClick={() => handleEmiSelect(index)}
-                    className={`cursor-pointer border ${selectedEmi === index ? 'border-green-500 bg-green-50' : 'border-gray-200'} rounded p-2 text-center hover:border-green-300 transition-colors`}
-                  >
-                    <p className="text-xs font-medium text-gray-800">{emi.months}m</p>
-                    <p className="text-xs text-gray-600">₹{emi.amount}/mo</p>
-                  </div>
-                ))}
+                {productData.emiOptions && productData.emiOptions.length > 0 ? (
+                  productData.emiOptions.map((emi, index) => (
+                    <div 
+                      key={index}
+                      onClick={() => handleEmiSelect(index)}
+                      className={`cursor-pointer border ${selectedEmi === index ? 'border-green-500 bg-green-50' : 'border-gray-200'} rounded p-2 text-center hover:border-green-300 transition-colors`}
+                    >
+                      <p className="text-xs font-medium text-gray-800">{emi.months}m</p>
+                      <p className="text-xs text-gray-600">₹{emi.amount}/mo</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-6 text-sm text-gray-500">No EMI options available</div>
+                )}
               </div>
               <div className="flex items-center text-xs text-green-600">
                 <FaInfoCircle className="w-3 h-3 mr-1" />
@@ -310,11 +439,19 @@ const ProductDetails = () => {
             
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-3 mb-4">
-              <button className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded transition-colors duration-200 flex items-center justify-center text-sm">
+              <button 
+                className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded transition-colors duration-200 flex items-center justify-center text-sm"
+                onClick={handleAddToCart}
+                disabled={product?.isOutOfStock}
+              >
                 <FaShoppingCart className="w-4 h-4 mr-2" />
                 Add to Cart
               </button>
-              <button className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded transition-colors duration-200 flex items-center justify-center text-sm">
+              <button 
+                onClick={handleBuyNow}
+                disabled={product?.isOutOfStock}
+                className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded transition-colors duration-200 flex items-center justify-center text-sm"
+              >
                 <FaBolt className="w-4 h-4 mr-2" />
                 Buy Now
               </button>
@@ -371,18 +508,57 @@ const ProductDetails = () => {
               </div>
             </div>
             
-            {/* Features */}
+            {/* Product Details */}
             <div className="mb-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Key Features</h3>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Product Details</h3>
               <ul className="grid grid-cols-1 gap-2">
-                {productData.features.map((feature, index) => (
-                  <li key={index} className="flex items-start text-xs">
+                <li className="flex items-start text-xs">
+                  <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700"><strong>Price:</strong> ₹{productData.price}</span>
+                </li>
+                <li className="flex items-start text-xs">
+                  <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700"><strong>Stock:</strong> {productData.stock} units available</span>
+                </li>
+                {productData.categoryId && (
+                  <li className="flex items-start text-xs">
                     <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
-                    <span className="text-gray-700">{feature}</span>
+                    <span className="text-gray-700"><strong>Category:</strong> {productData.categoryId.name}</span>
                   </li>
-                ))}
+                )}
+                <li className="flex items-start text-xs">
+                  <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700"><strong>Stock Status:</strong> {productData.isOutOfStock ? 'Out of Stock' : 'In Stock'}</span>
+                </li>
+                <li className="flex items-start text-xs">
+                  <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700"><strong>Product ID:</strong> {productData._id}</span>
+                </li>
+                <li className="flex items-start text-xs">
+                  <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700"><strong>Added On:</strong> {new Date(productData.createdAt).toLocaleDateString()}</span>
+                </li>
+                <li className="flex items-start text-xs">
+                  <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                  <span className="text-gray-700"><strong>Last Updated:</strong> {new Date(productData.updatedAt).toLocaleDateString()}</span>
+                </li>
               </ul>
             </div>
+            
+            {/* Features - Only show if available */}
+            {productData.features && productData.features.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Key Features</h3>
+                <ul className="grid grid-cols-1 gap-2">
+                  {productData.features.map((feature, index) => (
+                    <li key={index} className="flex items-start text-xs">
+                      <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                      <span className="text-gray-700">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -409,26 +585,28 @@ const ProductDetails = () => {
       </div>
       
       {/* Product Applications */}
-      <div className="mt-6">
-        <h2 className="text-base font-medium text-gray-900 mb-3">Product Applications</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {productData.applications.map((app, index) => (
-            <div key={index} className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-              <div className="h-24 overflow-hidden">
-                <img 
-                  src={app.image} 
-                  alt={app.name} 
-                  className="w-full h-full object-cover"
-                />
+      {productData.applications && productData.applications.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-base font-medium text-gray-900 mb-3">Product Applications</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {productData.applications.map((app, index) => (
+              <div key={index} className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
+                <div className="h-24 overflow-hidden">
+                  <img 
+                    src={app.image} 
+                    alt={app.name} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="p-2 text-center">
+                  <h3 className="font-medium text-gray-900 text-xs">{app.name}</h3>
+                </div>
               </div>
-              <div className="p-2 text-center">
-                <h3 className="font-medium text-gray-900 text-xs">{app.name}</h3>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
-      
+      )}
+
       {/* Product Description and Tabs */}
       <div className="mt-8">
         <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
@@ -481,12 +659,19 @@ const ProductDetails = () => {
                   <div>
                     <h3 className="text-sm font-medium mb-2 text-gray-800">What's in the Box</h3>
                     <ul className="space-y-2">
-                       {productData.boxContents.map((item, index) => (
-                          <li key={index} className="flex items-start text-xs">
-                            <FaBox className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
-                            <span className="text-gray-700">{item}</span>
-                          </li>
-                        ))}
+                       {productData.boxContents && productData.boxContents.length > 0 ? (
+                         productData.boxContents.map((item, index) => (
+                           <li key={index} className="flex items-start text-xs">
+                             <FaBox className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                             <span className="text-gray-700">{item}</span>
+                           </li>
+                         ))
+                       ) : (
+                         <li className="flex items-start text-xs">
+                           <FaBox className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                           <span className="text-gray-700">Product package contents information not available</span>
+                         </li>
+                       )}
                       </ul>
                   </div>
                 </div>
@@ -498,16 +683,24 @@ const ProductDetails = () => {
                 <div className="overflow-hidden bg-white rounded-lg">
                   <table className="min-w-full divide-y divide-gray-200">
                     <tbody className="divide-y divide-gray-200">
-                      {productData.specifications.map((spec, index) => (
-                        <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                          <td className="px-4 py-2 whitespace-nowrap text-xs font-medium text-gray-900 w-1/3">
-                            {spec.name}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
-                            {spec.value}
+                      {productData.specifications && productData.specifications.length > 0 ? (
+                        productData.specifications.map((spec, index) => (
+                          <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                            <td className="px-4 py-2 whitespace-nowrap text-xs font-medium text-gray-900 w-1/3">
+                              {spec.name}
+                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
+                              {spec.value}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr className="bg-gray-50">
+                          <td colSpan="2" className="px-4 py-2 text-xs text-gray-500 text-center">
+                            No specifications available
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -534,20 +727,27 @@ const ProductDetails = () => {
                   <div className="mt-4">
                     <h4 className="text-xs font-medium text-gray-700 mb-2">Rating Breakdown</h4>
                     <div className="space-y-1.5">
-                      {[5, 4, 3, 2, 1].map((star) => (
-                        <div key={star} className="flex items-center">
-                          <div className="w-12 text-xs text-gray-600">{star} stars</div>
-                          <div className="w-full bg-gray-200 rounded-full h-1.5 mx-2">
-                            <div 
-                              className="bg-yellow-400 h-1.5 rounded-full" 
-                              style={{ width: `${(productData.ratingBreakdown[star] / productData.reviewCount) * 100}%` }}
-                            ></div>
+                      {[5, 4, 3, 2, 1].map((star) => {
+                        // Calculate percentage safely
+                        const percentage = productData.ratingBreakdown && productData.reviewCount > 0 
+                          ? Math.round(((productData.ratingBreakdown[star] || 0) / productData.reviewCount) * 100)
+                          : 0;
+                        
+                        return (
+                          <div key={star} className="flex items-center">
+                            <div className="w-12 text-xs text-gray-600">{star} stars</div>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5 mx-2">
+                              <div 
+                                className="bg-yellow-400 h-1.5 rounded-full" 
+                                style={{ width: `${percentage}%` }}
+                              ></div>
+                            </div>
+                            <div className="w-12 text-xs text-gray-600 text-right">
+                              {percentage}%
+                            </div>
                           </div>
-                          <div className="w-12 text-xs text-gray-600 text-right">
-                            {Math.round((productData.ratingBreakdown[star] / productData.reviewCount) * 100)}%
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

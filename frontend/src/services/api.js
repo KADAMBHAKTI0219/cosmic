@@ -30,12 +30,16 @@ export const authApi = {
 // Products API
 export const productsApi = {
   getAllProducts: (page = 1, limit = 10, filters = {}) => {
-    const { category, search, sortBy, sortOrder } = filters;
+    const { category, search, sortBy, sortOrder, minPrice, maxPrice } = filters;
     return API.get('/products', { 
-      params: { page, limit, category, search, sortBy, sortOrder } 
+      params: { page, limit, category, search, sortBy, sortOrder, minPrice, maxPrice } 
     });
   },
   getProductById: (id) => API.get(`/products/${id}`),
+  getProductReviews: (id) => API.get(`/reviews/product/${id}`),
+  getRelatedProducts: (id) => API.get(`/products/${id}/related`),
+  getTopRatedProducts: () => API.get('/products/top-rated'),
+  getNewArrivals: () => API.get('/products/new-arrivals'),
 };
 
 // Cart API
@@ -44,7 +48,38 @@ export const cartApi = {
   addToCart: (productData) => API.post('/cart', productData),
   updateCartItem: (itemId, quantity) => API.put(`/cart/${itemId}`, { quantity }),
   removeCartItem: (itemId) => API.delete(`/cart/${itemId}`),
-  clearCart: () => API.delete('/cart'),
+};
+
+// Review API
+export const reviewApi = {
+  getUserReviews: () => API.get('/reviews/user'),
+  getReviewById: (id) => API.get(`/reviews/${id}`),
+  createReview: (data) => API.post('/reviews', data),
+  updateReview: (id, data) => API.put(`/reviews/${id}`, data),
+  deleteReview: (id) => API.delete(`/reviews/${id}`),
+  getProductReviews: (productId) => API.get(`/reviews/${productId}`),
+};
+
+// Notification API
+export const notificationApi = {
+  getNotifications: () => API.get('/notifications'),
+  markAsRead: (id) => API.put(`/notifications/${id}/read`),
+  markAllAsRead: () => API.put('/notifications/read-all'),
+  deleteNotification: (id) => API.delete(`/notifications/${id}`),
+};
+
+// EMI API
+export const emiApi = {
+  getUserEmiPlans: () => API.get('/emi/user-plans'),
+  getEmiPlanById: (id) => API.get(`/emi/plans/${id}`),
+  makeEmiPayment: (installmentId, data) => API.post(`/emi/payment/${installmentId}`, data),
+  getEmiOptions: (productId) => API.get(`/emi/options/${productId}`),
+};
+
+// Coupon API
+export const couponApi = {
+  validateCoupon: (code, orderAmount) => API.post('/coupons/validate', { code, orderAmount }),
+  applyCoupon: (code) => API.post('/coupons/apply', { code }),
 };
 
 // Orders API
@@ -63,25 +98,15 @@ export const wishlistApi = {
 
 // Category API
 export const categoryApi = {
-  getAllCategories: () => API.get('/admin/categories'),
-  getCategoryById: (id) => API.get(`/admin/categories/${id}`),
+  getAllCategories: () => API.get('/categories'),
+  getCategoryById: (id) => API.get(`/categories/${id}`),
+  getCategoriesBySlug: (slug) => API.get(`/categories/slug/${slug}`),
   createCategory: (categoryData) => API.post('/admin/categories', categoryData),
   updateCategory: (id, categoryData) => API.put(`/admin/categories/${id}`, categoryData),
   deleteCategory: (id) => API.delete(`/admin/categories/${id}`),
 };
 
-// Review API
-export const reviewApi = {
-  getProductReviews: (productId) => API.get(`/review/product/${productId}`),
-  addReview: (reviewData) => API.post('/review', reviewData),
-  updateReview: (reviewId, reviewData) => API.put(`/review/${reviewId}`, reviewData),
-  deleteReview: (reviewId) => API.delete(`/review/${reviewId}`),
-};
 
-// Coupon API
-export const couponApi = {
-  validateCoupon: (code) => API.post('/coupon/validate', { code }),
-};
 
 // Newsletter API
 export const newsletterApi = {

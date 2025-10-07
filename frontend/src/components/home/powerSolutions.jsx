@@ -88,8 +88,8 @@ const PowerSolutions = () => {
   ];
 
   return (
-    <div className="container mx-auto px-2 sm:px-3 md:px-4 py-4 sm:py-6 md:py-8">
-      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-center mb-4 sm:mb-6 md:mb-8">Power Solutions For Every Lifestyle</h2>
+    <div className="container mx-auto px-6 md:px-8 lg:px-10 py-12">
+      <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">Power Solutions For Every Lifestyle</h2>
       
       {/* Top row solutions */}
       <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">

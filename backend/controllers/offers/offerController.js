@@ -4,23 +4,26 @@ const Product = require('../../models/products/product');
 // Create a new offer
 exports.createOffer = async (req, res) => {
   try {
-    const { productId, title, description, discountType, discountValue, startDate, endDate } = req.body;
+    const { productId, title, description, discountType, discountValue, startDate, endDate, isActive } = req.body;
     
-    // Check if product exists
-    const product = await Product.findById(productId);
-    if (!product) {
-      return res.status(404).json({ success: false, message: 'Product not found' });
+    // Check if product exists (only if productId is provided)
+    if (productId) {
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({ success: false, message: 'Product not found' });
+      }
     }
     
     // Create new offer
     const offer = new Offer({
-      productId,
+      productId: productId || null, // Allow null for global offers
       title,
       description,
       discountType,
       discountValue,
       startDate: startDate || new Date(),
-      endDate
+      endDate,
+      isActive: isActive !== undefined ? isActive : true
     });
     
     await offer.save();
@@ -142,6 +145,55 @@ exports.deleteOffer = async (req, res) => {
     }
     
     res.status(200).json({ success: true, data: {} });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+// Get offer statistics
+exports.getOfferStats = async (req, res) => {
+  try {
+    // Get total count of offers
+    const totalOffers = await Offer.countDocuments();
+    
+    // Get count of active offers
+    const activeOffers = await Offer.countDocuments({ 
+      isActive: true,
+      startDate: { $lte: new Date() },
+      endDate: { $gte: new Date() }
+    });
+    
+    // Get count of expired offers
+    const expiredOffers = await Offer.countDocuments({
+      endDate: { $lt: new Date() }
+    });
+    
+    // Get count of upcoming offers
+    const upcomingOffers = await Offer.countDocuments({
+      startDate: { $gt: new Date() }
+    });
+    
+    // Get count of global offers (no productId)
+    const globalOffers = await Offer.countDocuments({
+      productId: null
+    });
+    
+    // Get count of product-specific offers
+    const productSpecificOffers = await Offer.countDocuments({
+      productId: { $ne: null }
+    });
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        totalOffers,
+        activeOffers,
+        expiredOffers,
+        upcomingOffers,
+        globalOffers,
+        productSpecificOffers
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }

@@ -4,6 +4,7 @@ import ProductSidebar from './productsidebar';
 import ProductGrid from './productgrid';
 import { FaFilter, FaTimes, FaSort, FaSearch } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import { productsApi, categoryApi } from '../../services/api';
 
 const Products = () => {
   const { category } = useParams();
@@ -13,161 +14,74 @@ const Products = () => {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [sortOption, setSortOption] = useState('featured');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
     price: { min: '', max: '' },
     inStock: false,
     rating: null
   });
 
-  // Sample product data - expanded for better demonstration
-  const sampleProducts = [
-    {
-      id: 1,
-      name: '5Wp 6V Polycrystalline Small Solar Module',
-      image: 'https://m.media-amazon.com/images/I/71Yd6pKiDiL._AC_UF1000,1000_QL80_.jpg',
-      price: 499.00,
-      originalPrice: 620.00,
-      rating: 5,
-      reviewCount: 6,
-      inStock: true,
-      discount: 20,
-      category: 'solar-module',
-      description: 'Perfect for small DIY projects and educational purposes'
-    },
-    {
-      id: 2,
-      name: '60Wp 12V Small Solar PV Module',
-      image: 'https://m.media-amazon.com/images/I/61mV3-qqhML._AC_UF1000,1000_QL80_.jpg',
-      price: 1899.00,
-      originalPrice: 2150.00,
-      rating: 4,
-      reviewCount: 5,
-      inStock: false,
-      discount: 12,
-      category: 'solar-module',
-      description: 'Ideal for charging 12V batteries and small off-grid systems'
-    },
-    {
-      id: 3,
-      name: 'WAAREE 120 Watt Mono PERC Solar Panel',
-      image: 'https://m.media-amazon.com/images/I/71Yd6pKiDiL._AC_UF1000,1000_QL80_.jpg',
-      price: 3299.00,
-      originalPrice: 4986.00,
-      rating: 5,
-      reviewCount: 6,
-      inStock: true,
-      discount: 36,
-      category: 'solar-panel',
-      description: 'High-efficiency panel for residential installations'
-    },
-    {
-      id: 4,
-      name: 'WAAREE 550 Watt Bifacial Solar Panel',
-      image: 'https://m.media-amazon.com/images/I/61mV3-qqhML._AC_UF1000,1000_QL80_.jpg',
-      price: 8999.00,
-      originalPrice: 12500.00,
-      rating: 5,
-      reviewCount: 12,
-      inStock: true,
-      discount: 28,
-      category: 'solar-panel',
-      description: 'Premium bifacial panel for maximum energy harvest'
-    },
-    {
-      id: 5,
-      name: 'Solar Charge Controller 30A MPPT',
-      image: 'https://m.media-amazon.com/images/I/71Yd6pKiDiL._AC_UF1000,1000_QL80_.jpg',
-      price: 2499.00,
-      originalPrice: 3200.00,
-      rating: 4.5,
-      reviewCount: 18,
-      inStock: true,
-      discount: 22,
-      category: 'solar-accessory',
-      description: 'Advanced MPPT controller for optimal charging efficiency'
-    },
-    {
-      id: 6,
-      name: 'Solar Panel Mounting Kit for Roof',
-      image: 'https://m.media-amazon.com/images/I/61mV3-qqhML._AC_UF1000,1000_QL80_.jpg',
-      price: 1299.00,
-      originalPrice: 1599.00,
-      rating: 4,
-      reviewCount: 7,
-      inStock: true,
-      discount: 19,
-      category: 'solar-accessory',
-      description: 'Complete mounting solution for secure panel installation'
-    }
-  ];
-
-  // Fetch products based on category and filters
+  // Fetch products from API
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        // Simulate API call with delay
-        setTimeout(() => {
-          // Filter products based on category if provided
-          let filteredProducts = sampleProducts;
-          
-          if (category) {
-            filteredProducts = filteredProducts.filter(
-              product => product.category === category
-            );
+        // Don't send category name directly, we'll handle it differently
+        const filterParams = {
+          search: searchQuery,
+          minPrice: filters.price.min || '',
+          maxPrice: filters.price.max || '',
+          sortBy: sortOption === 'price-low' ? 'price' : 
+                 sortOption === 'price-high' ? 'price' : 
+                 sortOption === 'rating' ? 'rating' :
+                 sortOption === 'discount' ? 'discount' : 'createdAt',
+          sortOrder: sortOption === 'price-low' ? 'asc' : 'desc'
+        };
+        
+        // If we have a category from URL params, we need to first get its ID
+        if (category) {
+          try {
+            // First get category by slug
+            const categoryResponse = await categoryApi.getCategoriesBySlug(category);
+            if (categoryResponse && categoryResponse.data && categoryResponse.data.success) {
+              // If we found a matching category, use its ID
+              const categoryData = categoryResponse.data.data;
+              if (categoryData && categoryData._id) {
+                filterParams.categoryId = categoryData._id;
+                console.log('Using category ID:', categoryData._id);
+              } else {
+                console.error('Category data missing ID:', categoryData);
+              }
+            } else {
+              console.error('Category response error:', categoryResponse);
+            }
+          } catch (categoryError) {
+            console.error('Error fetching category:', categoryError);
           }
-
-          // Apply search filter if query exists
-          if (searchQuery.trim() !== '') {
-            const query = searchQuery.toLowerCase();
-            filteredProducts = filteredProducts.filter(product => 
-              product.name.toLowerCase().includes(query) || 
-              product.description.toLowerCase().includes(query)
-            );
-          }
-
-          // Apply price filter if set
-          if (filters.price.min !== '' || filters.price.max !== '') {
-            filteredProducts = filteredProducts.filter(product => {
-              const minPrice = filters.price.min !== '' ? parseFloat(filters.price.min) : 0;
-              const maxPrice = filters.price.max !== '' ? parseFloat(filters.price.max) : Infinity;
-              return product.price >= minPrice && product.price <= maxPrice;
-            });
-          }
-
-          // Apply in-stock filter if set
-          if (filters.inStock) {
-            filteredProducts = filteredProducts.filter(product => product.inStock);
-          }
-
-          // Apply rating filter if set
-          if (filters.rating) {
-            filteredProducts = filteredProducts.filter(product => product.rating >= filters.rating);
-          }
-
-          // Apply sorting
-          if (sortOption === 'price-low') {
-            filteredProducts.sort((a, b) => a.price - b.price);
-          } else if (sortOption === 'price-high') {
-            filteredProducts.sort((a, b) => b.price - a.price);
-          } else if (sortOption === 'rating') {
-            filteredProducts.sort((a, b) => b.rating - a.rating);
-          } else if (sortOption === 'discount') {
-            filteredProducts.sort((a, b) => b.discount - a.discount);
-          }
-          // 'featured' sorting is default
-
-          setProducts(filteredProducts);
-          setLoading(false);
-        }, 600);
+        }
+        
+        const response = await productsApi.getAllProducts(currentPage, 12, filterParams);
+        console.log('API Response:', response);
+        
+        if (response && response.data && response.data.success) {
+          setProducts(response.data.data || []);
+          setTotalPages(response.data.pagination ? response.data.pagination.pages : 1);
+        } else {
+          console.error('API returned unsuccessful response:', response);
+          setProducts([]);
+          setTotalPages(1);
+        }
       } catch (error) {
         console.error('Error fetching products:', error);
+        setProducts([]);
+      } finally {
         setLoading(false);
       }
     };
 
     fetchProducts();
-  }, [category, filters, sortOption, searchQuery]);
+  }, [category, searchQuery, filters, sortOption, currentPage]);
 
   const handleFilterChange = (filterData) => {
     if (filterData.type === 'price') {
@@ -186,6 +100,7 @@ const Products = () => {
         rating: filterData.value
       }));
     }
+    setCurrentPage(1); // Reset to first page when filters change
   };
 
   const toggleMobileFilters = () => {
@@ -194,6 +109,7 @@ const Products = () => {
 
   const handleSortChange = (e) => {
     setSortOption(e.target.value);
+    setCurrentPage(1); // Reset to first page when sort changes
   };
 
   const handleSearchChange = (e) => {
@@ -202,11 +118,12 @@ const Products = () => {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    // Search is already handled in the useEffect
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   const clearSearch = () => {
     setSearchQuery('');
+    setCurrentPage(1); // Reset to first page when clearing search
   };
 
   return (
@@ -368,6 +285,47 @@ const Products = () => {
                 <div className="bg-white rounded-lg shadow-sm p-4 mt-4 text-center text-gray-600">
                   Showing {products.length} {products.length === 1 ? 'product' : 'products'}
                 </div>
+                
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="bg-white rounded-lg shadow-sm p-4 mt-4 flex justify-center">
+                    <nav className="flex items-center">
+                      <button 
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className={`px-3 py-1 rounded-l-md border ${currentPage === 1 
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                          : 'bg-white text-green-600 hover:bg-green-50'}`}
+                      >
+                        Previous
+                      </button>
+                      
+                      {[...Array(totalPages).keys()].map(page => (
+                        <button
+                          key={page + 1}
+                          onClick={() => setCurrentPage(page + 1)}
+                          className={`px-3 py-1 border-t border-b ${
+                            currentPage === page + 1
+                              ? 'bg-green-600 text-white'
+                              : 'bg-white text-gray-700 hover:bg-green-50'
+                          }`}
+                        >
+                          {page + 1}
+                        </button>
+                      ))}
+                      
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className={`px-3 py-1 rounded-r-md border ${currentPage === totalPages
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-white text-green-600 hover:bg-green-50'}`}
+                      >
+                        Next
+                      </button>
+                    </nav>
+                  </div>
+                )}
               </motion.div>
             ) : (
               <div className="bg-white rounded-lg shadow-sm p-8 text-center">

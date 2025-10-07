@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FaBell, FaCheck, FaTrash, FaPlus } from 'react-icons/fa';
+import { notificationManagementApi } from '../../services/adminApi';
 
 const NotificationsManagement = () => {
   const [notifications, setNotifications] = useState([]);
@@ -10,7 +10,7 @@ const NotificationsManagement = () => {
   const [newNotification, setNewNotification] = useState({
     title: '',
     message: '',
-    type: 'info'
+    type: 'system_alert'
   });
 
   // Fetch notifications
@@ -18,10 +18,7 @@ const NotificationsManagement = () => {
     const fetchNotifications = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/notifications`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await notificationManagementApi.getAllNotifications();
         setNotifications(response.data.data);
       } catch (error) {
         console.error('Error fetching notifications:', error);
@@ -37,14 +34,11 @@ const NotificationsManagement = () => {
   // Mark notification as read
   const markAsRead = async (id) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`${import.meta.env.VITE_API_URL}/admin/notifications/${id}/read`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await notificationManagementApi.markAsRead(id);
       
       // Update local state
       setNotifications(notifications.map(notification => 
-        notification._id === id ? { ...notification, read: true } : notification
+        notification._id === id ? { ...notification, isRead: true } : notification
       ));
       
       toast.success('Notification marked as read');
@@ -64,16 +58,20 @@ const NotificationsManagement = () => {
     }
     
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/admin/notifications`, {
+      // Get the current admin user's ID from localStorage
+      const adminUser = JSON.parse(localStorage.getItem('user'));
+      
+      if (!adminUser || !adminUser._id) {
+        toast.error('Admin user information not found');
+        return;
+      }
+      
+      const response = await notificationManagementApi.createNotification({
         title: newNotification.title,
         message: newNotification.message,
         type: newNotification.type,
-        recipientModel: 'User',
-        // Send to all users
-        recipient: 'all'
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+        recipientModel: 'Admin', // Set to Admin since we're using admin's ID
+        recipient: adminUser._id // Using the admin's ID as recipient
       });
       
       // Add new notification to state
@@ -83,14 +81,31 @@ const NotificationsManagement = () => {
       setNewNotification({
         title: '',
         message: '',
-        type: 'info'
+        type: 'system_alert'
       });
       
       setShowForm(false);
       toast.success('Notification sent successfully');
     } catch (error) {
       console.error('Error creating notification:', error);
-      toast.error('Failed to send notification');
+      toast.error(`Failed to send notification: ${error.response?.data?.error || error.message}`);
+    }
+  };
+  
+  // Delete notification
+  const deleteNotification = async (id) => {
+    if (window.confirm('Are you sure you want to delete this notification?')) {
+      try {
+        await notificationManagementApi.deleteNotification(id);
+        
+        // Remove from state
+        setNotifications(notifications.filter(notification => notification._id !== id));
+        
+        toast.success('Notification deleted successfully');
+      } catch (error) {
+        console.error('Error deleting notification:', error);
+        toast.error('Failed to delete notification');
+      }
     }
   };
 
@@ -178,10 +193,11 @@ const NotificationsManagement = () => {
                 onChange={handleInputChange}
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               >
-                <option value="info">Info</option>
-                <option value="success">Success</option>
-                <option value="warning">Warning</option>
-                <option value="error">Error</option>
+                <option value="system_alert">System Alert</option>
+                <option value="order_update">Order Update</option>
+                <option value="user_action">User Action</option>
+                <option value="product_update">Product Update</option>
+                <option value="admin_action">Admin Action</option>
               </select>
             </div>
             
@@ -228,13 +244,13 @@ const NotificationsManagement = () => {
                   </td>
                   <td className="py-3 px-4">{new Date(notification.createdAt).toLocaleDateString()}</td>
                   <td className="py-3 px-4">
-                    {notification.read 
+                    {notification.isRead 
                       ? <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Read</span>
                       : <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Unread</span>
                     }
                   </td>
                   <td className="py-3 px-4">
-                    {!notification.read && (
+                    {!notification.isRead && (
                       <button
                         onClick={() => markAsRead(notification._id)}
                         className="mr-2 text-green-600 hover:text-green-800"
@@ -243,6 +259,13 @@ const NotificationsManagement = () => {
                         <FaCheck />
                       </button>
                     )}
+                    <button
+                      onClick={() => deleteNotification(notification._id)}
+                      className="text-red-600 hover:text-red-800"
+                      title="Delete notification"
+                    >
+                      <FaTrash />
+                    </button>
                   </td>
                 </tr>
               ))}

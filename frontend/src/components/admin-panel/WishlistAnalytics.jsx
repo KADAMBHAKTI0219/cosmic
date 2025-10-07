@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { toast } from 'react-toastify';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
+import { wishlistAnalyticsApi } from '../../services/adminApi';
 
 // Register ChartJS components
 ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -25,15 +25,17 @@ const WishlistAnalytics = () => {
   const fetchWishlistData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.get('http://localhost:5000/api/wishlist/analytics', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await wishlistAnalyticsApi.getWishlistAnalytics();
       
       const data = response.data.data || [];
       setWishlistData(data);
       
-      // Process data for charts and summary
+      // Update summary with data from API
+      if (response.data.summary) {
+        setSummary(response.data.summary);
+      }
+      
+      // Process data for charts
       processData(data);
     } catch (error) {
       console.error('Error fetching wishlist data:', error);

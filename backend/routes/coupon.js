@@ -14,7 +14,7 @@ const {
 
 // Public routes
 router.post('/validate', validateCoupon);
-
+router.post('/apply', applyCoupon);
 // Admin routes
 router.use(protect);
 router.use(authorize('admin'));
@@ -28,7 +28,7 @@ router.route('/:id')
     .put(updateCoupon)
     .delete(deleteCoupon);
 
-router.post('/apply', applyCoupon);
+
 router.get('/stats', getCouponStats);
 
 module.exports = router;

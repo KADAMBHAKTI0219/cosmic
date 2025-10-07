@@ -55,20 +55,20 @@ const SolarConsiderations = () => {
   ];
 
   return (
-    <div className="bg-white py-6 sm:py-8 md:py-10 lg:py-12 px-3 sm:px-4 md:px-6 lg:px-16">
+    <div className="bg-white py-12 px-6 md:px-8 lg:px-10">
       <div className="max-w-7xl mx-auto">
         {/* Heading */}
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-center mb-2 sm:mb-3 md:mb-4">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-4">
           Key Solar Considerations by Cosmic PowerTech
         </h2>
         
         {/* Subheading */}
-        <p className="text-center text-sm sm:text-base md:text-lg mb-6 sm:mb-8 md:mb-10 lg:mb-12 max-w-4xl mx-auto px-2">
+        <p className="text-center text-sm sm:text-base md:text-lg mb-12 max-w-4xl mx-auto px-4">
           Before installing solar panels, consider these important factors to ensure you get the <span className="text-main font-medium">maximum benefits</span> from your solar investment.
         </p>
         
         {/* Considerations Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
           {considerations.map((consideration) => (
             <div key={consideration.id} className="flex items-start space-x-2 sm:space-x-3 md:space-x-4">
               {/* Icon */}

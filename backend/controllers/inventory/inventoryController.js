@@ -4,12 +4,12 @@ const Product = require('../../models/products/product');
 // Adjust inventory for a product
 exports.adjustInventory = async (req, res) => {
     try {
-        const { productId, change, reason, notes } = req.body;
+        const { productId, quantity, action, notes } = req.body;
         
-        if (!productId || change === undefined) {
+        if (!productId || !quantity || !action) {
             return res.status(400).json({
                 success: false,
-                message: 'Product ID and change amount are required'
+                message: 'Product ID, quantity and action are required'
             });
         }
         
@@ -23,8 +23,13 @@ exports.adjustInventory = async (req, res) => {
             });
         }
         
+        // Calculate change based on action
+        const change = action === 'add' ? parseInt(quantity) : -parseInt(quantity);
+        
         // Check if adjustment would result in negative stock
-        const newStockQty = product.stockQty + change;
+        const previousStock = product.stockQty;
+        const newStockQty = previousStock + change;
+        
         if (newStockQty < 0) {
             return res.status(400).json({
                 success: false,
@@ -36,8 +41,11 @@ exports.adjustInventory = async (req, res) => {
         const inventoryLog = await InventoryLog.create({
             productId,
             change,
-            reason: reason || 'manual',
-            adminId: req.user.id,
+            previousStock,
+            currentStock: newStockQty,
+            action,
+            reason: 'manual',
+            updatedBy: req.user.id,
             notes
         });
         
@@ -64,7 +72,7 @@ exports.adjustInventory = async (req, res) => {
 // Get inventory logs
 exports.getInventoryLogs = async (req, res) => {
     try {
-        const { productId, reason, startDate, endDate, page = 1, limit = 10 } = req.query;
+        const { productId, action, startDate, endDate, page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
         
         // Build query
         const query = {};
@@ -73,8 +81,8 @@ exports.getInventoryLogs = async (req, res) => {
             query.productId = productId;
         }
         
-        if (reason) {
-            query.reason = reason;
+        if (action) {
+            query.action = action;
         }
         
         if (startDate || endDate) {
@@ -92,12 +100,23 @@ exports.getInventoryLogs = async (req, res) => {
         // Pagination
         const skip = (page - 1) * limit;
         
+        // Sort configuration
+        const sort = {};
+        sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+        
         // Execute query
         const logs = await InventoryLog.find(query)
-            .populate('productId', 'title sku')
-            .populate('adminId', 'name')
-            .populate('orderId', 'orderId')
-            .sort({ createdAt: -1 })
+            .populate({
+                path: 'productId',
+                select: 'name sku images',
+                model: 'Product'
+            })
+            .populate({
+                path: 'updatedBy',
+                select: 'name email',
+                model: 'User'
+            })
+            .sort(sort)
             .skip(skip)
             .limit(parseInt(limit));
         
@@ -106,11 +125,29 @@ exports.getInventoryLogs = async (req, res) => {
         
         res.status(200).json({
             success: true,
-            count: logs.length,
+            logs: logs.map(log => ({
+                _id: log._id,
+                product: {
+                    _id: log.productId?._id,
+                    name: log.productId?.name,
+                    sku: log.productId?.sku,
+                    image: log.productId?.images?.[0] || ''
+                },
+                action: log.action,
+                quantity: Math.abs(log.change),
+                previousStock: log.previousStock,
+                currentStock: log.currentStock,
+                updatedBy: log.updatedBy ? {
+                    _id: log.updatedBy._id,
+                    name: log.updatedBy.name,
+                    email: log.updatedBy.email
+                } : null,
+                notes: log.notes,
+                createdAt: log.createdAt
+            })),
             total,
             totalPages: Math.ceil(total / limit),
-            currentPage: parseInt(page),
-            data: logs
+            currentPage: parseInt(page)
         });
     } catch (error) {
         res.status(500).json({
@@ -151,8 +188,8 @@ exports.getInventoryLog = async (req, res) => {
 exports.getInventorySummary = async (req, res) => {
     try {
         // Get products with low stock (less than 10)
-        const lowStockProducts = await Product.find({ stockQty: { $lt: 10 } })
-            .select('title sku stockQty')
+        const lowStockProducts = await Product.find({ stockQty: { $gt: 0, $lt: 10 } })
+            .select('name sku stockQty images')
             .sort({ stockQty: 1 });
         
         // Get total products count
@@ -162,21 +199,23 @@ exports.getInventorySummary = async (req, res) => {
         const outOfStockProducts = await Product.countDocuments({ stockQty: 0 });
         
         // Get recent inventory changes
-        const recentChanges = await InventoryLog.find()
-            .populate('productId', 'title sku')
-            .populate('adminId', 'name')
-            .sort({ createdAt: -1 })
-            .limit(5);
+        const recentAdjustments = await InventoryLog.countDocuments({
+            createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+        });
         
         res.status(200).json({
             success: true,
-            data: {
-                totalProducts,
-                outOfStockProducts,
-                lowStockCount: lowStockProducts.length,
-                lowStockProducts,
-                recentChanges
-            }
+            totalProducts,
+            lowStockProducts: lowStockProducts.length,
+            outOfStockProducts,
+            recentAdjustments,
+            lowStockItems: lowStockProducts.map(product => ({
+                _id: product._id,
+                name: product.name,
+                sku: product.sku,
+                stockQty: product.stockQty,
+                image: product.images?.[0] || ''
+            }))
         });
     } catch (error) {
         res.status(500).json({

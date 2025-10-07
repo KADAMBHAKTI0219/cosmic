@@ -100,8 +100,8 @@ exports.getCategories = async (req, res) => {
   }
 };
 
-// @desc    Get single category
-// @route   GET /api/categories/:id
+// @desc    Get category by ID
+// @route   GET /api/category/:id
 // @access  Public
 exports.getCategory = async (req, res) => {
   try {
@@ -127,12 +127,65 @@ exports.getCategory = async (req, res) => {
   }
 };
 
+// @desc    Get category by slug
+// @route   GET /api/categories/slug/:slug
+// @access  Public
+exports.getCategoryBySlug = async (req, res) => {
+  try {
+    console.log('Searching for category with slug:', req.params.slug);
+    
+    // Direct search by slug (assuming slug is stored in the database)
+    let category = await Category.findOne({ slug: req.params.slug });
+    
+    // If not found by slug, try by name (case insensitive)
+    if (!category) {
+      // Try direct match with name
+      category = await Category.findOne({
+        name: { $regex: new RegExp('^' + req.params.slug + '$', 'i') }
+      });
+      
+      // If still not found, try converting slug to name format
+      if (!category) {
+        const nameFromSlug = req.params.slug
+          .split('-')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        
+        category = await Category.findOne({
+          name: { $regex: new RegExp('^' + nameFromSlug + '$', 'i') }
+        });
+      }
+    }
+    
+    if (!category) {
+      console.log('Category not found for slug:', req.params.slug);
+      return res.status(404).json({
+        success: false,
+        message: 'Category not found'
+      });
+    }
+    
+    console.log('Found category:', category);
+    res.status(200).json({
+      success: true,
+      data: category
+    });
+  } catch (error) {
+    console.error('Error in getCategoryBySlug:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Update category
-// @route   PUT /api/categories/:id
+// @route   PUT /api/admin/categories/:id
 // @access  Private/Admin
 exports.updateCategory = async (req, res) => {
   try {
-    const { name, description, image } = req.body;
+    const { name, description, status } = req.body;
     
     // Find category
     let category = await Category.findById(req.params.id);
@@ -144,10 +197,26 @@ exports.updateCategory = async (req, res) => {
       });
     }
     
+    // Prepare update data
+    const updateData = {
+      name: name.trim(),
+      description: description ? description.trim() : category.description,
+      status: status || category.status,
+      updatedAt: Date.now()
+    };
+    
+    // Handle image if uploaded
+    if (req.file) {
+      const uploadUrl = process.env.UPLOAD_URL || 'http://localhost:5000';
+      updateData.image = `${uploadUrl}/uploads/categories/${req.file.filename}`;
+    } else if (req.body.image) {
+      updateData.image = req.body.image;
+    }
+    
     // Update category
     category = await Category.findByIdAndUpdate(
       req.params.id,
-      { name, description, image, updatedAt: Date.now() },
+      updateData,
       { new: true, runValidators: true }
     );
     

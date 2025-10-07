@@ -77,33 +77,33 @@ const CosmicEnergies = () => {
   ];
 
   return (
-    <div className="w-full bg-gray-50 py-8 sm:py-10 md:py-12 px-3 sm:px-4 md:px-6 lg:px-8">
+    <div className="w-full bg-gray-50 py-12 px-6 md:px-8 lg:px-10">
       <div className="max-w-7xl mx-auto">
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-4 sm:mb-6">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-8 text-gray-800">
           Cosmic PowerTech – Built On Scale, Driven By Quality
         </h2>
         
-        <div className="max-w-4xl mx-auto text-center mb-8 sm:mb-10 md:mb-12 px-2 sm:px-4">
-          <p className="text-sm sm:text-base md:text-lg text-gray-700">
+        <div className="max-w-4xl mx-auto text-center mb-12 px-4">
+          <p className="text-sm sm:text-base md:text-lg text-gray-700 leading-relaxed">
             With ~ 16.7 GW global solar panel manufacturing capacity and 5.4 GW solar cell manufacturing capacity, Cosmic PowerTech is proud to lead India's solar revolution. Our state-of-the-art facilities in India and the USA ensure every product meets the highest standards of efficiency, durability, and reliability.
           </p>
-          <p className="text-sm sm:text-base md:text-lg text-gray-700 mt-3 sm:mt-4">
+          <p className="text-sm sm:text-base md:text-lg text-gray-700 mt-6 leading-relaxed">
             Every panel and cell undergoes rigorous quality testing, and our customer-first approach ensures smooth service from consultation to installation. Trusted worldwide, Cosmic PowerTech delivers solar solutions that perform — today and for years to come. Choose Cosmic PowerTech for high-quality solar solutions trusted by businesses and homeowners worldwide.
           </p>
         </div>
         
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 md:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-5">
           {features.map((feature) => (
             <div 
               key={feature.id} 
-              className="bg-white p-3 sm:p-4 rounded-lg shadow-sm flex flex-col items-center justify-center text-center h-full"
+              className="bg-white p-4 sm:p-5 md:p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col items-center justify-center text-center h-full"
             >
-              <div className="mb-2 sm:mb-3">
-                {feature.icon}
+              <div className="mb-3 sm:mb-4">
+                {React.cloneElement(feature.icon, { className: "h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 text-main mx-auto" })}
               </div>
-              <h3 className="text-xs sm:text-sm font-medium text-gray-900">{feature.title}</h3>
+              <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900">{feature.title}</h3>
               {feature.description && (
-                <p className="mt-1 text-xs text-gray-500">{feature.description}</p>
+                <p className="mt-2 text-xs sm:text-sm text-gray-600">{feature.description}</p>
               )}
             </div>
           ))}

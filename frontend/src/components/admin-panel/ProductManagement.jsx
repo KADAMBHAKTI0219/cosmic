@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FaSearch, FaEdit, FaTrash, FaPlus, FaTimes, FaSave, FaSpinner, FaEye } from 'react-icons/fa';
+import { FaSearch, FaEdit, FaTrash, FaPlus, FaTimes, FaSave, FaSpinner, FaEye, FaImage } from 'react-icons/fa';
 import { productManagementApi, categoryManagementApi } from '../../services/adminApi';
 import { toast } from 'react-toastify';
+import { fixImageUrl } from '../../utils/imageUtils';
 
 const ProductManagement = () => {
   const [products, setProducts] = useState([]);
@@ -99,24 +100,30 @@ const ProductManagement = () => {
   };
 
   const filteredProducts = products.filter(product => {
+    // Get category name regardless of structure
+    const getCategoryName = (product) => {
+      if (product.category) {
+        return typeof product.category === 'object' ? product.category.name : product.category;
+      } else if (product.categoryId) {
+        return typeof product.categoryId === 'object' ? product.categoryId.name : product.categoryId;
+      }
+      return 'Uncategorized';
+    };
+    
+    const categoryName = getCategoryName(product);
+    
     const matchesSearch = 
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      (product.category && 
-        ((typeof product.category === 'string' && product.category.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (product.category.name && product.category.name.toLowerCase().includes(searchTerm.toLowerCase()))));
+      categoryName.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesCategory = categoryFilter === 'All' || 
-      (product.category && 
-        ((typeof product.category === 'string' && product.category === categoryFilter) ||
-        (product.category.name && product.category.name === categoryFilter)));
+    const matchesCategory = categoryFilter === 'All' || categoryName === categoryFilter;
     
     return matchesSearch && matchesCategory;
   });
 
   const handleAddProduct = async () => {
     try {
-      // Create FormData for API call
-      const formData = new FormData();
+
       
       // Handle category ID correctly
       const productData = {...newProduct};
@@ -129,17 +136,22 @@ const ProductManagement = () => {
         return; // Don't proceed if category not found
       }
       
-      // Use category ID, not name
-      // Make sure to send the correct category ID to the backend
-      productData.category = selectedCategory.id; 
-      console.log('Using category ID:', selectedCategory.id);
+      // Use category ID, not name - rename to categoryId to match backend model
+      const categoryId = selectedCategory.id || selectedCategory._id;
+      console.log('Using category ID:', categoryId);
       
-      // Append text fields
+      // Create a new FormData object
+      const formData = new FormData();
+      
+      // Append all text fields except images
       Object.keys(productData).forEach(key => {
-        if (key !== 'images') {
+        if (key !== 'images' && key !== 'category') {
           formData.append(key, productData[key]);
         }
       });
+      
+      // Explicitly append categoryId
+      formData.append('categoryId', categoryId);
       
       // Append images if exists
       if (productData.images && productData.images.length > 0) {
@@ -148,8 +160,10 @@ const ProductManagement = () => {
         }
       }
       
-      console.log('Sending product data with category ID:', productData.category);
-      await productManagementApi.createProduct(formData);
+      console.log('Sending product data with categoryId:', categoryId);
+      
+      const result = await productManagementApi.createProduct(formData);
+      console.log('Product creation result:', result);
       
       // Reload products from API
       const response = await productManagementApi.getAllProducts();
@@ -178,65 +192,164 @@ const ProductManagement = () => {
   };
 
   const handleEditClick = (product) => {
+    // Extract category name properly regardless of data structure
+    let categoryName = '';
+    if (product.category) {
+      categoryName = typeof product.category === 'object' ? product.category.name : product.category;
+    } else if (product.categoryId) {
+      categoryName = typeof product.categoryId === 'object' ? product.categoryId.name : product.categoryId;
+    }
+    
     setEditProduct({ 
       ...product,
-      category: product.category ? (product.category.name || product.category) : ''
+      category: categoryName
     });
     setShowEditModal(true);
   };
 
   const handleEditProduct = async () => {
     try {
-      const formData = new FormData();
-      const productData = {...editProduct};
-      
-      // Find category ID
-      const selectedCategory = categories.find(cat => cat.name === editProduct.category);
-      if (!selectedCategory) {
-        console.error('Category not found in categories list for edit:', editProduct.category);
-        toast.error('Selected category is invalid. Please select a valid category.');
-        return; // Don't proceed if category not found
+      if (!editProduct.name.trim()) {
+        toast.error('Product name is required');
+        return;
       }
-      
-      // Use category ID instead of name
-      productData.category = selectedCategory.id;
-      
-      // Use category ID, not name
-      productData.category = selectedCategory.id;
-      console.log('Using category ID for edit:', selectedCategory.id);
-      
-      // Append text fields
-      Object.keys(productData).forEach(key => {
-        if (key !== 'images' && key !== '_id' && key !== 'id') {
-          formData.append(key, productData[key]);
-        }
-      });
-      
-      // Append images if exists
-      if (editProduct.images && editProduct.images.length > 0) {
-        for (let i = 0; i < editProduct.images.length; i++) {
-          formData.append('images', editProduct.images[i]);
-        }
-      }
-      
-      console.log('Sending product data with category ID for edit:', productData.category);
+
       const productId = editProduct._id || editProduct.id;
       if (!productId) {
         toast.error('Product ID is missing');
         return;
       }
+
+      // Create form data for file upload
+      const formData = new FormData();
       
-      await productManagementApi.updateProduct(productId, formData);
+      // Add all product data except images, _id, id, category, and categoryId
+      for (const key in editProduct) {
+        if (key !== 'images' && key !== '_id' && key !== 'id' && key !== 'category' && key !== 'categoryId') {
+          formData.append(key, editProduct[key]);
+        }
+      }
       
-      // Reload products from API
-      const response = await productManagementApi.getAllProducts();
-      setProducts(response.data.data || response.data);
+      // Handle category ID properly - this is critical for avoiding 400 errors
+      let categoryIdToUse = null;
       
-      toast.success('Product updated successfully');
-      setShowEditModal(false);
+      // First try: Find category by name in our categories list
+      const selectedCategory = categories.find(cat => cat.name === editProduct.category);
+      if (selectedCategory && (selectedCategory._id || selectedCategory.id)) {
+        categoryIdToUse = selectedCategory._id || selectedCategory.id;
+        console.log('Using category ID from name match:', categoryIdToUse);
+      } 
+      // Second try: If we can't find by name, try to find by ID
+      else if (editProduct.categoryId) {
+        // If categoryId is an object with _id or id property
+        if (typeof editProduct.categoryId === 'object' && (editProduct.categoryId._id || editProduct.categoryId.id)) {
+          categoryIdToUse = editProduct.categoryId._id || editProduct.categoryId.id;
+          console.log('Using category ID from object:', categoryIdToUse);
+        } 
+        // If categoryId is a string or other primitive
+        else {
+          categoryIdToUse = editProduct.categoryId;
+          console.log('Using original category ID string:', categoryIdToUse);
+        }
+      }
+      // Third try: Look for category in product.category if it's an object
+      else if (editProduct.category && typeof editProduct.category === 'object') {
+        if (editProduct.category._id || editProduct.category.id) {
+          categoryIdToUse = editProduct.category._id || editProduct.category.id;
+          console.log('Using category ID from category object:', categoryIdToUse);
+        }
+      }
+      
+      // If we found a category ID, add it to the form data
+      if (categoryIdToUse) {
+        // Ensure it's a string and doesn't contain any objects
+        formData.append('categoryId', String(categoryIdToUse).replace(/\[object Object\]/g, ''));
+      } else {
+        // Fallback to first category if we couldn't find a match
+        if (categories.length > 0) {
+          const fallbackId = categories[0]._id || categories[0].id;
+          formData.append('categoryId', String(fallbackId));
+          console.log('Using fallback category ID:', fallbackId);
+        } else {
+          toast.error('No valid category found');
+          return;
+        }
+      }
+      
+      // Add images if available
+      if (editProduct.images) {
+        // Check if images is a FileList or an array of existing images
+        if (editProduct.images instanceof FileList) {
+          for (let i = 0; i < editProduct.images.length; i++) {
+            formData.append('images', editProduct.images[i]);
+          }
+          console.log('Added new images to form data');
+        } else if (Array.isArray(editProduct.images) && editProduct.images.length > 0) {
+          // For existing images, we need to pass their paths as 'images' not 'existingImages'
+          formData.append('images', JSON.stringify(editProduct.images));
+          console.log('Using existing images:', JSON.stringify(editProduct.images));
+        }
+      }
+
+      // Log the final form data for debugging
+      console.log('Form data entries:');
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+      }
+      
+      try {
+        // Make the API call with improved error handling
+        const result = await productManagementApi.updateProduct(productId, formData);
+        console.log('Product update result:', result);
+        
+        // Reload products from API
+        const response = await productManagementApi.getAllProducts();
+        setProducts(response.data.data || response.data);
+        
+        toast.success('Product updated successfully');
+        setShowEditModal(false);
+      } catch (apiError) {
+        // Detailed error logging for debugging
+        console.error('API Error Details:', {
+          message: apiError.message,
+          response: apiError.response?.data,
+          status: apiError.response?.status,
+          headers: apiError.response?.headers,
+          request: apiError.request,
+          config: apiError.config
+        });
+        
+        // User-friendly error message
+        let errorMessage = 'Failed to update product';
+        
+        if (apiError.response) {
+          // The request was made and the server responded with an error status
+          if (apiError.response.status === 400) {
+            errorMessage += ': Invalid data format';
+            if (apiError.response.data?.message?.includes('ObjectId')) {
+              errorMessage += ' - Category ID format is incorrect';
+            }
+          } else if (apiError.response.status === 404) {
+            errorMessage += ': Product not found';
+          } else if (apiError.response.status === 500) {
+            errorMessage += ': Server error';
+          }
+          
+          // Add specific error message from server if available
+          if (apiError.response.data?.message) {
+            errorMessage += ` - ${apiError.response.data.message}`;
+          }
+        } else if (apiError.request) {
+          // The request was made but no response was received
+          errorMessage += ': No response from server';
+        }
+        
+        toast.error(errorMessage);
+      }
     } catch (err) {
-      toast.error('Failed to update product: ' + (err.response?.data?.message || err.message));
-      console.error('Error updating product:', err);
+      // Catch any other errors that might occur outside the API call
+      toast.error('An unexpected error occurred: ' + err.message);
+      console.error('Unexpected error:', err);
     }
   };
 
@@ -302,6 +415,7 @@ const ProductManagement = () => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
@@ -311,10 +425,33 @@ const ProductManagement = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredProducts.map((product) => (
-              <tr key={product.id}>
+            {filteredProducts.map((product, index) => (
+              <tr key={product._id || product.id || `product-${index}`}>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {product.images && product.images.length > 0 ? (
+                    <img 
+                      src={fixImageUrl(product.images[0])} 
+                      alt={product.name} 
+                      className="h-12 w-12 object-cover rounded-md"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://via.placeholder.com/50';
+                      }}
+                    />
+                  ) : (
+                    <div className="h-12 w-12 bg-gray-200 rounded-md flex items-center justify-center">
+                      <FaImage className="text-gray-400" />
+                    </div>
+                  )}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.category}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {product.category && typeof product.category === 'object' 
+                  ? product.category.name 
+                  : product.categoryId && typeof product.categoryId === 'object'
+                    ? product.categoryId.name
+                    : product.category || 'Uncategorized'}
+              </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.price}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.stock}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -571,7 +708,7 @@ const ProductManagement = () => {
                     viewProduct.images.map((image, index) => (
                       <img 
                         key={index} 
-                        src={typeof image === 'string' ? image : URL.createObjectURL(image)} 
+                        src={typeof image === 'string' ? fixImageUrl(image) : URL.createObjectURL(image)} 
                         alt={`Product ${index}`}
                         className="w-full h-32 object-cover rounded"
                       />

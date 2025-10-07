@@ -39,11 +39,12 @@ app.use('/api/reviews', require('./routes/review'));
 app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/offers', require('./routes/offers'));
-app.use('/api/emis', require('./routes/emi'));
+app.use('/api/emi', require('./routes/emi'));
 app.use('/api/newsletter', require('./routes/newsletter'));
 app.use('/api/coupons', require('./routes/coupon'));
 app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Default route
 app.get('/', (req, res) => {
@@ -62,10 +63,21 @@ app.use((err, req, res, next) => {
 
 // Configure uploads server
 uploadsApp.use(cors({
-  origin: [process.env.CLIENT_URL || 'http://localhost:3000', 'http://localhost:5174'],
-  credentials: true
+  origin: '*',  // Allow all origins for image access
+  credentials: true,
+  methods: ['GET', 'HEAD'],
+  exposedHeaders: ['Content-Length', 'Content-Type']
 }));
-uploadsApp.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Set proper headers for static files
+uploadsApp.use('/uploads', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, 'uploads')));
+
+// Add direct access to uploads folder
+uploadsApp.use(express.static(path.join(__dirname)));
 
 uploadsApp.get('/', (req, res) => {
   res.send('Uploads server is running...');

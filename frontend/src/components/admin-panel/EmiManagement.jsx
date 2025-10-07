@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { toast } from 'react-toastify';
+import { emiManagementApi } from '../../services/adminApi';
 
 const EmiManagement = () => {
   const [emiOptions, setEmiOptions] = useState([]);
@@ -21,10 +21,7 @@ const EmiManagement = () => {
   const fetchEmiOptions = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.get('http://localhost:5000/api/emi/options', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await emiManagementApi.getAllEmiOptions();
       setEmiOptions(response.data.data || []);
     } catch (error) {
       console.error('Error fetching EMI options:', error);
@@ -45,14 +42,11 @@ const EmiManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('adminToken');
-      const headers = { Authorization: `Bearer ${token}` };
-      
       if (editMode) {
-        await axios.put(`http://localhost:5000/api/emi/options/${currentEmiId}`, formData, { headers });
+        await emiManagementApi.updateEmiOption(currentEmiId, formData);
         toast.success('EMI option updated successfully');
       } else {
-        await axios.post('http://localhost:5000/api/emi/options', formData, { headers });
+        await emiManagementApi.createEmiOption(formData);
         toast.success('EMI option created successfully');
       }
       
@@ -78,10 +72,7 @@ const EmiManagement = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this EMI option?')) {
       try {
-        const token = localStorage.getItem('adminToken');
-        await axios.delete(`http://localhost:5000/api/emi/options/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await emiManagementApi.deleteEmiOption(id);
         toast.success('EMI option deleted successfully');
         fetchEmiOptions();
       } catch (error) {

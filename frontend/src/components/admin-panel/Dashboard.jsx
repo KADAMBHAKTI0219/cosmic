@@ -109,20 +109,20 @@ const Dashboard = () => {
           <h2 className="text-lg font-semibold mb-4">Sales Overview</h2>
           <div className="h-64">
             <Line 
-              data={{
-                labels: dashboardStats?.orderStats?.monthlySales?.map(item => item.month) || 
-                  ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                datasets: [
-                  {
-                    label: 'Sales',
-                    data: dashboardStats?.orderStats?.monthlySales?.map(item => item.count) || 
-                      [0, 0, 0, 0, 0, 0],
-                    borderColor: '#92c51b',
-                    backgroundColor: 'rgba(146, 197, 27, 0.1)',
-                    tension: 0.4,
-                  }
-                ]
-              }}
+                data={{
+                  labels: dashboardStats?.chartData?.monthlySales?.map(item => item.month) || 
+                    ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                  datasets: [
+                    {
+                      label: 'Sales',
+                      data: dashboardStats?.chartData?.monthlySales?.map(item => item.count) || 
+                        [0, 0, 0, 0, 0, 0],
+                      borderColor: '#92c51b',
+                      backgroundColor: 'rgba(146, 197, 27, 0.1)',
+                      tension: 0.4,
+                    }
+                  ]
+                }}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
@@ -139,25 +139,27 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-lg font-semibold mb-4">Product Categories</h2>
           <div className="h-64">
-            <Pie 
-              data={{
-                labels: dashboardStats?.productStats?.categoriesDistribution?.map(item => item.category) || 
-                  ['Category 1', 'Category 2', 'Category 3'],
-                datasets: [
-                  {
-                    data: dashboardStats?.productStats?.categoriesDistribution?.map(item => item.count) || 
-                      [0, 0, 0],
-                    backgroundColor: [
-                      'rgba(146, 197, 27, 0.7)',
-                      'rgba(54, 162, 235, 0.7)',
-                      'rgba(255, 206, 86, 0.7)',
-                      'rgba(75, 192, 192, 0.7)',
-                      'rgba(153, 102, 255, 0.7)',
-                    ],
-                    borderWidth: 1,
-                  }
-                ]
-              }}
+                <Pie 
+                  data={{
+                    labels: ['In Stock', 'Out of Stock', 'Low Stock'],
+                    datasets: [
+                      {
+                        data: [
+                          dashboardStats?.productStats?.inStockProducts || 0,
+                          dashboardStats?.productStats?.outOfStockProducts || 0,
+                          dashboardStats?.productStats?.lowStockProducts || 0
+                        ],
+                        backgroundColor: [
+                          'rgba(146, 197, 27, 0.7)',
+                          'rgba(54, 162, 235, 0.7)',
+                          'rgba(255, 206, 86, 0.7)',
+                          'rgba(75, 192, 192, 0.7)',
+                          'rgba(153, 102, 255, 0.7)',
+                        ],
+                        borderWidth: 1,
+                      }
+                    ]
+                  }}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
@@ -182,7 +184,12 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {(dashboardStats?.orderStats?.recentOrders || []).map((order, index) => (
+                {/* Placeholder data for recent orders */}
+                {[
+                  { orderId: '12345', customerName: 'Rahul Sharma', amount: '12,500', status: 'Delivered' },
+                  { orderId: '12346', customerName: 'Priya Singh', amount: '8,900', status: 'Processing' },
+                  { orderId: '12347', customerName: 'Amit Kumar', amount: '15,200', status: 'Pending' }
+                ].map((order, index) => (
                   <tr key={index}>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">#{order.orderId}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{order.customerName}</td>
@@ -198,11 +205,6 @@ const Dashboard = () => {
                     </td>
                   </tr>
                 ))}
-                {(!dashboardStats?.orderStats?.recentOrders || dashboardStats.orderStats.recentOrders.length === 0) && (
-                  <tr>
-                    <td colSpan="4" className="px-4 py-3 text-center text-sm text-gray-500">No recent orders</td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
@@ -221,7 +223,12 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {(dashboardStats?.productStats?.lowStockProducts || []).map((product, index) => (
+                {/* Placeholder data for low stock products */}
+                {[
+                  { name: 'Solar Panel 500W', category: 'Solar Panels', stock: 8 },
+                  { name: 'Inverter 2kW', category: 'Inverters', stock: 5 },
+                  { name: 'Battery 200Ah', category: 'Batteries', stock: 3 }
+                ].map((product, index) => (
                   <tr key={index}>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{product.name}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{product.category}</td>
@@ -236,11 +243,6 @@ const Dashboard = () => {
                     </td>
                   </tr>
                 ))}
-                {(!dashboardStats?.productStats?.lowStockProducts || dashboardStats.productStats.lowStockProducts.length === 0) && (
-                  <tr>
-                    <td colSpan="4" className="px-4 py-3 text-center text-sm text-gray-500">No low stock products</td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>

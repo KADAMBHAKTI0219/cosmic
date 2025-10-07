@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaSearch, FaEdit, FaTrash, FaPlus, FaTimes, FaSave, FaSpinner } from 'react-icons/fa';
 import { categoryManagementApi } from '../../services/adminApi';
 import { toast } from 'react-toastify';
+import { fixImageUrl } from '../../utils/imageUtils';
 
 const CategoryManagement = () => {
   const [categories, setCategories] = useState([]);
@@ -27,24 +28,25 @@ const CategoryManagement = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [editImagePreview, setEditImagePreview] = useState(null);
 
-  // API से कैटेगरीज़ लोड करना
+  // Load categories function
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      const response = await categoryManagementApi.getAllCategories();
+      const categoryData = response.data.data || response.data;
+      setCategories(Array.isArray(categoryData) ? categoryData : []);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load categories. Please try again.');
+      console.error('Error fetching categories:', err);
+      toast.error('Failed to load categories');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load categories on component mount
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setLoading(true);
-        const response = await categoryManagementApi.getAllCategories();
-        const categoryData = response.data.data || response.data;
-        setCategories(Array.isArray(categoryData) ? categoryData : []);
-        setError(null);
-      } catch (err) {
-        setError('Failed to load categories. Please try again.');
-        console.error('Error fetching categories:', err);
-        toast.error('Failed to load categories');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchCategories();
   }, []);
 
@@ -114,10 +116,8 @@ const CategoryManagement = () => {
       const response = await categoryManagementApi.createCategory(formData);
       console.log('Category added response:', response);
       
-      // API से कैटेगरीज़ को फिर से लोड करना
-      const categoriesResponse = await categoryManagementApi.getAllCategories();
-      const categoryData = categoriesResponse.data.data || categoriesResponse.data;
-      setCategories(Array.isArray(categoryData) ? categoryData : []);
+      // Reload categories after adding
+      await fetchCategories();
       
       toast.success('Category added successfully');
       setNewCategory({ name: '', description: '', image: null, status: 'Active' });
@@ -143,9 +143,16 @@ const CategoryManagement = () => {
         status: category.status || 'Active'
       });
       
-      if (category.imageUrl) {
-        setEditImagePreview(category.imageUrl);
+      // Set image preview with correct URL
+      let imageUrl = null;
+      if (category.image) {
+        imageUrl = category.image;
+      } else if (category.imageUrl) {
+        imageUrl = category.imageUrl;
       }
+      
+      // Store the original URL for preview
+      setEditImagePreview(imageUrl);
       
       setShowEditModal(true);
     } catch (err) {
@@ -162,24 +169,28 @@ const CategoryManagement = () => {
       }
 
       const formData = new FormData();
-      formData.append('name', editCategory.name);
+      formData.append('name', editCategory.name.trim());
       if (editCategory.description) {
-        formData.append('description', editCategory.description);
+        formData.append('description', editCategory.description.trim());
       }
-      if (editCategory.status) {
-        formData.append('status', editCategory.status);
-      }
+      formData.append('status', editCategory.status || 'Active');
       if (editCategory.image) {
         formData.append('image', editCategory.image);
       }
 
+      console.log('Updating category with data:', {
+        id: editCategory._id,
+        name: editCategory.name.trim(),
+        description: editCategory.description ? editCategory.description.trim() : '',
+        status: editCategory.status || 'Active',
+        image: editCategory.image ? 'Image present' : 'No image'
+      });
+
       const response = await categoryManagementApi.updateCategory(editCategory._id, formData);
       console.log('Category updated response:', response);
       
-      // API से कैटेगरीज़ को फिर से लोड करना
-      const categoriesResponse = await categoryManagementApi.getAllCategories();
-      const categoryData = categoriesResponse.data.data || categoriesResponse.data;
-      setCategories(Array.isArray(categoryData) ? categoryData : []);
+      // Reload categories after updating
+      await fetchCategories();
       
       toast.success('Category updated successfully');
       setShowEditModal(false);
@@ -195,10 +206,8 @@ const CategoryManagement = () => {
       try {
         await categoryManagementApi.deleteCategory(id);
         
-        // API से कैटेगरीज़ को फिर से लोड करना
-        const response = await categoryManagementApi.getAllCategories();
-        const categoryData = response.data.data || response.data;
-        setCategories(Array.isArray(categoryData) ? categoryData : []);
+        // Reload categories after deletion
+        await fetchCategories();
         
         toast.success('Category deleted successfully');
       } catch (err) {
@@ -269,9 +278,9 @@ const CategoryManagement = () => {
             {filteredCategories.map((category) => (
               <tr key={category._id}>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {category.imageUrl ? (
+                  {category.imageUrl || category.image ? (
                     <img 
-                      src={category.imageUrl} 
+                      src={fixImageUrl(category.imageUrl || category.image)} 
                       alt={category.name} 
                       className="h-10 w-10 rounded-full object-cover"
                     />
@@ -436,7 +445,7 @@ const CategoryManagement = () => {
               {editImagePreview && (
                 <div className="mt-2">
                   <img 
-                    src={editImagePreview} 
+                    src={fixImageUrl(editImagePreview)} 
                     alt="Preview" 
                     className="h-20 w-20 object-cover rounded"
                   />

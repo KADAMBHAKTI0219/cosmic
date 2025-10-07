@@ -19,7 +19,7 @@ exports.getAllProducts = async (req, res) => {
     
     // Filter by category if provided
     if (category) {
-      query.category = category;
+      query.categoryId = category;
     }
     
     // Filter by status if provided
@@ -49,7 +49,7 @@ exports.getAllProducts = async (req, res) => {
       sort,
       limit: parseInt(limit),
       skip: (parseInt(page) - 1) * parseInt(limit),
-      populate: 'category'
+      populate: 'categoryId'
     };
     
     const products = await Product.find(query, null, options);
@@ -76,7 +76,7 @@ exports.getProductById = async (req, res) => {
   try {
     const { id } = req.params;
     
-    const product = await Product.findById(id).populate('category');
+    const product = await Product.findById(id).populate('categoryId');
     
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
@@ -100,25 +100,42 @@ exports.createProduct = async (req, res) => {
       description, 
       price, 
       stock, 
-      category,
+      categoryId,
       images,
       specifications,
       isActive
     } = req.body;
     
+    console.log('Creating product with data:', req.body);
+    console.log('Creating product with categoryId:', categoryId);
+    
+    if (!categoryId) {
+      return res.status(400).json({ success: false, message: 'Category ID is required' });
+    }
+    
     // Check if category exists
-    const categoryExists = await Category.findById(category);
+    const categoryExists = await Category.findById(categoryId);
     if (!categoryExists) {
+      console.error('Category not found with ID:', categoryId);
       return res.status(404).json({ success: false, message: 'Category not found' });
+    }
+    
+    // Process uploaded images if any
+    const imageUrls = [];
+    if (req.files && req.files.length > 0) {
+      req.files.forEach(file => {
+        // Add full URL prefix to make it a valid URL for the model validation
+        imageUrls.push(`http://localhost:5000/uploads/products/${file.filename}`);
+      });
     }
     
     const product = new Product({
       name,
       description,
-      price,
-      stock,
-      category,
-      images: images || [],
+      price: Number(price),
+      stock: Number(stock),
+      categoryId, // Use categoryId field as per model schema
+      images: imageUrls.length > 0 ? imageUrls : (images || []),
       specifications: specifications || {},
       isActive: isActive !== undefined ? isActive : true
     });
@@ -145,27 +162,61 @@ exports.updateProduct = async (req, res) => {
       description, 
       price, 
       stock, 
-      category,
+      categoryId,
       images,
       specifications,
       isActive
     } = req.body;
     
+    // Initialize updateData object first
+    const updateData = {};
+    
     // Check if category exists if provided
-    if (category) {
-      const categoryExists = await Category.findById(category);
-      if (!categoryExists) {
-        return res.status(404).json({ success: false, message: 'Category not found' });
+    if (categoryId) {
+      try {
+        // Handle case where categoryId might be an object instead of string
+        const catId = typeof categoryId === 'object' ? categoryId.toString() : categoryId;
+        const categoryExists = await Category.findById(catId);
+        if (!categoryExists) {
+          return res.status(404).json({ success: false, message: 'Category not found' });
+        }
+        // Ensure we use the string version of the ID
+        updateData.categoryId = catId;
+      } catch (err) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid category ID format', 
+          error: err.message 
+        });
+      }
+    }
+    if (name) updateData.name = name;
+    if (description) updateData.description = description;
+    if (price) updateData.price = Number(price);
+    if (stock !== undefined) updateData.stock = Number(stock);
+    if (categoryId) updateData.categoryId = categoryId;
+    
+    // Process uploaded images if any
+    const imageUrls = [];
+    if (req.files && req.files.length > 0) {
+      req.files.forEach(file => {
+        // Add full URL prefix to make it a valid URL for the model validation
+        imageUrls.push(`http://localhost:5000/uploads/products/${file.filename}`);
+      });
+      updateData.images = imageUrls;
+    } else if (images) {
+      // Check if images is a JSON string and parse it
+      if (typeof images === 'string' && images.startsWith('[')) {
+        try {
+          updateData.images = JSON.parse(images);
+        } catch (err) {
+          updateData.images = images;
+        }
+      } else {
+        updateData.images = images;
       }
     }
     
-    const updateData = {};
-    if (name) updateData.name = name;
-    if (description) updateData.description = description;
-    if (price) updateData.price = price;
-    if (stock !== undefined) updateData.stock = stock;
-    if (category) updateData.category = category;
-    if (images) updateData.images = images;
     if (specifications) updateData.specifications = specifications;
     if (isActive !== undefined) updateData.isActive = isActive;
     
@@ -173,7 +224,7 @@ exports.updateProduct = async (req, res) => {
       id,
       updateData,
       { new: true, runValidators: true }
-    ).populate('category');
+    ).populate('categoryId');
     
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
@@ -289,6 +340,65 @@ exports.getProductStats = async (req, res) => {
         lowStockProducts,
         productsByCategory
       }
+    });
+  } catch (error) {
+    await logError(error, req);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+// Toggle featured status of a product
+exports.toggleFeaturedStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const product = await Product.findById(id);
+    
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+    
+    // Toggle the featured status
+    product.isFeatured = !product.isFeatured;
+    await product.save();
+    
+    res.status(200).json({
+      success: true,
+      message: `Product ${product.isFeatured ? 'marked as featured' : 'removed from featured'}`,
+      data: product
+    });
+  } catch (error) {
+    await logError(error, req);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+// Export products to CSV/Excel
+exports.exportProducts = async (req, res) => {
+  try {
+    const products = await Product.find().populate('category');
+    
+    if (!products || products.length === 0) {
+      return res.status(404).json({ success: false, message: 'No products found to export' });
+    }
+    
+    // Format products for export
+    const formattedProducts = products.map(product => ({
+      ID: product._id,
+      Name: product.name,
+      Description: product.description,
+      Price: product.price,
+      Stock: product.stock,
+      Category: product.category ? product.category.name : 'Uncategorized',
+      Status: product.isActive ? 'Active' : 'Inactive',
+      Featured: product.isFeatured ? 'Yes' : 'No',
+      CreatedAt: product.createdAt
+    }));
+    
+    res.status(200).json({
+      success: true,
+      message: 'Products exported successfully',
+      data: formattedProducts
     });
   } catch (error) {
     await logError(error, req);

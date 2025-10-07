@@ -38,40 +38,47 @@ const sliderData = [
 
 const HeroSlider = () => {
   return (
-    <div className="relative w-full">
+    <div className="w-full relative">
       <Swiper
+        modules={[Autoplay, Pagination, EffectFade]}
+        effect="fade"
         spaceBetween={0}
-        centeredSlides={true}
-        effect={'fade'}
+        slidesPerView={1}
         autoplay={{
           delay: 5000,
           disableOnInteraction: false,
         }}
         pagination={{
           clickable: true,
+          renderBullet: function (index, className) {
+            return '<span class="' + className + ' custom-bullet"></span>';
+          },
         }}
         navigation={false}
-        modules={[Autoplay, Pagination, EffectFade]}
-        className="mySwiper h-[400px] sm:h-[450px] md:h-[550px] lg:h-[650px] xl:h-[700px]"
+        className="h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] xl:h-[700px]"
       >
-        {sliderData.map((slide) => (
-          <SwiperSlide key={slide.id}>
-            <div className="relative w-full h-full">
-              <img 
-                src={slide.image} 
-                alt={slide.alt} 
-                className="w-full h-full object-cover"
-              />
-              {/* <div className="absolute inset-0 flex flex-col justify-center px-4 sm:px-8 md:px-16 lg:px-24">
-                <h2 className="text-white text-xl sm:text-2xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-2 sm:mb-4">{slide.heading1}</h2>
-                <h2 className="text-white text-xl sm:text-2xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-6">{slide.heading2}</h2>
-                <p className="text-white text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-medium mb-4 sm:mb-8">{slide.description}</p>
-                <button 
-                  className="bg-main hover:bg-main-dark text-white font-bold py-2 px-4 sm:py-3 sm:px-6 rounded-lg w-fit transition duration-300 ease-in-out transform hover:scale-105 text-sm sm:text-base"
-                >
-                  {slide.buttonText}
-                </button>
-              </div> */}
+        {sliderData.map((slide, index) => (
+          <SwiperSlide key={index} className="relative">
+            <div className="absolute inset-0 bg-black/30 z-10"></div>
+            <img
+              src={slide.image}
+              alt={slide.alt}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 flex items-center z-20 px-6 md:px-8 lg:px-10">
+              <div className="max-w-7xl mx-auto w-full">
+                <div className="max-w-xl">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 drop-shadow-lg">
+                    {slide.heading1}
+                  </h1>
+                  <p className="text-sm sm:text-base md:text-lg text-white mb-6 drop-shadow-md">
+                    {slide.description}
+                  </p>
+                  <button className="bg-main text-white px-6 py-3 rounded-md text-base font-medium hover:bg-main-dark transition duration-300 shadow-lg">
+                    {slide.buttonText}
+                  </button>
+                </div>
+              </div>
             </div>
           </SwiperSlide>
         ))}

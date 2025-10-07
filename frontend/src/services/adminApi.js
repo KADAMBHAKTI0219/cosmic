@@ -33,6 +33,21 @@ export const dashboardApi = {
   getDashboardStats: () => API.get('/admin/dashboard/stats'),
 };
 
+// Offer Management API
+export const offerManagementApi = {
+  getAllOffers: (page = 1, limit = 20, filters = {}) => {
+    const { status, search, sortBy, sortOrder } = filters;
+    return API.get('/admin/offers', { 
+      params: { page, limit, status, search, sortBy, sortOrder } 
+    });
+  },
+  getOfferById: (id) => API.get(`/admin/offers/${id}`),
+  createOffer: (offerData) => API.post('/admin/offers', offerData),
+  updateOffer: (id, offerData) => API.put(`/admin/offers/${id}`, offerData),
+  deleteOffer: (id) => API.delete(`/admin/offers/${id}`),
+  getOfferStats: () => API.get('/admin/offers/stats'),
+};
+
 // User Management API
 export const userManagementApi = {
   getAllUsers: (page = 1, limit = 10, filters = {}) => {
@@ -42,8 +57,12 @@ export const userManagementApi = {
     });
   },
   getUserById: (id) => API.get(`/admin/users/${id}`),
+  createUser: (userData) => API.post('/admin/users/create', userData),
+  verifyUserOtp: (verificationData) => API.post('/admin/users/verify-otp', verificationData),
+  completeUserProfile: (profileData) => API.post(`/admin/users/complete-profile`, profileData),
   updateUser: (id, userData) => API.put(`/admin/users/${id}`, userData),
   deleteUser: (id) => API.delete(`/admin/users/${id}`),
+  toggleUserStatus: (id, status) => API.put(`/admin/users/${id}/status`, { status }),
   getUserStats: () => API.get('/admin/users/stats'),
 };
 
@@ -57,6 +76,14 @@ export const categoryManagementApi = {
   },
   getCategoryById: (id) => API.get(`/admin/categories/${id}`),
   createCategory: (categoryData) => {
+    // If categoryData is already FormData, use it directly
+    if (categoryData instanceof FormData) {
+      return API.post('/admin/categories', categoryData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    }
+    
+    // Otherwise create a new FormData
     const formData = new FormData();
     
     // Append text fields
@@ -76,6 +103,14 @@ export const categoryManagementApi = {
     });
   },
   updateCategory: (id, categoryData) => {
+    // If categoryData is already FormData, use it directly
+    if (categoryData instanceof FormData) {
+      return API.put(`/admin/categories/${id}`, categoryData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    }
+    
+    // Otherwise create a new FormData
     const formData = new FormData();
     
     // Append text fields
@@ -108,12 +143,36 @@ export const productManagementApi = {
   },
   getProductById: (id) => API.get(`/admin/products/${id}`),
   createProduct: (productData) => {
+    console.log('Creating product with data:', productData);
+    
+    // If productData is already FormData, use it directly
+    if (productData instanceof FormData) {
+      // Log FormData contents for debugging
+      for (let pair of productData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+      }
+      
+      return API.post('/admin/products', productData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    }
+    
     const formData = new FormData();
     
     // Append text fields
     Object.keys(productData).forEach(key => {
       if (key !== 'images' && key !== 'features') {
-        formData.append(key, productData[key]);
+        // Make sure we're using categoryId, not category
+        if (key === 'category') {
+          // If category is an object with id property, use that
+          if (typeof productData[key] === 'object' && productData[key].id) {
+            formData.append('categoryId', productData[key].id);
+          } else {
+            formData.append('categoryId', productData[key]);
+          }
+        } else {
+          formData.append(key, productData[key]);
+        }
       }
     });
     
@@ -124,9 +183,14 @@ export const productManagementApi = {
     
     // Append images
     if (productData.images && productData.images.length) {
-      productData.images.forEach(image => {
-        formData.append('images', image);
-      });
+      for (let i = 0; i < productData.images.length; i++) {
+        formData.append('images', productData.images[i]);
+      }
+    }
+    
+    // Log FormData contents for debugging
+    for (let pair of formData.entries()) {
+      console.log(pair[0] + ': ' + pair[1]);
     }
     
     return API.post('/admin/products', formData, {
@@ -134,11 +198,18 @@ export const productManagementApi = {
     });
   },
   updateProduct: (id, productData) => {
+    // If productData is already FormData, use it directly
+    if (productData instanceof FormData) {
+      return API.put(`/admin/products/${id}`, productData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    }
+    
     const formData = new FormData();
     
     // Append text fields
     Object.keys(productData).forEach(key => {
-      if (key !== 'images' && key !== 'features') {
+      if (key !== 'images' && key !== 'features' && key !== '_id' && key !== 'id') {
         formData.append(key, productData[key]);
       }
     });
@@ -150,9 +221,9 @@ export const productManagementApi = {
     
     // Append images
     if (productData.images && productData.images.length) {
-      productData.images.forEach(image => {
-        formData.append('images', image);
-      });
+      for (let i = 0; i < productData.images.length; i++) {
+        formData.append('images', productData.images[i]);
+      }
     }
     
     return API.put(`/admin/products/${id}`, formData, {
@@ -161,19 +232,23 @@ export const productManagementApi = {
   },
   deleteProduct: (id) => API.delete(`/admin/products/${id}`),
   updateStock: (id, stockData) => API.put(`/admin/products/${id}/stock`, stockData),
+  toggleFeaturedStatus: (id, featured) => API.put(`/admin/products/${id}/featured`, { featured }),
   getProductStats: () => API.get('/admin/product-stats'),
+  exportProducts: () => API.get('/admin/products-export', { responseType: 'blob' }),
 };
 
 // Order Management API
 export const orderManagementApi = {
   getAllOrders: (page = 1, limit = 10, filters = {}) => {
-    const { status, search, sortBy, sortOrder, startDate, endDate } = filters;
+    const { orderStatus, search, sortBy, sortOrder, startDate, endDate } = filters;
     return API.get('/admin/orders', { 
-      params: { page, limit, status, search, sortBy, sortOrder, startDate, endDate } 
+      params: { page, limit, orderStatus, search, sortBy, sortOrder, startDate, endDate } 
     });
   },
   getOrderById: (id) => API.get(`/admin/orders/${id}`),
-  updateOrderStatus: (id, status) => API.put(`/admin/orders/${id}/status`, { status }),
+  updateOrderStatus: (id, orderStatus) => API.put(`/admin/orders/${id}/status`, { orderStatus }),
+  getOrderStats: () => API.get('/admin/orders/stats'),
+  exportOrders: () => API.get('/admin/orders/export', { responseType: 'blob' }),
 };
 
 
@@ -181,14 +256,16 @@ export const orderManagementApi = {
 export const inventoryManagementApi = {
   getAllInventoryLogs: (page = 1, limit = 10, filters = {}) => {
     const { productId, action, sortBy, sortOrder, startDate, endDate } = filters;
-    return API.get('/inventory/logs', { 
+    return API.get('/inventory/admin/logs', { 
       params: { page, limit, productId, action, sortBy, sortOrder, startDate, endDate } 
     });
   },
-  getInventorySummary: () => API.get('/inventory/summary'),
-  getInventoryLog: (id) => API.get(`/inventory/logs/${id}`),
+  getInventorySummary: () => API.get('/inventory/admin/summary'),
+  getInventoryLog: (id) => API.get(`/inventory/admin/logs/${id}`),
   updateInventory: (productId, quantity, action, notes) => 
-    API.post('/inventory/adjust', { productId, quantity, action, notes }),
+    API.post('/inventory/admin/adjust', { productId, quantity, action, notes }),
+  exportInventoryReport: () => API.get('/inventory/admin/export', { responseType: 'blob' }),
+  getLowStockAlerts: () => API.get('/inventory/admin/low-stock')
 };
 
 // Coupon Management API
@@ -203,24 +280,11 @@ export const couponManagementApi = {
   createCoupon: (couponData) => API.post('/admin/coupons', couponData),
   updateCoupon: (id, couponData) => API.put(`/admin/coupons/${id}`, couponData),
   deleteCoupon: (id) => API.delete(`/admin/coupons/${id}`),
-  validateCoupon: (code) => API.post('/admin/coupons/validate', { code }),
+  validateCoupon: (code, orderAmount) => API.post('/admin/coupons/validate', { code, orderAmount }),
+  applyCoupon: (code) => API.post('/admin/coupons/apply', { code }),
   getCouponStats: () => API.get('/admin/coupons/stats'),
 };
 
-// Offer Management API
-export const offerManagementApi = {
-  getAllOffers: (page = 1, limit = 10, filters = {}) => {
-    const { status, search, sortBy, sortOrder } = filters;
-    return API.get('/admin/offers', { 
-      params: { page, limit, status, search, sortBy, sortOrder } 
-    });
-  },
-  getOfferById: (id) => API.get(`/admin/offers/${id}`),
-  createOffer: (offerData) => API.post('/admin/offers', offerData),
-  updateOffer: (id, offerData) => API.put(`/admin/offers/${id}`, offerData),
-  deleteOffer: (id) => API.delete(`/admin/offers/${id}`),
-  getOfferStats: () => API.get('/admin/offers/stats'),
-};
 
 // Reports API
 export const reportsApi = {
@@ -244,14 +308,67 @@ export const newsletterManagementApi = {
   getAllSubscribers: () => API.get('/newsletter/admin/subscribers'),
   getActiveSubscribers: () => API.get('/newsletter/admin/subscribers/active'),
   deleteSubscriber: (id) => API.delete(`/newsletter/admin/subscribers/${id}`),
+  sendNewsletter: (newsletterData) => API.post('/newsletter/admin/send', newsletterData),
+};
+
+// Notification Management API
+export const notificationManagementApi = {
+  getAllNotifications: (page = 1, limit = 10, filters = {}) => {
+    const { isRead, type } = filters;
+    return API.get('/notifications/user', { 
+      params: { page, limit, isRead, type } 
+    });
+  },
+  createNotification: (notificationData) => API.post('/notifications', notificationData),
+  markAsRead: (id) => API.put(`/notifications/${id}/read`),
+  markAllAsRead: () => API.put('/notifications/mark-all-read'),
+  deleteNotification: (id) => API.delete(`/notifications/${id}`),
+  getActivityLogs: (page = 1, limit = 10, filters = {}) => {
+    const { action, entityType, startDate, endDate } = filters;
+    return API.get('/notifications/activity-logs', { 
+      params: { page, limit, action, entityType, startDate, endDate } 
+    });
+  },
+  getErrorLogs: (page = 1, limit = 10, filters = {}) => {
+    const { level, statusCode, path, startDate, endDate } = filters;
+    return API.get('/notifications/error-logs', { 
+      params: { page, limit, level, statusCode, path, startDate, endDate } 
+    });
+  },
+};
+
+// Wishlist Analytics API
+export const wishlistAnalyticsApi = {
+  getWishlistAnalytics: () => API.get('/wishlist/analytics'),
+};
+
+// Review Management API
+export const reviewManagementApi = {
+  getAllReviews: (page = 1, limit = 10, filters = {}) => {
+    const { status, productId } = filters;
+    return API.get('/reviews/admin/all', { 
+      params: { page, limit, status, productId } 
+    });
+  },
+  getReviewById: (id) => API.get(`/reviews/admin/${id}`),
+  approveReview: (id) => API.put(`/reviews/admin/${id}/approve`),
+  rejectReview: (id) => API.put(`/reviews/admin/${id}/reject`),
+  deleteReview: (id) => API.delete(`/reviews/admin/${id}`),
 };
 
 // EMI Management API
 export const emiManagementApi = {
-  getAllEMIs: () => API.get('/admin/emi'),
-  createEMI: (emiData) => API.post('/admin/emi', emiData),
-  updateEMI: (id, emiData) => API.put(`/admin/emi/${id}`, emiData),
-  deleteEMI: (id) => API.delete(`/admin/emi/${id}`),
+  getAllEMIs: () => API.get('/emi'),
+  createEMI: (emiData) => API.post('/emi', emiData),
+  updateEMI: (id, emiData) => API.put(`/emi/${id}`, emiData),
+  deleteEMI: (id) => API.delete(`/emi/${id}`),
+  
+  // EMI Options API
+  getAllEmiOptions: () => API.get('/emi/options'),
+  getEmiOption: (id) => API.get(`/emi/options/${id}`),
+  createEmiOption: (optionData) => API.post('/emi/options', optionData),
+  updateEmiOption: (id, optionData) => API.put(`/emi/options/${id}`, optionData),
+  deleteEmiOption: (id) => API.delete(`/emi/options/${id}`),
 };
 
 export default {
@@ -264,5 +381,8 @@ export default {
   offerManagementApi,
   reportsApi,
   newsletterManagementApi,
+  wishlistAnalyticsApi,
+  reviewManagementApi,
   emiManagementApi,
+  notificationManagementApi,
 };

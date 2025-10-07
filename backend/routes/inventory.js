@@ -12,9 +12,15 @@ const {
 router.use(protect);
 router.use(authorize('admin'));
 
-router.post('/adjust', adjustInventory);
-router.get('/logs', getInventoryLogs);
-router.get('/logs/:id', getInventoryLog);
-router.get('/summary', getInventorySummary);
+// Create admin prefix for all routes
+const adminRouter = express.Router();
+
+adminRouter.post('/adjust', adjustInventory);
+adminRouter.get('/logs', getInventoryLogs);
+adminRouter.get('/logs/:id', getInventoryLog);
+adminRouter.get('/summary', getInventorySummary);
+
+// Mount admin routes
+router.use('/admin', adminRouter);
 
 module.exports = router;

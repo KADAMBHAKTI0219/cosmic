@@ -189,11 +189,11 @@ const ProductSidebar = ({ onFilterChange }) => {
       {/* Header with filter count */}
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
         <h2 className="text-lg font-bold text-gray-800 flex items-center">
-          <FaFilter className="mr-2 text-main" />
+          <FaFilter className="mr-2 text-[#92c51b]" />
           Filters
         </h2>
         {activeFilters.length > 0 && (
-          <span className="bg-main-light text-main text-xs font-medium px-2 py-1 rounded-full">
+          <span className="bg-[#e9f5d0] text-[#92c51b] text-xs font-medium px-2 py-1 rounded-full">
             {activeFilters.length}
           </span>
         )}
@@ -206,10 +206,16 @@ const ProductSidebar = ({ onFilterChange }) => {
           onClick={() => toggleSection('search')}
         >
           <h3 className="text-sm font-semibold text-gray-700 flex items-center">
-            <FaSearch className="mr-2 text-main" />
+            <FaSearch className="mr-2 text-[#92c51b]" />
             Search Products
           </h3>
-          <button className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 text-gray-700">
+          <button 
+            className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 text-gray-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleSection('search');
+            }}
+          >
             {expandedSections.search ? '−' : '+'}
           </button>
         </div>
@@ -287,10 +293,16 @@ const ProductSidebar = ({ onFilterChange }) => {
           onClick={() => toggleSection('category')}
         >
           <h3 className="text-sm font-semibold text-gray-700 flex items-center">
-            <FaBoxOpen className="mr-2 text-main" />
+            <FaBoxOpen className="mr-2 text-[#92c51b]" />
             Categories
           </h3>
-          <button className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 text-gray-700">
+          <button 
+            className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 text-gray-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleSection('category');
+            }}
+          >
             {expandedSections.category ? '−' : '+'}
           </button>
         </div>
@@ -349,10 +361,16 @@ const ProductSidebar = ({ onFilterChange }) => {
           onClick={() => toggleSection('price')}
         >
           <h3 className="text-sm font-semibold text-gray-700 flex items-center">
-            <FaTag className="mr-2 text-main" />
+            <FaTag className="mr-2 text-[#92c51b]" />
             Price Range
           </h3>
-          <button className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 text-gray-700">
+          <button 
+            className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 text-gray-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleSection('price');
+            }}
+          >
             {expandedSections.price ? '−' : '+'}
           </button>
         </div>
@@ -415,7 +433,13 @@ const ProductSidebar = ({ onFilterChange }) => {
             <FaStar className="mr-2 text-yellow-400" />
             Customer Rating
           </h3>
-          <button className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 text-gray-700">
+          <button 
+            className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 text-gray-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleSection('rating');
+            }}
+          >
             {expandedSections.rating ? '−' : '+'}
           </button>
         </div>

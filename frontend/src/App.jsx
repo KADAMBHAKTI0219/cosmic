@@ -2,11 +2,13 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './layouts/header';
 import Footer from './layouts/footer';
 import Navbar from './layouts/navbar';
+import ScrollToTop from './components/common/ScrollToTop';
 
 import Home from './pages/home';
 import Register from './pages/auth/register';
 import Products from './components/products/products';
-import ProductDetails from './components/products/productdetails';
+import ProductDetails from './components/products/ProductDetails';
+import ProductList from './pages/products/ProductList';
 import CartPage from './components/products/CartPage';
 import OrdersPage from './pages/orders/OrdersPage';
 import OrderDetailsPage from './pages/orders/OrderDetailsPage';
@@ -41,6 +43,7 @@ import CheckoutPage from './components/products/CheckoutPage';
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <AdminAuthProvider>
         <div className="flex flex-col min-h-screen">
           <Routes>
@@ -100,6 +103,9 @@ function App() {
                     {/* Cart Route */}
                     <Route path="/cart" element={<CartPage />} />
                     
+                    {/* Checkout Route */}
+                    <Route path="/checkout" element={<CheckoutPage />} />
+                    
                     {/* Order Routes */}
                     <Route path="/orders" element={<OrdersPage />} />
                     <Route path="/orders/:id" element={<OrderDetailsPage />} />
@@ -115,6 +121,9 @@ function App() {
                     
                     {/* EMI Routes */}
                     <Route path="/emi" element={<EMIPage />} />
+                    
+                    {/* Products Page */}
+                    <Route path="/products" element={<ProductList />} />
                   </Routes>
                 </main>
                 <Footer />

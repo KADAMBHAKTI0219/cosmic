@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 
 const AdminAuthContext = createContext();
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const AdminAuthProvider = ({ children }) => {
   const [admin, setAdmin] = useState(null);
@@ -19,7 +20,7 @@ export const AdminAuthProvider = ({ children }) => {
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           
           // Verify token by fetching admin profile
-          const response = await axios.get('http://localhost:5000/api/admin/user-stats');
+          const response = await axios.get(`${API_URL}/admin/user-stats`);
           
           // If successful response, user is authenticated as admin
           setAdmin({
@@ -47,7 +48,7 @@ export const AdminAuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const response = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+      const response = await axios.post(`${API_URL}/auth/login`, { email, password });
       
       if (response.data.success && response.data.data.role === 'admin') {
         // Store token in localStorage

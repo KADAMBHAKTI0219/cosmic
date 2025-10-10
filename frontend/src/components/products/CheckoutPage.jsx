@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaArrowLeft, FaLock } from 'react-icons/fa';
+import { FaArrowLeft, FaLock, FaTag } from 'react-icons/fa';
 import { cartApi, ordersApi } from '../../services/api';
 import GuestCheckout from '../checkout/GuestCheckout';
 
@@ -14,6 +14,11 @@ const CheckoutPage = () => {
   const [showGuestCheckout, setShowGuestCheckout] = useState(false);
   const [verifiedEmail, setVerifiedEmail] = useState('');
   const [verificationOtp, setVerificationOtp] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState(null);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -51,10 +56,15 @@ const CheckoutPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+    if (name === 'couponCode') {
+      setCouponCode(value.toUpperCase());
+      setCouponError(null);
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
   };
 
   const calculateSubtotal = () => {
@@ -70,7 +80,41 @@ const CheckoutPage = () => {
   };
 
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateShipping();
+    return calculateSubtotal() + calculateShipping() - couponDiscount;
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim() || couponLoading) return;
+    
+    setCouponLoading(true);
+    setCouponError(null);
+    
+    try {
+      const response = await cartApi.applyCoupon({ code: couponCode });
+      
+      if (response.data.success) {
+        setAppliedCoupon(response.data.data.coupon);
+        setCouponDiscount(response.data.data.discount);
+        setCouponCode('');
+      } else {
+        setCouponError(response.data.message || 'Invalid coupon code');
+      }
+    } catch (error) {
+      console.error('Error applying coupon:', error);
+      setCouponError(error.response?.data?.message || 'Failed to apply coupon');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+  
+  const handleRemoveCoupon = async () => {
+    try {
+      await cartApi.removeCoupon();
+      setAppliedCoupon(null);
+      setCouponDiscount(0);
+    } catch (error) {
+      console.error('Error removing coupon:', error);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -95,7 +139,9 @@ const CheckoutPage = () => {
         },
         paymentMethod: formData.paymentMethod,
         totalAmount: calculateTotal(),
-        shippingFee: calculateShipping()
+        shippingFee: calculateShipping(),
+        couponCode: appliedCoupon?.code,
+        couponDiscount: couponDiscount
       };
       
       let response;
@@ -153,7 +199,7 @@ const CheckoutPage = () => {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#92c51b]"></div>
         </div>
       </div>
     );
@@ -196,7 +242,7 @@ const CheckoutPage = () => {
                     value={formData.fullName}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
                   />
                 </div>
                 
@@ -208,7 +254,7 @@ const CheckoutPage = () => {
                     value={formData.email}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
                   />
                 </div>
                 
@@ -220,7 +266,7 @@ const CheckoutPage = () => {
                     value={formData.phone}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
                   />
                 </div>
                 
@@ -232,7 +278,7 @@ const CheckoutPage = () => {
                     onChange={handleInputChange}
                     required
                     rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
                   ></textarea>
                 </div>
                 
@@ -244,7 +290,7 @@ const CheckoutPage = () => {
                     value={formData.city}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
                   />
                 </div>
                 
@@ -256,7 +302,7 @@ const CheckoutPage = () => {
                     value={formData.state}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
                   />
                 </div>
                 
@@ -274,73 +320,15 @@ const CheckoutPage = () => {
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-              <div className="p-4 border-b">
-                <h2 className="text-lg font-semibold">Payment Method</h2>
-              </div>
-              
-              <div className="p-6">
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <input
-                      id="cod"
-                      name="paymentMethod"
-                      type="radio"
-                      value="cod"
-                      checked={formData.paymentMethod === 'cod'}
-                      onChange={handleInputChange}
-                      className="h-4 w-4 text-green-600 focus:ring-green-500"
-                    />
-                    <label htmlFor="cod" className="ml-3 block text-sm font-medium text-gray-700">
-                      Cash on Delivery
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <input
-                      id="online"
-                      name="paymentMethod"
-                      type="radio"
-                      value="online"
-                      checked={formData.paymentMethod === 'online'}
-                      onChange={handleInputChange}
-                      className="h-4 w-4 text-green-600 focus:ring-green-500"
-                    />
-                    <label htmlFor="online" className="ml-3 block text-sm font-medium text-gray-700">
-                      Online Payment (Razorpay)
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
+
             
-            <div className="mt-6 lg:hidden">
-              <button
-                type="submit"
-                disabled={orderLoading}
-                className={`w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-md font-medium flex items-center justify-center ${
-                  orderLoading ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
-              >
-                {orderLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <FaLock className="mr-2" />
-                    Place Order
-                  </>
-                )}
-              </button>
-            </div>
+
           </form>
           
           <div className="mt-6">
             <button
               onClick={() => navigate('/cart')}
-              className="inline-flex items-center text-green-600 hover:text-green-800"
+              className="inline-flex items-center text-[#92c51b] hover:text-[#82b10b]"
             >
               <FaArrowLeft className="mr-2" />
               Back to Cart
@@ -386,10 +374,65 @@ const CheckoutPage = () => {
                 <span>₹{calculateSubtotal().toLocaleString()}</span>
               </div>
               
-              <div className="flex justify-between">
-                <span className="text-gray-600">Shipping</span>
-                <span>{calculateShipping() === 0 ? 'Free' : `₹${calculateShipping()}`}</span>
-              </div>
+              {/* Coupon Input */}
+              {!appliedCoupon && (
+                <div className="mt-4">
+                  <div className="text-sm font-medium mb-2">Apply Coupon</div>
+                  <div className="flex space-x-2">
+                    <div className="flex-grow">
+                      <input
+                        type="text"
+                        name="couponCode"
+                        placeholder="Enter coupon code"
+                        value={couponCode}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={couponLoading || !couponCode.trim()}
+                      className={`px-4 py-2 bg-[#92c51b] hover:bg-[#82b10b] text-white rounded-md ${
+                        couponLoading || !couponCode.trim() ? 'opacity-70 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {couponLoading ? 'Applying...' : 'Apply'}
+                    </button>
+                  </div>
+                  {couponError && (
+                    <div className="mt-1 text-sm text-red-600">{couponError}</div>
+                  )}
+                </div>
+              )}
+              
+              {/* Applied Coupon */}
+              {appliedCoupon && (
+                <div className="mb-4 p-2 bg-[#f5f9e8] border border-[#dbe8b0] rounded-md flex justify-between items-center">
+                  <div className="flex items-center">
+                    <FaTag className="text-[#92c51b] mr-2" />
+                    <div>
+                      <div className="font-medium">{appliedCoupon.code}</div>
+                      <div className="text-xs text-[#92c51b]">₹{couponDiscount} discount applied</div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="text-gray-500 hover:text-red-600"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+              
+              {/* Coupon Discount */}
+              {appliedCoupon && (
+                <div className="flex justify-between text-[#92c51b]">
+                  <span>Coupon Discount ({appliedCoupon.code})</span>
+                  <span>-₹{couponDiscount.toLocaleString()}</span>
+                </div>
+              )}
               
               <div className="border-t pt-3 mt-3">
                 <div className="flex justify-between font-semibold">
@@ -397,7 +440,7 @@ const CheckoutPage = () => {
                   <span>₹{calculateTotal().toLocaleString()}</span>
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  (Including shipping & taxes)
+                  (Including taxes)
                 </div>
               </div>
             </div>
@@ -406,7 +449,7 @@ const CheckoutPage = () => {
               type="submit"
               form="checkout-form"
               disabled={orderLoading}
-              className={`w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-md font-medium flex items-center justify-center ${
+              className={`w-full bg-[#92c51b] hover:bg-[#82b10b] text-white py-3 rounded-md font-medium flex items-center justify-center ${
                 orderLoading ? 'opacity-70 cursor-not-allowed' : ''
               }`}
               onClick={handleSubmit}
@@ -426,7 +469,7 @@ const CheckoutPage = () => {
             
             <div className="mt-4 text-xs text-gray-500 text-center">
               <div className="flex items-center justify-center mb-1">
-                <FaLock className="text-green-600 mr-1" />
+                <FaLock className="text-[#92c51b] mr-1" />
                 Secure checkout
               </div>
               {formData.paymentMethod === 'online' && (

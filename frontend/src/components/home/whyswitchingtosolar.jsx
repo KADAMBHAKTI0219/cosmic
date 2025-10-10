@@ -48,26 +48,26 @@ const WhySwitchingToSolar = () => {
   ];
 
   return (
-    <div className="bg-white py-12 px-6 md:px-8 lg:px-10">
+    <div className="bg-white py-8 sm:py-10 md:py-12 px-4 sm:px-6 md:px-8 lg:px-10">
       <div className="max-w-7xl mx-auto">
         {/* Heading */}
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-4">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-3 sm:mb-4">
           Why Switching to Solar with Cosmic PowerTech is a Smart Move
         </h2>
         
         {/* Subheading */}
-        <p className="text-center text-sm sm:text-base md:text-lg mb-12 max-w-4xl mx-auto px-4">
+        <p className="text-center text-sm sm:text-base md:text-lg mb-8 sm:mb-10 md:mb-12 max-w-4xl mx-auto px-2 sm:px-4">
           Switching to solar means getting smart with your energy — and your wallet. While bills go up, your solar gear soaks up free sunshine, <span className="text-main font-medium">saving you money</span> nonstop. Plus, <span className="text-main font-medium">saving the planet</span>? That's a win-win.
         </p>
         
         {/* Benefits Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 md:gap-8">
           {benefits.map((benefit) => (
-            <div key={benefit.id} className="flex items-start space-x-4">
+            <div key={benefit.id} className="flex flex-col sm:flex-row items-center sm:items-start bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-4 sm:p-5 sm:space-x-4 border border-gray-100">
               {/* Icon */}
-              <div className={`${benefit.color} p-2 sm:p-3 md:p-4 rounded-lg flex-shrink-0`}>
+              <div className={`${benefit.color} p-3 sm:p-4 rounded-lg flex-shrink-0 mb-4 sm:mb-0`}>
                 {benefit.icon === 'atom' && (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="3" />
                     <path d="M12 3C8.14 3 5 7.13 5 12C5 16.87 8.14 21 12 21C15.86 21 19 16.87 19 12C19 7.13 15.86 3 12 3Z" />
                     <path d="M12 3C14.21 3 16 7.13 16 12C16 16.87 14.21 21 12 21C9.79 21 8 16.87 8 12C8 7.13 9.79 3 12 3Z" transform="rotate(60 12 12)" />
@@ -113,9 +113,9 @@ const WhySwitchingToSolar = () => {
               </div>
               
               {/* Content */}
-              <div>
-                <h3 className="text-xl font-semibold mb-2">{benefit.title}</h3>
-                <p className="text-gray-700">{benefit.description}</p>
+              <div className="text-center sm:text-left">
+                <h3 className="text-lg sm:text-xl font-semibold mb-2">{benefit.title}</h3>
+                <p className="text-gray-700 text-sm sm:text-base">{benefit.description}</p>
               </div>
             </div>
           ))}

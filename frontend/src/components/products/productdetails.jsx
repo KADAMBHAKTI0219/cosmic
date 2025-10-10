@@ -1,1092 +1,1312 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import { productsApi, cartApi, reviewApi } from '../../services/api';
-import power1 from '../../assets/images/power1.webp';
-import power2 from '../../assets/images/power2.webp';
-import power3 from '../../assets/images/power3.webp';
-import power4 from '../../assets/images/power4.webp';
-import power5 from '../../assets/images/power5.webp';
-import power6 from '../../assets/images/power6.jpg';
-import { FaHeart, FaShareAlt, FaShippingFast, FaShieldAlt,FaSun ,FaLeaf, FaRegCreditCard, FaTruck, FaBox, FaChartLine, FaMedal, FaAward, FaCheck, FaStar, FaListUl, FaFileAlt, FaDownload, FaPencilAlt, FaBoxOpen, FaArrowRight, FaChevronDown, FaStarHalfAlt, FaRegStar, FaShoppingCart, FaBolt, FaInfoCircle, FaUserShield, FaStore, FaMapMarkerAlt, FaQuestionCircle, FaRegHeart } from 'react-icons/fa';
-import { fixImageUrl } from '../../utils/imageUtils';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { 
+  FaStar, 
+  FaStarHalfAlt, 
+  FaRegStar, 
+  FaShoppingCart, 
+  FaHeart, 
+  FaShare, 
+  FaCheck, 
+  FaInfoCircle,
+  FaShieldAlt,
+  FaTruck,
+  FaUndo,
+  FaHeadset,
+  FaSolarPanel,
+  FaHome,
+  FaIndustry,
+  FaBuilding,
+  FaLeaf,
+  FaDownload,
+  FaCheckCircle,
+  FaEye,
+  FaTimes,
+  FaCreditCard,
+  FaMoneyBillWave,
+  FaChevronRight
+} from 'react-icons/fa';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+
+// Add custom CSS for no scrollbar
+const noScrollbarStyle = `
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+`;
 
 const ProductDetails = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
+  const [mainImage, setMainImage] = useState('/images/solar-panel-main.jpg');
   const [quantity, setQuantity] = useState(1);
-  const [activeImage, setActiveImage] = useState(0);
-  const [showZoom, setShowZoom] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
-  const zoomRef = useRef(null);
-  const [selectedEmi, setSelectedEmi] = useState(null);
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [reviews, setReviews] = useState([]);
-  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [activeTab, setActiveTab] = useState('description');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showOffersOffcanvas, setShowOffersOffcanvas] = useState(false);
+  const [activeOfferTab, setActiveOfferTab] = useState('emi');
+  const [showEmiDetailsModal, setShowEmiDetailsModal] = useState(false);
+  const [selectedEmiOffer, setSelectedEmiOffer] = useState(null);
+  const [userRating, setUserRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
 
-  // Fetch product data
-  useEffect(() => {
-    const fetchProductData = async () => {
-      setLoading(true);
-      try {
-        const response = await productsApi.getProductById(id);
-        console.log(response.data.data)
-        if (response.data && response.data.success) {
-          setProduct(response.data.data);
-          
-          // Fetch related products
-          try {
-            const relatedResponse = await productsApi.getAllProducts(1, 4, {
-              category: response.data.data.categoryId?._id
-            });
-            if (relatedResponse.data && relatedResponse.data.success) {
-              // Make sure we have an array and filter out the current product
-              const relatedProductsData = relatedResponse.data.data || [];
-              setRelatedProducts(relatedProductsData.filter(p => p._id !== id));
-            }
-          } catch (relatedError) {
-            console.error('Error fetching related products:', relatedError);
-          }
-          
-          // Fetch reviews for this product
-          try {
-            const reviewsResponse = await reviewApi.getProductReviews(id);
-            if (reviewsResponse.data && reviewsResponse.data.success) {
-              setReviews(reviewsResponse.data.reviews || []);
-            }
-          } catch (reviewError) {
-            console.error('Error fetching reviews:', reviewError);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching product:', err);
-        setError('Failed to load product. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchProductData();
-    }
-  }, [id]);
-
-  // Handle add to cart and wishlist functionality is defined below
-
-  // If loading, show loading state
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="h-96 bg-gray-200 rounded"></div>
-            <div>
-              <div className="h-8 bg-gray-200 rounded w-1/2 mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
-              <div className="h-10 bg-gray-200 rounded w-1/3 mb-6"></div>
-              <div className="h-12 bg-gray-200 rounded mb-4"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // If error, show error message
-  if (error) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          <p>{error}</p>
-          <button 
-            onClick={() => navigate('/products')}
-            className="mt-4 bg-primary-600 text-white px-4 py-2 rounded"
-          >
-            Back to Products
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Use actual product data or fallback to sample data
-  const productData = product || {
-    id: 1,
-    name: 'WAAREE 100 Watt Mono PERC Solar Panel',
-    price: 4199.00,
-    originalPrice: 4630.00,
-    discount: 431.00,
-    rating: 5,
-    reviewCount: 6,
-    inStock: "true",
-    sku: 'SOLAR-100WP-12V',
-    description: 'High-efficiency monocrystalline PERC solar panel perfect for residential and commercial applications. This 100W 12V module is ideal for charging batteries and powering small to medium devices.',
+  // Mock product data
+  const product = {
+    id: 'SP-10W',
+    name: 'Solar Panel 10W 12V Monocrystalline',
+    price: 1299.00,
+    discountPrice: 999.00,
+    rating: 4.5,
+    reviewCount: 245,
+    stock: 50,
+    images: [
+      '/images/solar-panel-1.jpg',
+      '/images/solar-panel-2.jpg',
+      '/images/solar-panel-3.jpg',
+      '/images/solar-panel-4.jpg',
+      '/images/solar-panel-5.jpg',
+    ],
+    description: 'High efficiency monocrystalline solar panel with 10W power output. Perfect for small-scale solar projects, camping, RVs, and more.',
     features: [
-      'Power Output: 100Wp',
-      'Voltage: 12V',
-      'Cell Type: Monocrystalline PERC',
-      'Dimensions: 1020mm x 670mm x 35mm',
-      'Weight: 8kg',
-      'Warranty: 25 years performance, 10 years product'
+      'High conversion efficiency: 21%',
+      'Maximum power: 10W',
+      'Operating voltage: 12V',
+      'Weatherproof and durable design',
+      'Anti-reflective, high transparency glass',
+      'Pre-drilled holes for easy mounting',
+      'Corrosion-resistant aluminum frame'
     ],
-    images: [power1, power2, power3, power4, power5, power6],
+    specifications: {
+      'Maximum Power': '10W',
+      'Cell Type': 'Monocrystalline',
+      'Voltage': '12V',
+      'Dimensions': '34 x 28 x 3 cm',
+      'Weight': '1.2 kg',
+      'Efficiency': '21%',
+      'Warranty': '25 years'
+    },
     applications: [
-      { name: 'Solar System', icon: 'FaSolarPanel' },
-      { name: 'Home', icon: 'FaHome' },
-      { name: 'RV & Boat', icon: 'FaShip' },
-      { name: 'Off-Grid', icon: 'FaLightbulb' }
-    ],
-    emiOptions: [
-      { months: 3, amount: 1400, bank: 'HDFC' },
-      { months: 6, amount: 700, bank: 'ICICI' },
-      { months: 9, amount: 467, bank: 'SBI' },
-      { months: 12, amount: 350, bank: 'Axis' },
-      { months: 18, amount: 234, bank: 'HDFC' },
-      { months: 24, amount: 175, bank: 'ICICI' }
+      { name: 'Solar System', icon: <FaSolarPanel /> },
+      { name: 'Home', icon: <FaHome /> },
+      { name: 'Industrial', icon: <FaIndustry /> },
+      { name: 'Commercial', icon: <FaBuilding /> },
+      { name: 'Outdoor', icon: <FaLeaf /> }
     ],
     relatedProducts: [
-      { id: 2, name: 'WAAREE 150W Solar Panel', price: 6199, originalPrice: 6999, image: power2 },
-      { id: 3, name: 'Luminous 100W Flexible Panel', price: 5299, originalPrice: 5999, image: power3 },
-      { id: 4, name: 'Loom Solar 120W Panel', price: 5499, originalPrice: 6299, image: power4 }
+      {
+        id: 'SP-20W',
+        name: 'Solar Panel 20W 12V Monocrystalline',
+        price: 1899.00,
+        discountPrice: 1499.00,
+        image: '/images/related-1.jpg',
+        rating: 4.7,
+        reviewCount: 189,
+        isNew: true,
+        discount: 21
+      },
+      {
+        id: 'SP-30W',
+        name: 'Solar Panel 30W 12V Monocrystalline',
+        price: 2499.00,
+        discountPrice: 1999.00,
+        image: '/images/related-2.jpg',
+        rating: 4.8,
+        reviewCount: 156,
+        isNew: false,
+        discount: 20
+      },
+      {
+        id: 'SP-50W',
+        name: 'Solar Panel 50W 12V Monocrystalline',
+        price: 3999.00,
+        discountPrice: 3499.00,
+        image: '/images/related-3.jpg',
+        rating: 4.9,
+        reviewCount: 210,
+        isNew: true,
+        discount: 13
+      }
     ],
-    comparisonProducts: [
-      { id: 5, name: 'WAAREE 100W Mono', price: 4199, efficiency: '21.6%', weight: '8 kg', warranty: '25 years', image: power1 },
-      { id: 6, name: 'Luminous 100W Poly', price: 3999, efficiency: '19.2%', weight: '8.5 kg', warranty: '15 years', image: power3 },
-      { id: 7, name: 'Loom 100W Mono PERC', price: 4299, efficiency: '21.8%', weight: '7.8 kg', warranty: '25 years', image: power4 },
-      { id: 8, name: 'Vikram 100W Poly', price: 3899, efficiency: '18.5%', weight: '9 kg', warranty: '10 years', image: power5 }
+    recommended: [
+      {
+        id: 'SP-100W',
+        name: 'Solar Panel 100W 12V Monocrystalline',
+        price: 6999.00,
+        discountPrice: 5999.00,
+        image: '/images/recommended-1.jpg',
+        rating: 4.9,
+        reviewCount: 320,
+        isNew: false,
+        discount: 14
+      },
+      {
+        id: 'INV-500W',
+        name: 'Solar Inverter 500W Pure Sine Wave',
+        price: 4999.00,
+        discountPrice: 3999.00,
+        image: '/images/recommended-2.jpg',
+        rating: 4.7,
+        reviewCount: 178,
+        isNew: true,
+        discount: 20
+      },
+      {
+        id: 'BAT-100AH',
+        name: 'Solar Battery 100AH Deep Cycle',
+        price: 8999.00,
+        discountPrice: 7999.00,
+        image: '/images/recommended-3.jpg',
+        rating: 4.8,
+        reviewCount: 145,
+        isNew: false,
+        discount: 11
+      },
+      {
+        id: 'CTRL-30A',
+        name: 'Solar Charge Controller 30A PWM',
+        price: 1999.00,
+        discountPrice: 1499.00,
+        image: '/images/recommended-4.jpg',
+        rating: 4.6,
+        reviewCount: 210,
+        isNew: true,
+        discount: 25
+      }
     ]
   };
 
-  // Increment quantity
-  const incrementQuantity = () => {
-    setQuantity(prev => prev + 1);
+  const handleQuantityChange = (e) => {
+    setQuantity(parseInt(e.target.value));
   };
 
-  // Decrement quantity
-  const decrementQuantity = () => {
-    if (quantity > 1) {
-      setQuantity(prev => prev - 1);
-    }
+  const handleImageClick = (image) => {
+    setMainImage(image);
   };
 
-  // Handle image change
-  const handleImageChange = (index) => {
-    setActiveImage(index);
+  const handleTabClick = (tab) => {
+    setActiveTab(tab);
   };
-  
-  // Add to cart
-  const handleAddToCart = async () => {
-    try {
-      const response = await cartApi.addToCart({
-        productId: id,
-        quantity: quantity
-      });
-      
-      if (response.data && response.data.success) {
-        // Show success toast notification
-        toast.success('Product added to cart successfully!');
-        console.log(`Added ${quantity} of product ${id} to cart`);
+
+  // Function to render star ratings
+  const renderRating = (rating) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      if (i <= rating) {
+        stars.push(<FaStar key={i} className="text-yellow-500" />);
+      } else if (i - 0.5 <= rating) {
+        stars.push(<FaStarHalfAlt key={i} className="text-yellow-500" />);
       } else {
-        toast.error('Failed to add product to cart');
+        stars.push(<FaRegStar key={i} className="text-yellow-500" />);
       }
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      toast.error(error.response?.data?.message || 'Error adding to cart. Please try again.');
     }
-  };
-
-  // Buy now function
-  const handleBuyNow = async () => {
-    try {
-      await handleAddToCart();
-      navigate('/checkout');
-    } catch (error) {
-      console.error('Error with buy now:', error);
-    }
-  };
-
-  // No wishlist functionality needed
-
-  // Render star ratings
-  const renderStars = (rating) => {
-    return (
-      <div className="flex">
-        {[...Array(5)].map((_, i) => (
-          <svg
-            key={i}
-            className={`w-5 h-5 ${i < rating ? 'text-yellow-400' : 'text-gray-300'}`}
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
-        ))}
-      </div>
-    );
-  };
-  
-  // Handle zoom toggle
-  const toggleZoom = () => {
-    setShowZoom(!showZoom);
-  };
-  
-  // Handle EMI selection
-  const handleEmiSelect = (index) => {
-    setSelectedEmi(index);
+    return stars;
   };
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 font-sans">
+      <style>{noScrollbarStyle}</style>
       {/* Breadcrumb */}
-      <nav className="flex bg-gray-50 p-2 rounded-lg shadow-sm mb-4" aria-label="Breadcrumb">
-        <ol className="inline-flex items-center space-x-1 md:space-x-2 text-sm">
-          <li className="inline-flex items-center">
-            <a href="/" className="flex items-center text-gray-700 hover:text-main">
-              <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
-              </svg>
-              Home
-            </a>
-          </li>
-          <li>
-            <div className="flex items-center">
-              <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
-              </svg>
-              <a href="/solar-module" className="text-gray-700 hover:text-main ml-1 md:ml-2">Solar Panel</a>
-            </div>
-          </li>
-          <li aria-current="page">
-            <div className="flex items-center">
-              <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"></path>
-              </svg>
-              <span className="text-gray-500 ml-1 md:ml-2">{productData.name}</span>
-            </div>
-          </li>
-        </ol>
+      <nav className="flex flex-wrap text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6 overflow-hidden">
+        <Link to="/" className="text-main hover:text-main-dark">Home</Link>
+        <span className="mx-1 sm:mx-2">/</span>
+        <Link to="/products" className="text-main hover:text-main-dark">Products</Link>
+        <span className="mx-1 sm:mx-2">/</span>
+        <span className="text-gray-800 font-medium truncate">{product.name}</span>
       </nav>
 
-      <div className="flex flex-col lg:flex-row lg:gap-6">
-        {/* Product Images */}
-        <div className="lg:w-2/5 mb-6 lg:mb-0">
-          <div className="bg-white rounded-lg shadow-sm p-3 border border-gray-200">
-            <div className="flex flex-row gap-3">
-              {/* Thumbnail Images - Vertical Layout */}
-              <div className="flex flex-col gap-2 w-1/5">
-                {productData.images.slice(0, 5).map((image, index) => (
-                  <div 
-                    key={index} 
-                    className={`h-14 overflow-hidden bg-gray-100 flex items-center justify-center p-1 rounded cursor-pointer border ${activeImage === index ? 'border-main' : 'border-gray-200 hover:border-main'}`}
-                    onClick={() => handleImageChange(index)}
-                  >
-                    <img 
-                      src={fixImageUrl(image)} 
-                      alt={`${productData.name} - view ${index + 1}`} 
-                      className="object-contain h-full w-full"
-                    />
-                  </div>
-                ))}
+      {/* EMI Details Modal */}
+      {showEmiDetailsModal && selectedEmiOffer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b p-4">
+              <h2 className="text-xl font-bold text-gray-800">{selectedEmiOffer.title}</h2>
+              <button 
+                onClick={() => setShowEmiDetailsModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <FaTimes size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="text-4xl font-bold text-main">
+                  {selectedEmiOffer.discount}
+                </div>
+                <div className="flex-1">
+                  <div className="text-lg font-semibold">{selectedEmiOffer.title}</div>
+                  <div className="text-sm text-gray-600">{selectedEmiOffer.description}</div>
+                </div>
               </div>
               
-              {/* Main Image with Enhanced Zoom */}
-              <div 
-                ref={zoomRef}
-                className="h-80 w-4/5 overflow-hidden bg-white flex items-center justify-center p-2 rounded relative"
-                onMouseMove={(e) => {
-                  const container = e.currentTarget;
-                  const { left, top, width, height } = container.getBoundingClientRect();
-                  const x = ((e.clientX - left) / width) * 100;
-                  const y = ((e.clientY - top) / height) * 100;
-                  container.querySelector('img').style.transformOrigin = `${x}% ${y}%`;
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.querySelector('img').style.transform = 'scale(1.8)';
-                  setShowZoom(true);
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.querySelector('img').style.transform = 'scale(1)';
-                  setShowZoom(false);
-                }}
-              >
-                <img 
-                  src={fixImageUrl(productData.images[activeImage])} 
-                  alt={productData.name} 
-                  className="object-contain h-full w-full transition-transform duration-300"
-                />
-              </div>
-            </div>
-          </div>
-          
-          {/* Share Button */}
-          <div className="flex justify-between mt-3">
-            <button className="flex items-center text-sm text-gray-600 hover:text-main transition-colors">
-              <FaShareAlt className="w-4 h-4 mr-1" />
-              Share
-            </button>
-          </div>
-        </div>
-        
-        {/* Product Details */}
-        <div className="lg:w-3/5">
-          <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-            <h1 className="text-xl font-bold text-gray-900 mb-2">{productData.name}</h1>
-            
-            {/* SKU and Rating */}
-            <div className="flex flex-wrap items-center justify-between mb-3">
-              <p className="text-sm text-gray-500">SKU: <span className="font-medium">{productData.sku}</span></p>
-              <div className="flex items-center">
-                {renderStars(productData.rating)}
-                <a href="#reviews" className="ml-1 text-sm text-blue-600 hover:underline">
-                  ({productData.reviewCount} reviews)
-                </a>
-              </div>
-            </div>
-            
-            {/* Price */}
-            <div className="mb-4">
-              <div className="flex items-center">
-                <span className="text-2xl font-bold text-gray-900">₹{productData.price.toLocaleString()}</span>
-                {productData.originalPrice && (
-                  <span className="text-base text-gray-500 line-through ml-2">₹{productData.originalPrice.toLocaleString()}</span>
-                )}
-                {productData.discount && (
-                  <span className="ml-2 bg-main-light text-main text-xs font-medium px-2 py-0.5 rounded">
-                    Save ₹{productData.discount.toLocaleString()}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center mt-1">
-                <p className="text-xs text-gray-600">Inclusive of all taxes</p>
-              </div>
-            </div>
-            
-            {/* Offers & EMI */}
-            <div className="mb-4 border border-gray-200 rounded-lg p-3 bg-gray-50">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Offers & EMI</h3>
-              <div className="grid grid-cols-6 gap-2 mb-2">
-                {productData.emiOptions && productData.emiOptions.length > 0 ? (
-                  productData.emiOptions.map((emi, index) => (
-                    <div 
-                      key={index}
-                      onClick={() => handleEmiSelect(index)}
-                      className={`cursor-pointer border ${selectedEmi === index ? 'border-main bg-main-light' : 'border-gray-200'} rounded p-2 text-center hover:border-main transition-colors`}
-                    >
-                      <p className="text-xs font-medium text-gray-800">{emi.months}m</p>
-                      <p className="text-xs text-gray-600">₹{emi.amount}/mo</p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="col-span-6 text-sm text-gray-500">No EMI options available</div>
-                )}
-              </div>
-              <div className="flex items-center text-xs text-main">
-                <FaInfoCircle className="w-3 h-3 mr-1" />
-                No Cost EMI available on select cards
-              </div>
-            </div>
-            
-            {/* Stock Status */}
-            <div className="mb-4 flex items-center">
-              {productData.inStock ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-main-light text-main">
-                  <svg className="-ml-0.5 mr-1 h-2 w-2 text-main" fill="currentColor" viewBox="0 0 8 8">
-                    <circle cx="4" cy="4" r="3" />
-                  </svg>
-                  In Stock
-                </span>
-              ) : (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                  <svg className="-ml-0.5 mr-1 h-2 w-2 text-red-400" fill="currentColor" viewBox="0 0 8 8">
-                    <circle cx="4" cy="4" r="3" />
-                  </svg>
-                  Out of Stock
-                </span>
-              )}
-              <span className="ml-2 text-xs text-gray-600">Free delivery</span>
-              <span className="mx-2 text-gray-300">|</span>
-              <span className="text-xs text-gray-600">Usually ships in 1-2 business days</span>
-            </div>
-            
-            {/* Quantity */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Quantity:</label>
-              <div className="flex items-center">
-                <button 
-                  onClick={decrementQuantity}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-1 px-3 rounded-l focus:outline-none"
-                >
-                  −
-                </button>
-                <input 
-                  type="text" 
-                  value={quantity} 
-                  readOnly
-                  className="w-12 text-center py-1 border-t border-b border-gray-300 bg-white text-sm"
-                />
-                <button 
-                  onClick={incrementQuantity}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-1 px-3 rounded-r focus:outline-none"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-            
-            {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <button 
-                className="bg-main hover:bg-main-dark text-white font-medium py-2 px-4 rounded transition-colors duration-200 flex items-center justify-center text-sm"
-                onClick={handleAddToCart}
-                disabled={product?.isOutOfStock}
-              >
-                <FaShoppingCart className="w-4 h-4 mr-2" />
-                Add to Cart
-              </button>
-              <button 
-                onClick={handleBuyNow}
-                disabled={product?.isOutOfStock}
-                className="bg-main hover:bg-main-dark text-white font-medium py-2 px-4 rounded transition-colors duration-200 flex items-center justify-center text-sm"
-              >
-                <FaBolt className="w-4 h-4 mr-2" />
-                Buy Now
-              </button>
-            </div>
-            
-            {/* Secure Transaction */}
-            <div className="flex items-center justify-center mb-4 text-xs text-gray-600 bg-gray-50 py-2 rounded">
-              <FaUserShield className="w-3 h-3 mr-1 text-main" />
-              100% Secure transaction
-            </div>
-            
-            {/* Services */}
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              <div className="flex flex-col items-center p-2 bg-white rounded border border-gray-200">
-                <FaShippingFast className="w-5 h-5 text-main mb-1" />
-                <span className="text-xs text-center text-gray-700">Free Delivery</span>
-              </div>
-              <div className="flex flex-col items-center p-2 bg-white rounded border border-gray-200">
-                <FaRegCreditCard className="w-5 h-5 text-main mb-1" />
-                <span className="text-xs text-center text-gray-700">Pay on Delivery</span>
-              </div>
-              <div className="flex flex-col items-center p-2 bg-white rounded border border-gray-200">
-                <FaShieldAlt className="w-5 h-5 text-main mb-1" />
-                <span className="text-xs text-center text-gray-700">Warranty</span>
-              </div>
-            </div>
-            
-            {/* Seller Info */}
-            <div className="mb-4 border border-gray-200 rounded p-3">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <FaStore className="w-4 h-4 text-gray-600 mr-2" />
-                  <span className="text-sm font-medium">Sold by <a href="#" className="text-blue-600 hover:underline">Cosmic Solar</a></span>
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-gray-800 mb-3">Offer Details</h3>
+                <p className="text-sm text-gray-600">{selectedEmiOffer.details}</p>
+                
+                <div className="mt-6 bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-800 mb-2">How to avail:</h4>
+                  <ol className="list-decimal list-inside text-sm text-gray-600 space-y-2">
+                    <li>Add product to cart</li>
+                    <li>Apply coupon code at checkout</li>
+                    <li>Select payment method</li>
+                    <li>Complete your purchase</li>
+                  </ol>
                 </div>
-                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Top Seller</span>
-              </div>
-            </div>
-            
-            {/* Delivery */}
-            <div className="mb-4">
-              <div className="flex items-center mb-2">
-                <FaMapMarkerAlt className="w-4 h-4 text-gray-600 mr-2" />
-                <span className="text-sm font-medium">Delivery to</span>
-              </div>
-              <div className="flex">
-                <input 
-                  type="text" 
-                  placeholder="Enter pincode" 
-                  className="w-full border border-gray-300 rounded-l py-1.5 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-main"
-                />
-                <button className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-1.5 px-3 rounded-r border border-l-0 border-gray-300 text-sm">
-                  Check
-                </button>
-              </div>
-            </div>
-            
-            {/* Product Details */}
-            <div className="mb-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Product Details</h3>
-              <ul className="grid grid-cols-1 gap-2">
-                <li className="flex items-start text-xs">
-                  <FaCheck className="w-3 h-3 text-main mt-0.5 mr-2 flex-shrink-0" />
-                  <span className="text-gray-700"><strong>Price:</strong> ₹{productData.price}</span>
-                </li>
-                <li className="flex items-start text-xs">
-                  <FaCheck className="w-3 h-3 text-main mt-0.5 mr-2 flex-shrink-0" />
-                  <span className="text-gray-700"><strong>Stock:</strong> {productData.stock} units available</span>
-                </li>
-                {productData.categoryId && (
-                  <li className="flex items-start text-xs">
-                    <FaCheck className="w-3 h-3 text-main mt-0.5 mr-2 flex-shrink-0" />
-                    <span className="text-gray-700"><strong>Category:</strong> {productData.categoryId.name}</span>
-                  </li>
-                )}
-                <li className="flex items-start text-xs">
-                  <FaCheck className="w-3 h-3 text-main mt-0.5 mr-2 flex-shrink-0" />
-                  <span className="text-gray-700"><strong>Stock Status:</strong> {productData.isOutOfStock ? 'Out of Stock' : 'In Stock'}</span>
-                </li>
-                <li className="flex items-start text-xs">
-                  <FaCheck className="w-3 h-3 text-main mt-0.5 mr-2 flex-shrink-0" />
-                  <span className="text-gray-700"><strong>Product ID:</strong> {productData._id}</span>
-                </li>
-                <li className="flex items-start text-xs">
-                  <FaCheck className="w-3 h-3 text-main mt-0.5 mr-2 flex-shrink-0" />
-                  <span className="text-gray-700"><strong>Added On:</strong> {new Date(productData.createdAt).toLocaleDateString()}</span>
-                </li>
-                <li className="flex items-start text-xs">
-                  <FaCheck className="w-3 h-3 text-main mt-0.5 mr-2 flex-shrink-0" />
-                  <span className="text-gray-700"><strong>Last Updated:</strong> {new Date(productData.updatedAt).toLocaleDateString()}</span>
-                </li>
-              </ul>
-            </div>
-            
-            {/* Features - Only show if available */}
-            {productData.features && productData.features.length > 0 && (
-              <div className="mb-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Key Features</h3>
-                <ul className="grid grid-cols-1 gap-2">
-                  {productData.features.map((feature, index) => (
-                    <li key={index} className="flex items-start text-xs">
-                      <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      {/* Product Features */}
-      <div className="mt-6">
-        <h2 className="text-base font-medium text-gray-900 mb-3">Product Features</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { icon: <FaSun className="w-5 h-5 text-yellow-500" />, title: "High Efficiency", description: "Maximum power conversion" },
-            { icon: <FaShieldAlt className="w-5 h-5 text-blue-500" />, title: "Durable & Reliable", description: "Built to last for years" },
-            { icon: <FaBolt className="w-5 h-5 text-orange-500" />, title: "Easy Installation", description: "Simple plug-and-play setup" },
-            { icon: <FaLeaf className="w-5 h-5 text-green-500" />, title: "Eco-Friendly", description: "Clean renewable energy" }
-          ].map((feature, index) => (
-            <div key={index} className="bg-white rounded-lg shadow-sm p-3 border border-gray-200 flex flex-col items-center text-center">
-              <div className="bg-gray-50 rounded-full p-2 mb-2">
-                {feature.icon}
-              </div>
-              <h3 className="font-medium text-gray-900 mb-1 text-sm">{feature.title}</h3>
-              <p className="text-gray-600 text-xs">{feature.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Product Applications */}
-      {productData.applications && productData.applications.length > 0 && (
-        <div className="mt-6">
-          <h2 className="text-base font-medium text-gray-900 mb-3">Product Applications</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {productData.applications.map((app, index) => (
-              <div key={index} className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-                <div className="h-24 overflow-hidden">
-                  <img 
-                    src={app.image} 
-                    alt={app.name} 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="p-2 text-center">
-                  <h3 className="font-medium text-gray-900 text-xs">{app.name}</h3>
+                
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={() => setShowEmiDetailsModal(false)}
+                    className="bg-main hover:bg-main-dark text-white font-bold py-2 px-4 rounded"
+                  >
+                    Close
+                  </button>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Product Description and Tabs */}
-      <div className="mt-8">
-        <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-          <div className="border-b border-gray-200 mb-4">
-            <nav className="-mb-px flex space-x-6 overflow-x-auto">
+      {/* Payment & Delivery Details Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b p-4">
+              <h2 className="text-xl font-bold text-gray-800">Payment & Delivery Details</h2>
               <button 
-                className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'description' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-                onClick={() => setActiveTab('description')}
+                onClick={() => setShowPaymentModal(false)}
+                className="text-gray-500 hover:text-gray-700"
               >
-                Description
+                <FaTimes size={20} />
               </button>
-              <button 
-                className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'specifications' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-                onClick={() => setActiveTab('specifications')}
-              >
-                Specifications
-              </button>
-              <button 
-                className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'reviews' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-                onClick={() => setActiveTab('reviews')}
-              >
-                Reviews ({productData.reviewCount})
-              </button>
-              <button 
-                className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${activeTab === 'faq' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-                onClick={() => setActiveTab('faq')}
-              >
-                FAQ
-              </button>
-            </nav>
-          </div>
-          
-          {/* Tab Content */}
-          <div>
-            {activeTab === 'description' && (
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-8">
+                <h3 className="text-lg font-bold mb-4">1. Accepted Payment Methods</h3>
+                <ul className="space-y-3">
+                  <li className="flex items-start">
+                    <span className="mr-2 mt-1 text-main"><FaCheck size={14} /></span>
+                    <span>UPI, NEFT/RTGS, and Direct Bank Transfers</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 mt-1 text-main"><FaCheck size={14} /></span>
+                    <span>Credit Cards and Debit Cards</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 mt-1 text-main"><FaCheck size={14} /></span>
+                    <span>Wallet payments, EMI options, and DC/CC support</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 mt-1 text-main"><FaCheck size={14} /></span>
+                    <span>BNPL (Buy Now, Pay Later) services supported</span>
+                  </li>
+                </ul>
+              </div>
+              
               <div>
-                <p className="text-sm text-gray-700 mb-4">{productData.description}</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-sm font-medium mb-2 text-gray-800">Key Features</h3>
-                    <ul className="space-y-2">
-                      {productData.features.map((feature, index) => (
-                        <li key={index} className="flex items-start text-xs">
-                          <FaCheck className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
-                          <span className="text-gray-700">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
+                <h3 className="text-lg font-bold mb-4">2. Shipping & Delivery Details</h3>
+                <ul className="space-y-3">
+                  <li className="flex items-start">
+                    <span className="mr-2 mt-1 text-main"><FaCheck size={14} /></span>
+                    <span>Orders are typically shipped within <strong>72 hours</strong> of confirmation.</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 mt-1 text-main"><FaCheck size={14} /></span>
+                    <span>Estimated delivery time ranges from <strong>7 to 21 days</strong> based on location and availability.</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Write a Review Modal */}
+      {showReviewModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b p-4">
+              <h2 className="text-xl font-bold text-gray-800">Write a Review</h2>
+              <button 
+                onClick={() => setShowReviewModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <FaTimes size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <form>
+                <div className="mb-4">
+                  <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="rating">
+                    Rating
+                  </label>
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        className="text-2xl focus:outline-none"
+                        onClick={() => setUserRating(star)}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                      >
+                        <FaStar 
+                          className={
+                            (hoverRating || userRating) >= star 
+                              ? "text-yellow-400" 
+                              : "text-gray-300"
+                          }
+                        />
+                      </button>
+                    ))}
                   </div>
-                  <div>
-                    <h3 className="text-sm font-medium mb-2 text-gray-800">What's in the Box</h3>
-                    <ul className="space-y-2">
-                       {productData.boxContents && productData.boxContents.length > 0 ? (
-                         productData.boxContents.map((item, index) => (
-                           <li key={index} className="flex items-start text-xs">
-                             <FaBox className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
-                             <span className="text-gray-700">{item}</span>
-                           </li>
-                         ))
-                       ) : (
-                         <li className="flex items-start text-xs">
-                           <FaBox className="w-3 h-3 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
-                           <span className="text-gray-700">Product package contents information not available</span>
-                         </li>
-                       )}
-                      </ul>
+                  <div className="mt-1 text-sm text-gray-600">
+                    {userRating ? `You selected ${userRating} star${userRating !== 1 ? 's' : ''}` : 'Click to rate'}
+                  </div>
+                </div>
+                  
+                  <div className="mb-6">
+                  <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="review">
+                    Review
+                  </label>
+                  <textarea
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="review"
+                    placeholder="Write your review here..."
+                    rows="4"
+                  ></textarea>
+                </div>
+                
+                <div className="flex items-center justify-end">
+                  <button
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded mr-2"
+                    type="button"
+                    onClick={() => setShowReviewModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="bg-main hover:bg-main-dark text-white font-bold py-2 px-4 rounded"
+                    type="button"
+                  >
+                    Submit Review
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Offers Offcanvas */}
+      {showOffersOffcanvas && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-end">
+          <div className="bg-white w-full max-w-md h-full overflow-y-auto transform transition-transform duration-300 ease-in-out">
+            <div className="flex justify-between items-center border-b p-4">
+              <h2 className="text-xl font-bold text-gray-800">All Offers</h2>
+              <button 
+                onClick={() => setShowOffersOffcanvas(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <FaTimes size={20} />
+              </button>
+            </div>
+            
+            <div className="p-4">
+              <div className="flex border-b pb-2 mb-4">
+                <div className="w-1/2 text-center">
+                  <div 
+                    onClick={() => setActiveOfferTab('emi')}
+                    className={`text-sm sm:text-base font-semibold pb-1 cursor-pointer ${
+                      activeOfferTab === 'emi' 
+                        ? 'text-main border-b-2 border-main' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    EMI Offers
+                  </div>
+                </div>
+                <div className="w-1/2 text-center">
+                  <div 
+                    onClick={() => setActiveOfferTab('brand')}
+                    className={`text-sm sm:text-base font-semibold pb-1 cursor-pointer ${
+                      activeOfferTab === 'brand' 
+                        ? 'text-main border-b-2 border-main' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Brand Offers
                   </div>
                 </div>
               </div>
-            )}
-            
-            {activeTab === 'specifications' && (
+              
+              <div className="mb-6">
+                <h3 className="font-semibold text-gray-800 mb-3">EMI Offers</h3>
+                <div className="space-y-4">
+                  <div className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="text-3xl font-bold text-main">
+                        0<span className="text-sm align-top">%</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold">EMI3MONTHS</div>
+                        <div className="text-xs text-gray-600">No interest EMI for 3 months</div>
+                        <div 
+                          className="text-xs text-main mt-1 font-medium cursor-pointer"
+                          onClick={() => {
+                            setSelectedEmiOffer({
+                              title: "EMI3MONTHS",
+                              description: "No interest EMI for 3 months",
+                              discount: "0%",
+                              details: "Get 0% interest EMI for 3 months on all major credit cards. Minimum purchase value ₹3,000."
+                            });
+                            setShowEmiDetailsModal(true);
+                            setShowOffersOffcanvas(false);
+                          }}
+                        >
+                          Read more
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="text-3xl font-bold text-main">
+                        5<span className="text-sm align-top">%</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold">HDFC10EMI</div>
+                        <div className="text-xs text-gray-600">5% cashback on HDFC EMI</div>
+                        <div 
+                          className="text-xs text-main mt-1 font-medium cursor-pointer"
+                          onClick={() => {
+                            setSelectedEmiOffer({
+                              title: "HDFC10EMI",
+                              description: "5% cashback on HDFC EMI",
+                              discount: "5%",
+                              details: "Get 5% cashback up to ₹1,000 on HDFC credit card EMI transactions. Valid on 3, 6, 9, and 12 month EMI options."
+                            });
+                            setShowEmiDetailsModal(true);
+                            setShowOffersOffcanvas(false);
+                          }}
+                        >
+                          Read more
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
               <div>
-                <div className="overflow-hidden bg-white rounded-lg">
+                <h3 className="font-semibold text-gray-800 mb-3">Brand Offers</h3>
+                <div className="space-y-4">
+                  <div className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="text-3xl font-bold text-main">
+                        10<span className="text-sm align-top">%</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold">NORETURNNOEXCHANGE</div>
+                        <div className="text-xs text-gray-600">Apply this coupon code to get 10% off</div>
+                        <div 
+                          className="text-xs text-main mt-1 font-medium cursor-pointer"
+                          onClick={() => {
+                            setSelectedEmiOffer({
+                              title: "NORETURNNOEXCHANGE",
+                              description: "Apply this coupon code to get 10% off",
+                              discount: "10%",
+                              details: "Get 10% off on your purchase by accepting no-return and no-exchange policy. Maximum discount up to ₹2,000."
+                            });
+                            setShowEmiDetailsModal(true);
+                            setShowOffersOffcanvas(false);
+                          }}
+                        >
+                          Read more
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="text-3xl font-bold text-main">
+                        ₹500
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold">WELCOMEOFFER</div>
+                        <div className="text-xs text-gray-600">Get ₹500 off on your first purchase</div>
+                        <div 
+                          className="text-xs text-main mt-1 font-medium cursor-pointer"
+                          onClick={() => {
+                            setSelectedEmiOffer({
+                              title: "WELCOMEOFFER",
+                              description: "Get ₹500 off on your first purchase",
+                              discount: "₹500",
+                              details: "First-time customers can avail ₹500 off on their purchase. Minimum order value ₹2,000. Valid once per customer."
+                            });
+                            setShowEmiDetailsModal(true);
+                            setShowOffersOffcanvas(false);
+                          }}
+                        >
+                          Read more
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Product Main Section */}
+      <div className="flex flex-col lg:flex-row gap-4 sm:gap-8 mb-8 sm:mb-12">
+        {/* Product Images */}
+        <div className="w-full lg:w-2/5">
+          <div className="border border-gray-200 rounded-lg p-2 sm:p-4 bg-white mb-3 sm:mb-4 shadow-sm">
+            <img 
+              src={mainImage} 
+              alt={product.name} 
+              className="w-full h-auto object-contain aspect-square"
+            />
+          </div>
+          <div className="flex gap-2 sm:gap-3 pb-2 no-scrollbar">
+            {product.images.map((image, index) => (
+              <div 
+                key={index} 
+                className={`w-14 h-14 sm:w-16 sm:h-16 border cursor-pointer p-1 rounded ${mainImage === image ? 'border-main ring-1 ring-main' : 'border-gray-200'}`}
+                onClick={() => handleImageClick(image)}
+              >
+                <img 
+                  src={image} 
+                  alt={`${product.name} - view ${index + 1}`} 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Product Info */}
+        <div className="w-full lg:w-3/5 bg-white p-4 sm:p-6 rounded-lg shadow-sm">
+          <div className="relative">
+            {/* Bestseller Badge */}
+            <div className="absolute top-0 left-0 z-10">
+              <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white text-xs font-bold py-1 px-2 rounded-br shadow-sm">
+                Bestseller
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-6">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-2 sm:mb-3">{product.name}</h1>
+            
+            {/* Product ID removed */}
+            
+            {/* Ratings */}
+            <div className="flex items-center mb-3 sm:mb-4">
+              <div className="flex">
+                {[...Array(5)].map((_, i) => (
+                  <FaStar 
+                    key={i} 
+                    className={`${i < Math.floor(product.rating) ? 'text-yellow-400' : 'text-gray-200'} ${
+                      i === Math.floor(product.rating) && product.rating % 1 > 0 ? 'text-yellow-400' : ''
+                    }`}
+                    size={14}
+                  />
+                ))}
+              </div>
+              <span className="ml-2 text-xs sm:text-sm text-gray-600">({product.reviewCount})</span>
+            </div>
+
+            {/* Price */}
+            <div className="mb-4 sm:mb-6">
+              <div className="flex flex-wrap items-baseline mb-2">
+                <span className="text-xl sm:text-2xl font-bold text-gray-900">₹{product.discountPrice.toLocaleString()}</span>
+                <span className="ml-2 text-base sm:text-lg text-gray-500 line-through">₹{product.price.toLocaleString()}</span>
+                <span className="ml-2 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                  {Math.round(((product.price - product.discountPrice) / product.price) * 100)}% OFF
+                </span>
+              </div>
+              <div className="flex items-center mb-2">
+                <div className="flex items-center text-green-600 text-xs sm:text-sm mr-3">
+                  <FaCheckCircle className="mr-1" />
+                  <span>In Stock</span>
+                </div>
+                <button 
+                  onClick={() => setShowPaymentModal(true)}
+                  className="text-main hover:text-main-dark underline text-xs flex items-center"
+                >
+                  <FaInfoCircle className="mr-1" />
+                  View Payment & Delivery Details
+                </button>
+              </div>
+            </div>
+
+         
+
+            
+            {/* Quantity and Add to Cart */}
+            <div className="mb-6 sm:mb-8">
+              <div className="flex flex-wrap gap-3 sm:gap-4 mb-3 sm:mb-4">
+                <div className="flex items-center">
+                  <label htmlFor="quantity" className="mr-2 text-sm sm:text-base text-gray-700">Quantity:</label>
+                  <div className="flex border border-gray-300 rounded-md overflow-hidden">
+                    <button 
+                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                      className="px-3 py-1 bg-white text-main hover:bg-gray-100 border-r border-gray-300 flex items-center justify-center"
+                    >
+                      <span className="text-xl font-bold">−</span>
+                    </button>
+                    <div className="w-12 flex items-center justify-center text-center">
+                      {quantity}
+                    </div>
+                    <button 
+                      onClick={() => setQuantity(prev => Math.min(10, prev + 1))}
+                      className="px-3 py-1 bg-white text-main hover:bg-gray-100 border-l border-gray-300 flex items-center justify-center"
+                    >
+                      <span className="text-xl font-bold">+</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-4">
+                <button className="bg-main hover:bg-main-dark text-white px-3 sm:px-6 py-2 sm:py-3 rounded-lg flex items-center justify-center gap-1 sm:gap-2 transition-colors duration-300 text-sm sm:text-base">
+                  <FaShoppingCart size={14} /> Add to Cart
+                </button>
+                <Link to="/checkout" className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-6 py-2 sm:py-3 rounded-lg flex items-center justify-center gap-1 sm:gap-2 transition-colors duration-300 text-sm sm:text-base">
+                  Buy Now
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button className="border border-gray-300 hover:border-main text-gray-600 hover:text-red-500 p-2 sm:p-3 rounded-lg transition-colors duration-300 flex items-center justify-center gap-1 sm:gap-2">
+                  <FaHeart size={14} />
+                  <span className="text-xs sm:text-sm">Wishlist</span>
+                </button>
+                <button className="border border-gray-300 hover:border-main text-gray-600 hover:text-main p-2 sm:p-3 rounded-lg transition-colors duration-300 flex items-center justify-center gap-1 sm:gap-2">
+                  <FaShare size={14} />
+                  <span className="text-xs sm:text-sm">Share</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Offers Section */}
+            <div className="mb-6 sm:mb-8 border border-dashed border-gray-300 rounded-lg p-3 sm:p-4">
+              <div className="mb-4">
+                <div className="flex border-b pb-2">
+                  <div className="w-1/2 text-center">
+                    <div 
+                      onClick={() => setActiveOfferTab('emi')}
+                      className={`text-sm sm:text-base font-semibold pb-1 cursor-pointer ${
+                        activeOfferTab === 'emi' 
+                          ? 'text-main border-b-2 border-main' 
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      EMI Offers
+                    </div>
+                  </div>
+                  <div className="w-1/2 text-center">
+                    <div 
+                      onClick={() => setActiveOfferTab('brand')}
+                      className={`text-sm sm:text-base font-semibold pb-1 cursor-pointer ${
+                        activeOfferTab === 'brand' 
+                          ? 'text-main border-b-2 border-main' 
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      Brand Offers
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-3 sm:mt-4">
+                  {activeOfferTab === 'emi' ? (
+                    <>
+                      <div className="flex items-center gap-3 p-2 border-b border-gray-100">
+                        <div className="text-3xl sm:text-4xl font-bold text-main">
+                          0<span className="text-sm sm:text-base align-top">%</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-xs sm:text-sm font-semibold">EMI3MONTHS</div>
+                          <div className="text-xs text-gray-600">No interest EMI for 3 months</div>
+                          <div 
+                            className="text-xs text-main mt-1 font-medium cursor-pointer" 
+                            onClick={() => {
+                              setSelectedEmiOffer({
+                                title: "EMI3MONTHS",
+                                description: "No interest EMI for 3 months",
+                                discount: "0%",
+                                details: "Get 0% interest EMI for 3 months on all major credit cards. Minimum purchase value ₹3,000."
+                              });
+                              setShowEmiDetailsModal(true);
+                            }}
+                          >
+                            Read more
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3 p-2">
+                        <div className="text-3xl sm:text-4xl font-bold text-main">
+                          5<span className="text-sm sm:text-base align-top">%</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-xs sm:text-sm font-semibold">HDFC10EMI</div>
+                          <div className="text-xs text-gray-600">5% cashback on HDFC EMI</div>
+                          <div 
+                            className="text-xs text-main mt-1 font-medium cursor-pointer" 
+                            onClick={() => {
+                              setSelectedEmiOffer({
+                                title: "HDFC10EMI",
+                                description: "5% cashback on HDFC EMI",
+                                discount: "5%",
+                                details: "Get 5% cashback up to ₹1,000 on HDFC credit card EMI transactions. Valid on 3, 6, 9, and 12 month EMI options."
+                              });
+                              setShowEmiDetailsModal(true);
+                            }}
+                          >
+                            Read more
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3 p-2 border-b border-gray-100">
+                        <div className="text-3xl sm:text-4xl font-bold text-main">
+                          10<span className="text-sm sm:text-base align-top">%</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-xs sm:text-sm font-semibold">NORETURNNOEXCHANGE</div>
+                          <div className="text-xs text-gray-600">Apply this coupon code to get 10% off</div>
+                          <div 
+                            className="text-xs text-main mt-1 font-medium cursor-pointer" 
+                            onClick={() => {
+                              setSelectedEmiOffer({
+                                title: "NORETURNNOEXCHANGE",
+                                description: "Apply this coupon code to get 10% off",
+                                discount: "10%",
+                                details: "Get 10% off on your purchase by accepting no-return and no-exchange policy. Maximum discount up to ₹2,000."
+                              });
+                              setShowEmiDetailsModal(true);
+                            }}
+                          >
+                            Read more
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3 p-2">
+                        <div className="text-3xl sm:text-4xl font-bold text-main">
+                          ₹500
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-xs sm:text-sm font-semibold">WELCOMEOFFER</div>
+                          <div className="text-xs text-gray-600">Get ₹500 off on your first purchase</div>
+                          <div 
+                            className="text-xs text-main mt-1 font-medium cursor-pointer" 
+                            onClick={() => {
+                              setSelectedEmiOffer({
+                                title: "WELCOMEOFFER",
+                                description: "Get ₹500 off on your first purchase",
+                                discount: "₹500",
+                                details: "First-time customers can avail ₹500 off on their purchase. Minimum order value ₹2,000. Valid once per customer."
+                              });
+                              setShowEmiDetailsModal(true);
+                            }}
+                          >
+                            Read more
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
+                  <div className="mt-3 text-center">
+                    <button 
+                      onClick={() => setShowOffersOffcanvas(true)}
+                      className="text-main hover:text-main-dark text-sm font-medium flex items-center mx-auto"
+                    >
+                      View All <FaChevronRight size={12} className="ml-1" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            </div>
+            
+            {/* Services */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 border-t border-gray-200 pt-4 sm:pt-6">
+              <div className="flex flex-col items-center text-center p-2 sm:p-3 bg-gray-50 rounded-lg">
+                <FaShieldAlt className="text-main text-lg sm:text-xl mb-1 sm:mb-2" />
+                <span className="text-xs sm:text-sm text-gray-700">1 Year Warranty</span>
+              </div>
+              <div className="flex flex-col items-center text-center p-2 sm:p-3 bg-gray-50 rounded-lg">
+                <FaTruck className="text-main text-lg sm:text-xl mb-1 sm:mb-2" />
+                <span className="text-xs sm:text-sm text-gray-700">Free Shipping</span>
+              </div>
+              <div className="flex flex-col items-center text-center p-2 sm:p-3 bg-gray-50 rounded-lg">
+                <FaUndo className="text-main text-lg sm:text-xl mb-1 sm:mb-2" />
+                <span className="text-xs sm:text-sm text-gray-700">30-Day Returns</span>
+              </div>
+              <div className="flex flex-col items-center text-center p-2 sm:p-3 bg-gray-50 rounded-lg">
+                <FaHeadset className="text-main text-lg sm:text-xl mb-1 sm:mb-2" />
+                <span className="text-xs sm:text-sm text-gray-700">24/7 Support</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+      {/* Product Applications */}
+      <div className="mb-8 sm:mb-12">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Product Applications</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-4">
+          {product.applications.map((app, index) => (
+            <div key={index} className="flex flex-col items-center text-center p-3 sm:p-4 border border-gray-200 rounded-lg hover:border-main hover:shadow-md transition-all duration-300">
+              <div className="text-main text-2xl sm:text-3xl mb-2 sm:mb-3">{app.icon}</div>
+              <span className="text-sm sm:text-base text-gray-700">{app.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Product Tabs */}
+      <div className="mb-8 sm:mb-12">
+        <div className="border-b border-gray-200 overflow-x-auto no-scrollbar">
+          <div className="flex -mb-px min-w-max">
+            <button 
+              className={`inline-block py-3 sm:py-4 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm ${
+                activeTab === 'description' 
+                  ? 'border-main text-main' 
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => handleTabClick('description')}
+            >
+              Description
+            </button>
+            <button 
+              className={`inline-block py-3 sm:py-4 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm ${
+                activeTab === 'specifications' 
+                  ? 'border-main text-main' 
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => handleTabClick('specifications')}
+            >
+              Specifications
+            </button>
+            <button 
+              className={`inline-block py-3 sm:py-4 px-4 sm:px-6 border-b-2 font-medium text-xs sm:text-sm ${
+                activeTab === 'reviews' 
+                  ? 'border-main text-main' 
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => handleTabClick('reviews')}
+            >
+              Reviews
+            </button>
+          </div>
+        </div>
+        
+        <div className="py-4 sm:py-6">
+          {activeTab === 'description' && (
+            <div className="space-y-6 sm:space-y-8">
+              <div>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Product Description</h3>
+                <p className="text-sm sm:text-base text-gray-700 leading-relaxed">{product.description}</p>
+              </div>
+              
+              <div>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Key Features</h3>
+                <ul className="space-y-1.5 sm:space-y-2">
+                  {product.features.map((feature, index) => (
+                    <li key={index} className="flex items-start">
+                      <FaCheck className="text-main mt-1 mr-2 flex-shrink-0 text-sm" />
+                      <span className="text-sm sm:text-base text-gray-700">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Technical Documentation</h3>
+                <div className="flex flex-wrap gap-2 sm:gap-4">
+                  <button className="flex items-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors duration-300 text-xs sm:text-sm">
+                    <FaDownload className="mr-1 sm:mr-2" /> Product Datasheet
+                  </button>
+                  <button className="flex items-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors duration-300 text-xs sm:text-sm">
+                    <FaDownload className="mr-1 sm:mr-2" /> Installation Guide
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {activeTab === 'specifications' && (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">Technical Specifications</h3>
+                <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <tbody className="divide-y divide-gray-200">
-                      {productData.specifications && productData.specifications.length > 0 ? (
-                        productData.specifications.map((spec, index) => (
-                          <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                            <td className="px-4 py-2 whitespace-nowrap text-xs font-medium text-gray-900 w-1/3">
-                              {spec.name}
-                            </td>
-                            <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
-                              {spec.value}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr className="bg-gray-50">
-                          <td colSpan="2" className="px-4 py-2 text-xs text-gray-500 text-center">
-                            No specifications available
-                          </td>
+                      {Object.entries(product.specifications).map(([key, value], index) => (
+                        <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{key}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{value}</td>
                         </tr>
-                      )}
+                      ))}
                     </tbody>
                   </table>
                 </div>
               </div>
-            )}
-            
-            {activeTab === 'reviews' && (
+              
               <div>
-                <div className="mb-4 bg-gray-50 p-4 rounded-lg">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                    <div className="mb-3 md:mb-0">
-                      <h3 className="text-lg font-bold text-gray-900">{productData.rating.toFixed(1)}</h3>
-                      <div className="flex items-center mt-1">
-                        {renderStars(productData.rating)}
-                        <span className="ml-2 text-xs text-gray-600">Based on {productData.reviewCount} reviews</span>
-                      </div>
-                    </div>
-                    <button className="bg-green-600 hover:bg-green-700 text-white font-medium py-1.5 px-3 rounded text-xs transition-colors duration-200 flex items-center justify-center">
-                      <FaStar className="w-3 h-3 mr-1" />
-                      Write a Review
-                    </button>
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">Compliance & Certifications</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  <div className="flex flex-col items-center text-center p-4 border border-gray-200 rounded-lg">
+                    <FaShieldAlt className="text-main text-2xl mb-2" />
+                    <span className="text-sm font-medium text-gray-700">CE Certified</span>
                   </div>
-                  
-                  <div className="mt-4">
-                    <h4 className="text-xs font-medium text-gray-700 mb-2">Rating Breakdown</h4>
-                    <div className="space-y-1.5">
-                      {[5, 4, 3, 2, 1].map((star) => {
-                        // Calculate percentage safely
-                        const percentage = productData.ratingBreakdown && productData.reviewCount > 0 
-                          ? Math.round(((productData.ratingBreakdown[star] || 0) / productData.reviewCount) * 100)
-                          : 0;
-                        
-                        return (
-                          <div key={star} className="flex items-center">
-                            <div className="w-12 text-xs text-gray-600">{star} stars</div>
-                            <div className="w-full bg-gray-200 rounded-full h-1.5 mx-2">
-                              <div 
-                                className="bg-yellow-400 h-1.5 rounded-full" 
-                                style={{ width: `${percentage}%` }}
-                              ></div>
-                            </div>
-                            <div className="w-12 text-xs text-gray-600 text-right">
-                              {percentage}%
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                  <div className="flex flex-col items-center text-center p-4 border border-gray-200 rounded-lg">
+                    <FaShieldAlt className="text-main text-2xl mb-2" />
+                    <span className="text-sm font-medium text-gray-700">RoHS Compliant</span>
                   </div>
+                  <div className="flex flex-col items-center text-center p-4 border border-gray-200 rounded-lg">
+                    <FaShieldAlt className="text-main text-2xl mb-2" />
+                    <span className="text-sm font-medium text-gray-700">ISO 9001</span>
+                  </div>
+                  <div className="flex flex-col items-center text-center p-4 border border-gray-200 rounded-lg">
+                    <FaShieldAlt className="text-main text-2xl mb-2" />
+                    <span className="text-sm font-medium text-gray-700">IEC 61215</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-main-light p-6 rounded-lg">
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">Request Custom Specifications</h3>
+                <p className="text-gray-700 mb-4">Need this product with different specifications? Contact our team for customization options.</p>
+                <button className="bg-main hover:bg-main-dark text-white px-6 py-2 rounded-lg transition-colors duration-300">
+                  Contact Sales Team
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {activeTab === 'reviews' && (
+            <div className="space-y-8">
+              <div className="flex flex-col md:flex-row gap-8">
+                <div className="w-full md:w-1/3 bg-gray-50 p-6 rounded-lg text-center">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">Customer Reviews</h3>
+                  <div className="text-4xl font-bold text-gray-800 mb-2">{product.rating}</div>
+                  <div className="flex justify-center mb-2">
+                    {renderRating(product.rating)}
+                  </div>
+                  <div className="text-gray-600 text-sm">{product.reviewCount} reviews</div>
                 </div>
                 
-                <div className="space-y-4">
-                  {productData.reviews.slice(0, 2).map((review, index) => (
-                    <div key={index} className="border-b border-gray-200 pb-4 last:border-b-0">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center">
-                          <div className="bg-blue-100 text-blue-800 font-bold rounded-full w-8 h-8 flex items-center justify-center mr-2 text-xs">
-                            {review.author.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-gray-900 text-sm">{review.author}</h4>
-                            <div className="flex items-center mt-0.5">
-                              {renderStars(review.rating)}
-                              <span className="ml-1 text-xs text-gray-500">{review.date}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="bg-green-100 text-green-800 text-xs px-1.5 py-0.5 rounded text-xs">
-                          Verified
-                        </div>
+                <div className="w-full md:w-2/3">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">Rating Breakdown</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center">
+                      <span className="w-16 text-sm text-gray-600">5 Star</span>
+                      <div className="flex-1 h-2 mx-2 bg-gray-200 rounded-full">
+                        <div className="h-2 bg-main rounded-full" style={{ width: '70%' }}></div>
                       </div>
-                      <h5 className="font-medium text-gray-900 mt-2 text-sm">{review.title}</h5>
-                      <p className="text-gray-700 mt-1 text-xs">{review.content}</p>
-                      <div className="mt-2 flex items-center">
-                        <button className="flex items-center text-xs text-gray-500 hover:text-gray-700">
-                          <FaThumbsUp className="w-3 h-3 mr-1" />
-                          Helpful ({review.helpfulCount})
-                        </button>
-                        <button className="flex items-center text-xs text-gray-500 hover:text-gray-700 ml-3">
-                          <FaFlag className="w-3 h-3 mr-1" />
-                          Report
-                        </button>
-                      </div>
+                      <span className="w-12 text-sm text-gray-600">70%</span>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {activeTab === 'faq' && (
-              <div className="space-y-3">
-                {productData.faqs.map((faq, index) => (
-                  <div key={index} className="border border-gray-200 rounded overflow-hidden">
-                    <button 
-                      className="flex justify-between items-center w-full px-4 py-2 text-left text-gray-900 font-medium bg-white hover:bg-gray-50 focus:outline-none text-sm"
-                      onClick={() => toggleFaq(index)}
-                    >
-                      <span>{faq.question}</span>
-                      <svg 
-                        className={`w-4 h-4 text-gray-500 transform ${openFaqs.includes(index) ? 'rotate-180' : ''}`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    {openFaqs.includes(index) && (
-                      <div className="px-4 py-2 bg-gray-50 border-t border-gray-200">
-                        <p className="text-gray-700 text-xs">{faq.answer}</p>
+                    <div className="flex items-center">
+                      <span className="w-16 text-sm text-gray-600">4 Star</span>
+                      <div className="flex-1 h-2 mx-2 bg-gray-200 rounded-full">
+                        <div className="h-2 bg-main rounded-full" style={{ width: '20%' }}></div>
                       </div>
-                    )}
+                      <span className="w-12 text-sm text-gray-600">20%</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="w-16 text-sm text-gray-600">3 Star</span>
+                      <div className="flex-1 h-2 mx-2 bg-gray-200 rounded-full">
+                        <div className="h-2 bg-main rounded-full" style={{ width: '7%' }}></div>
+                      </div>
+                      <span className="w-12 text-sm text-gray-600">7%</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="w-16 text-sm text-gray-600">2 Star</span>
+                      <div className="flex-1 h-2 mx-2 bg-gray-200 rounded-full">
+                        <div className="h-2 bg-main rounded-full" style={{ width: '2%' }}></div>
+                      </div>
+                      <span className="w-12 text-sm text-gray-600">2%</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="w-16 text-sm text-gray-600">1 Star</span>
+                      <div className="flex-1 h-2 mx-2 bg-gray-200 rounded-full">
+                        <div className="h-2 bg-main rounded-full" style={{ width: '1%' }}></div>
+                      </div>
+                      <span className="w-12 text-sm text-gray-600">1%</span>
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      {/* Offers & EMIs */}
-      <div className="mt-8 bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <h2 className="text-xl font-bold mb-4 flex items-center">
-          <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          Offers & EMIs
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200 hover:shadow-md transition-shadow duration-200">
-            <h3 className="font-medium text-green-800 mb-2 flex items-center">
-              <FaRegCreditCard className="w-4 h-4 mr-2" />
-              Credit Card EMIs on 17+ Banks
-            </h3>
-            <p className="text-sm text-gray-700">No cost EMI available on credit cards from major banks</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="px-2 py-1 bg-white text-xs font-medium rounded border border-gray-200">HDFC</span>
-              <span className="px-2 py-1 bg-white text-xs font-medium rounded border border-gray-200">ICICI</span>
-              <span className="px-2 py-1 bg-white text-xs font-medium rounded border border-gray-200">SBI</span>
-              <span className="px-2 py-1 bg-white text-xs font-medium rounded border border-gray-200">Axis</span>
-            </div>
-          </div>
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 hover:shadow-md transition-shadow duration-200">
-            <h3 className="font-medium text-blue-800 mb-2 flex items-center">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
-              </svg>
-              Debit Card & Cardless EMI options
-            </h3>
-            <p className="text-sm text-gray-700">Flexible payment options available for your convenience</p>
-            <button className="mt-3 text-blue-600 text-sm font-medium hover:text-blue-800 flex items-center">
-              View all EMI options
-              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-        
-        {/* Additional Offers */}
-        <div className="mt-4 border-t border-gray-200 pt-4">
-          <h3 className="font-medium text-gray-900 mb-3">Additional Offers</h3>
-          <ul className="space-y-2">
-            <li className="flex items-start">
-              <svg className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              <div>
-                <span className="font-medium">5% Instant Discount</span>
-                <p className="text-sm text-gray-600">on HDFC Bank Credit Cards</p>
-              </div>
-            </li>
-            <li className="flex items-start">
-              <svg className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              <div>
-                <span className="font-medium">Free Installation</span>
-                <p className="text-sm text-gray-600">on orders above ₹5000</p>
-              </div>
-            </li>
-          </ul>
-        </div>
-      </div>
-      
-      {/* Customer Reviews Section */}
-      <div className="mt-8 bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
-        <div className="bg-gradient-to-r from-green-50 to-white p-4 border-b border-gray-200">
-          <h2 className="text-xl font-bold flex items-center" id="reviews">
-            <FaStar className="w-5 h-5 mr-2 text-yellow-500" />
-            Customer Reviews
-          </h2>
-        </div>
-        
-        <div className="p-6">
-          <div className="flex flex-col md:flex-row gap-8">
-            <div className="md:w-1/3 bg-gray-50 p-5 rounded-lg border border-gray-100 shadow-sm">
-              <div className="text-center">
-                <div className="text-6xl font-bold text-gray-900 mb-2">{productData.rating}.0</div>
-                <div className="flex justify-center my-3">
-                  {renderStars(productData.rating)}
                 </div>
-                <p className="text-sm text-gray-600 mb-4">{productData.reviewCount} verified ratings</p>
-                <button className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center shadow-sm">
-                  <FaPencilAlt className="w-4 h-4 mr-2" />
+              </div>
+              
+              <div className="text-center">
+                <button 
+                  onClick={() => setShowReviewModal(true)}
+                  className="bg-main hover:bg-main-dark text-white px-8 py-3 rounded-lg transition-colors duration-300"
+                >
                   Write a Review
                 </button>
               </div>
             </div>
-            
-            <div className="md:w-2/3">
-              <div className="space-y-5">
-                <div className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow duration-200 bg-white">
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-800 font-medium mr-3">R</div>
-                      <div>
-                        <span className="font-medium text-gray-900">Rahul S.</span>
-                        <p className="text-xs text-gray-500">Verified Purchase</p>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex mb-1">
-                        {renderStars(5)}
-                      </div>
-                      <p className="text-xs text-gray-500 text-right">2 months ago</p>
-                    </div>
-                  </div>
-                  <h4 className="font-medium text-gray-900 mb-2">Excellent for DIY projects!</h4>
-                  <p className="text-gray-700 text-sm leading-relaxed">Great product! The solar panel works perfectly for my small DIY project. Excellent build quality and good power output. I'm very satisfied with the purchase and would recommend it to others.</p>
-                </div>
-                
-                <div className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow duration-200 bg-white">
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 font-medium mr-3">A</div>
-                      <div>
-                        <span className="font-medium text-gray-900">Anita K.</span>
-                        <p className="text-xs text-gray-500">Verified Purchase</p>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex mb-1">
-                        {renderStars(5)}
-                      </div>
-                      <p className="text-xs text-gray-500 text-right">1 month ago</p>
-                    </div>
-                  </div>
-                  <h4 className="font-medium text-gray-900 mb-2">Perfect for educational purposes</h4>
-                  <p className="text-gray-700 text-sm leading-relaxed">I bought this for my students to learn about solar energy and it's been a great teaching tool. The quality is excellent and it demonstrates solar principles perfectly.</p>
-                </div>
-              </div>
-              
-              <button className="mt-5 w-full border border-gray-300 bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-lg hover:bg-gray-100 transition-colors duration-200 flex items-center justify-center shadow-sm">
-                Load More Reviews
-                <FaChevronDown className="w-4 h-4 ml-2" />
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
-      
-      {/* Related Products Section */}
-      <div className="mt-8 bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
-        <div className="bg-gradient-to-r from-blue-50 to-white p-4 border-b border-gray-200">
-          <h2 className="text-xl font-bold flex items-center">
-            <FaBoxOpen className="w-5 h-5 mr-2 text-blue-500" />
-            Related Products
-          </h2>
-        </div>
-        
-        <div className="p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {/* Related Product Card 1 */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 bg-white">
-              <div className="relative">
-                <img src={power1} alt="Related Product" className="w-full h-48 object-cover" />
-                <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">New</div>
-              </div>
-              <div className="p-4">
-                <h3 className="font-medium text-gray-900 mb-1 truncate">100W Solar Panel Kit</h3>
-                <div className="flex items-center mb-2">
-                  <div className="flex text-yellow-400 mr-1">
-                    {renderStars(4)}
-                  </div>
-                  <span className="text-xs text-gray-500">(42)</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="text-lg font-bold text-gray-900">₹4,999</span>
-                    <span className="text-sm text-gray-500 line-through ml-2">₹5,999</span>
-                  </div>
-                  <button className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full transition-colors duration-200">
-                    <FaShoppingCart className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            {/* Related Product Card 2 */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 bg-white">
-              <div className="relative">
-                <img src={power2} alt="Related Product" className="w-full h-48 object-cover" />
-                <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">Sale</div>
-              </div>
-              <div className="p-4">
-                <h3 className="font-medium text-gray-900 mb-1 truncate">Solar Charge Controller 30A</h3>
-                <div className="flex items-center mb-2">
-                  <div className="flex text-yellow-400 mr-1">
-                    {renderStars(5)}
-                  </div>
-                  <span className="text-xs text-gray-500">(78)</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="text-lg font-bold text-gray-900">₹2,499</span>
-                    <span className="text-sm text-gray-500 line-through ml-2">₹3,299</span>
-                  </div>
-                  <button className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full transition-colors duration-200">
-                    <FaShoppingCart className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            {/* Related Product Card 3 */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 bg-white">
-              <div className="relative">
-                <img src={power3} alt="Related Product" className="w-full h-48 object-cover" />
-              </div>
-              <div className="p-4">
-                <h3 className="font-medium text-gray-900 mb-1 truncate">1000W Power Inverter</h3>
-                <div className="flex items-center mb-2">
-                  <div className="flex text-yellow-400 mr-1">
-                    {renderStars(4)}
-                  </div>
-                  <span className="text-xs text-gray-500">(36)</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="text-lg font-bold text-gray-900">₹8,999</span>
-                  </div>
-                  <button className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full transition-colors duration-200">
-                    <FaShoppingCart className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            {/* Related Product Card 4 */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 bg-white">
-              <div className="relative">
-                <img src={power4} alt="Related Product" className="w-full h-48 object-cover" />
-                <div className="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full">Popular</div>
-              </div>
-              <div className="p-4">
-                <h3 className="font-medium text-gray-900 mb-1 truncate">Battery Bank 12V 100Ah</h3>
-                <div className="flex items-center mb-2">
-                  <div className="flex text-yellow-400 mr-1">
-                    {renderStars(5)}
-                  </div>
-                  <span className="text-xs text-gray-500">(124)</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="text-lg font-bold text-gray-900">₹12,999</span>
-                    <span className="text-sm text-gray-500 line-through ml-2">₹14,999</span>
-                  </div>
-                  <button className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full transition-colors duration-200">
-                    <FaShoppingCart className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-6 text-center">
-            <button className="bg-white border border-blue-500 text-blue-500 hover:bg-blue-50 font-medium py-2 px-6 rounded-lg transition-colors duration-200 inline-flex items-center">
-              View All Related Products
-              <FaArrowRight className="w-4 h-4 ml-2" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
+      {/* Related Products */}
+      <div className="mb-8 sm:mb-12">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Related Products</h2>
+        <Swiper
+          modules={[Autoplay]}
+          spaceBetween={15}
+          slidesPerView={1}
+          autoplay={{
+            delay: 3000,
+            disableOnInteraction: false,
+          }}
+          breakpoints={{
+            640: {
+              slidesPerView: 2,
+              spaceBetween: 20,
+            },
+            1024: {
+              slidesPerView: 4,
+              spaceBetween: 20,
+            },
+          }}
+          className="related-products-swiper no-scrollbar"
+        >
+          {product.relatedProducts.map((item, index) => (
+            <SwiperSlide key={index}>
+              <div className="bg-white shadow-sm overflow-hidden flex flex-col h-full relative rounded-lg">
+                {/* Bestseller Badge */}
+                {item.isNew && (
+                  <div className="absolute top-0 left-0 z-10">
+                    <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white text-xs font-bold py-1 px-2 rounded-br shadow-sm">
+                      NEW
+                    </div>
+                  </div>
+                )}
+                
+                {/* On Sale Badge - Only shows if product has a discount */}
+                {item.discount > 0 && (
+                  <div className="absolute top-0 right-0 z-10">
+                    <div className="bg-gradient-to-r from-red-500 to-red-700 text-white text-xs font-bold py-1 px-2 rounded-bl shadow-sm">
+                      ON SALE
+                    </div>
+                  </div>
+                )}
+                
+                {/* Wishlist Button */}
+                <button className="absolute top-2 right-2 z-10 bg-white bg-opacity-90 rounded-full p-1.5 shadow-sm">
+                  <FaHeart className="text-gray-400 hover:text-red-500 transition-colors" size={14} />
+                </button>
+                
+                {/* Product Image */}
+                <a href={`/product/${item.id}`} className="block">
+                  <div className="relative pt-[100%] bg-gray-50">
+                    <img 
+                      src={item.image}
+                      alt={item.name}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  </div>
+                </a>
+                
+                {/* Product Info */}
+                <div className="p-3 sm:p-5 flex flex-col flex-grow">
+                  {/* Product Name */}
+                  <a href={`/product/${item.id}`} className="block">
+                    <h3 className="text-sm sm:text-base font-medium text-gray-800 line-clamp-2 mb-1 sm:mb-2 hover:text-blue-700 transition-colors">
+                      {item.name}
+                    </h3>
+                  </a>
+                  
+                  {/* Price */}
+                  <div className="flex items-baseline mb-2 sm:mb-3">
+                    <span className="text-lg sm:text-xl font-bold text-gray-900">₹{item.discountPrice.toFixed(2)}</span>
+                    {item.discount > 0 && (
+                      <span className="ml-2 text-xs sm:text-sm text-gray-500 line-through">₹{item.price.toFixed(2)}</span>
+                    )}
+                  </div>
+                  
+                  {/* Ratings */}
+                  <div className="flex items-center mb-2 sm:mb-4">
+                    <div className="flex">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <FaStar 
+                          key={i} 
+                          className={`${i < Math.floor(item.rating) ? 'text-yellow-400' : 'text-gray-200'}`}
+                          size={12}
+                        />
+                      ))}
+                    </div>
+                    <span className="ml-1 sm:ml-2 text-xs text-gray-600">({item.reviewCount})</span>
+                  </div>
+                  
+                  {/* Shipping Info */}
+                  <div className="flex flex-wrap items-center text-xs text-gray-500 mb-2 sm:mb-4">
+                    <div className="flex items-center mr-2 mb-1">
+                      <FaTruck className="mr-1 flex-shrink-0 text-xs" />
+                      <span className="whitespace-nowrap text-xs">Free Delivery</span>
+                    </div>
+                    <div className="flex items-center">
+                      <FaCheckCircle className="mr-1 text-green-500 flex-shrink-0 text-xs" />
+                      <span className="whitespace-nowrap text-xs">In Stock</span>
+                    </div>
+                  </div>
+                  
+                  {/* Button */}
+                  <div className="mt-auto">
+                    <button 
+                      className="w-full bg-blue-700 hover:bg-blue-800 text-white py-1.5 sm:py-2 px-3 sm:px-4 rounded-md transition-colors flex items-center justify-center text-sm"
+                    >
+                      <FaShoppingCart className="mr-1 sm:mr-2 text-xs sm:text-sm" />
+                      Add to Basket
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </SwiperSlide>
+          ))}
+        </Swiper>
+      </div>
+
+      {/* You might be interested */}
+      <div>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">You might be interested</h2>
+        <Swiper
+          modules={[Autoplay]}
+          spaceBetween={15}
+          slidesPerView={1}
+          autoplay={{
+            delay: 3000,
+            disableOnInteraction: false,
+          }}
+          breakpoints={{
+            640: {
+              slidesPerView: 2,
+              spaceBetween: 20,
+            },
+            1024: {
+              slidesPerView: 4,
+              spaceBetween: 20,
+            },
+          }}
+          className="recommended-products-swiper no-scrollbar"
+        >
+          {product.recommended.map((item, index) => (
+            <SwiperSlide key={index}>
+              <div className="bg-white shadow-sm overflow-hidden flex flex-col h-full relative">
+                {/* Bestseller Badge */}
+                {item.isNew && (
+                  <div className="absolute top-0 left-0 z-10">
+                    <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white text-xs font-bold py-1 px-2 rounded-br shadow-sm">
+                      NEW
+                    </div>
+                  </div>
+                )}
+                
+                {/* On Sale Badge - Only shows if product has a discount */}
+                {item.discount > 0 && (
+                  <div className="absolute top-0 right-0 z-10">
+                    <div className="bg-gradient-to-r from-red-500 to-red-700 text-white text-xs font-bold py-1 px-2 rounded-bl shadow-sm">
+                      -{item.discount}% OFF
+                    </div>
+                  </div>
+                )}
+                
+                {/* Wishlist Button */}
+                <button className="absolute top-2 right-2 z-10 bg-white bg-opacity-90 rounded-full p-1.5 shadow-sm">
+                  <FaHeart className="text-gray-400 hover:text-red-500 transition-colors" size={14} />
+                </button>
+                
+                {/* Product Image */}
+                <a href={`/product/${item.id}`} className="block">
+                  <div className="relative pt-[100%] bg-gray-50">
+                    <img 
+                      src={item.image}
+                      alt={item.name}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  </div>
+                </a>
+                
+                {/* Product Info */}
+                <div className="p-5 flex flex-col flex-grow">
+                  {/* Product Name */}
+                  <a href={`/product/${item.id}`} className="block">
+                    <h3 className="text-base font-medium text-gray-800 line-clamp-2 mb-2 hover:text-blue-700 transition-colors">
+                      {item.name}
+                    </h3>
+                  </a>
+                  
+                  {/* Price */}
+                  <div className="flex items-baseline mb-3">
+                    <span className="text-xl font-bold text-gray-900">₹{item.discountPrice.toFixed(2)}</span>
+                    {item.discount > 0 && (
+                      <span className="ml-2 text-sm text-gray-500 line-through">₹{item.price.toFixed(2)}</span>
+                    )}
+                  </div>
+                  
+                  {/* Ratings */}
+                  <div className="flex items-center mb-4">
+                    <div className="flex">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <FaStar 
+                          key={i} 
+                          className={`${i < Math.floor(item.rating) ? 'text-yellow-400' : 'text-gray-200'}`}
+                          size={16}
+                        />
+                      ))}
+                    </div>
+                    <span className="ml-2 text-sm text-gray-600">({item.reviewCount})</span>
+                  </div>
+                  
+                  {/* Shipping Info */}
+                  <div className="flex flex-wrap items-center text-xs text-gray-500 mb-4">
+                    <div className="flex items-center mr-2 mb-1">
+                      <FaTruck className="mr-1 flex-shrink-0" />
+                      <span className="whitespace-nowrap">Free Delivery</span>
+                    </div>
+                    <div className="flex items-center">
+                      <FaCheckCircle className="mr-1 text-green-500 flex-shrink-0" />
+                      <span className="whitespace-nowrap">Available in Stock</span>
+                    </div>
+                  </div>
+                  
+                  {/* Button */}
+                  <div className="mt-auto">
+                    <button 
+                      className="w-full bg-main hover:bg-main-dark text-white font-medium py-3 px-4 rounded-lg text-center flex items-center justify-center gap-2"
+                    >
+                      <FaShoppingCart size={16} />
+                      <span>Add to Basket</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </SwiperSlide>
+          ))}
+        </Swiper>
+      </div>
+      </div>
+  )}
+  
 export default ProductDetails;

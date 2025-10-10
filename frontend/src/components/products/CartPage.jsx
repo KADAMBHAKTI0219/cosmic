@@ -105,14 +105,8 @@ const CartPage = () => {
     }, 0);
   };
   
-  const calculateShipping = () => {
-    const subtotal = calculateSubtotal();
-    // Free shipping for orders above ₹10,000
-    return subtotal > 10000 ? 0 : 250;
-  };
-
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateShipping() - couponDiscount;
+    return calculateSubtotal() - couponDiscount;
   };
   
   const handlePlaceOrder = async (e) => {
@@ -127,7 +121,6 @@ const CartPage = () => {
       const orderData = {
         paymentMethod: 'cod', // Default to COD
         totalAmount: calculateTotal(),
-        shippingFee: calculateShipping(),
         couponDiscount: couponDiscount,
         couponCode: appliedCoupon?.code || null
       };
@@ -158,7 +151,7 @@ const CartPage = () => {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#92c51b]"></div>
         </div>
       </div>
     );
@@ -188,7 +181,7 @@ const CartPage = () => {
           <p className="text-gray-600 mb-8">Looks like you haven't added any products to your cart yet.</p>
           <Link 
             to="/solar-module" 
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md inline-flex items-center"
+            className="bg-[#92c51b] hover:bg-[#82b10b] text-white px-6 py-3 rounded-md inline-flex items-center"
           >
             <FaArrowLeft className="mr-2" />
             Continue Shopping
@@ -213,49 +206,53 @@ const CartPage = () => {
             <div className="divide-y">
               {cartItems.map((item) => (
                 <div key={item._id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center">
-                  {/* Product Image */}
-                  <div className="w-full sm:w-24 h-24 mb-4 sm:mb-0 flex-shrink-0">
-                    <img 
-                      src={item.productId?.images?.[0] ? fixImageUrl(item.productId.images[0]) : 'https://via.placeholder.com/100'} 
-                      alt={item.productId?.name || 'Product'} 
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  
-                  {/* Product Details */}
-                  <div className="flex-grow px-4">
-                    <Link to={`/product/${item.productId?._id}`} className="text-lg font-medium hover:text-green-600">
-                      {item.productId?.name || 'Product Name'}
-                    </Link>
-                    
-                    <div className="text-sm text-gray-500 mt-1">
-                      {item.productId?.description?.substring(0, 100) || 'Product description'}
-                      {item.productId?.description?.length > 100 ? '...' : ''}
+                  <div className="flex w-full sm:w-auto">
+                    {/* Product Image */}
+                    <div className="w-24 h-24 mb-4 sm:mb-0 flex-shrink-0">
+                      <img 
+                        src={item.productId?.images?.[0] ? fixImageUrl(item.productId.images[0]) : 'https://via.placeholder.com/100'} 
+                        alt={item.productId?.name || 'Product'} 
+                        className="w-full h-full object-contain"
+                      />
                     </div>
                     
-                    <div className="mt-2 text-green-600 font-semibold">
-                      ₹{(item.price || 0).toLocaleString()}
+                    {/* Product Details */}
+                    <div className="flex-grow px-4">
+                      <Link to={`/product/${item.productId?._id}`} className="text-lg font-medium hover:text-[#92c51b] line-clamp-1">
+                        {item.productId?.name || 'Product Name'}
+                      </Link>
+                      
+                      <div className="text-sm text-gray-500 mt-1 hidden sm:block">
+                        {item.productId?.description?.substring(0, 100) || 'Product description'}
+                        {item.productId?.description?.length > 100 ? '...' : ''}
+                      </div>
+                      
+                      <div className="mt-2 text-[#92c51b] font-semibold">
+                        ₹{(item.price || 0).toLocaleString()}
+                      </div>
                     </div>
                   </div>
                   
-                  {/* Quantity Controls */}
-                  <div className="flex items-center mt-4 sm:mt-0">
-                    <button 
-                      onClick={() => handleUpdateQuantity(item._id, item.quantity - 1)}
-                      className="p-1 rounded-full bg-gray-200 hover:bg-gray-300"
-                      disabled={item.quantity <= 1}
-                    >
-                      <FaMinus className="w-4 h-4 text-gray-600" />
-                    </button>
-                    
-                    <span className="mx-3 w-8 text-center">{item.quantity}</span>
-                    
-                    <button 
-                      onClick={() => handleUpdateQuantity(item._id, item.quantity + 1)}
-                      className="p-1 rounded-full bg-gray-200 hover:bg-gray-300"
-                    >
-                      <FaPlus className="w-4 h-4 text-gray-600" />
-                    </button>
+                  {/* Quantity Controls - Responsive Layout */}
+                  <div className="flex items-center justify-between w-full sm:w-auto mt-4 sm:mt-0 sm:ml-auto">
+                    <div className="flex items-center">
+                      <button 
+                        onClick={() => handleUpdateQuantity(item._id, item.quantity - 1)}
+                        className="p-2 rounded-full bg-gray-200 hover:bg-gray-300"
+                        disabled={item.quantity <= 1}
+                      >
+                        <FaMinus className="w-3 h-3 text-gray-600" />
+                      </button>
+                      
+                      <span className="mx-3 w-8 text-center">{item.quantity}</span>
+                      
+                      <button 
+                        onClick={() => handleUpdateQuantity(item._id, item.quantity + 1)}
+                        className="p-2 rounded-full bg-gray-200 hover:bg-gray-300"
+                      >
+                        <FaPlus className="w-3 h-3 text-gray-600" />
+                      </button>
+                    </div>
                     
                     <button 
                       onClick={() => handleRemoveItem(item._id)}
@@ -272,7 +269,7 @@ const CartPage = () => {
           <div className="mt-6">
             <Link 
               to="/solar-module" 
-              className="inline-flex items-center text-green-600 hover:text-green-800"
+              className="inline-flex items-center text-[#92c51b] hover:text-[#82b10b]"
             >
               <FaArrowLeft className="mr-2" />
               Continue Shopping
@@ -291,26 +288,21 @@ const CartPage = () => {
                 <span>₹{calculateSubtotal().toLocaleString()}</span>
               </div>
               
-              <div className="flex justify-between">
-                <span className="text-gray-600">Shipping</span>
-                <span>{calculateShipping() === 0 ? 'Free' : `₹${calculateShipping()}`}</span>
-              </div>
-              
+
               {/* Coupon Discount */}
               {appliedCoupon && (
-                <div className="flex justify-between text-green-600">
+                <div className="flex justify-between text-[#92c51b]">
                   <span>Coupon Discount ({appliedCoupon.code})</span>
                   <span>-₹{couponDiscount.toLocaleString()}</span>
                 </div>
-              )}
-              
+              )}              
               <div className="border-t pt-3 mt-3">
                 <div className="flex justify-between font-semibold">
                   <span>Total</span>
                   <span>₹{calculateTotal().toLocaleString()}</span>
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  (Including shipping & taxes)
+                  (Including taxes)
                 </div>
               </div>
             </div>
@@ -325,13 +317,13 @@ const CartPage = () => {
                       placeholder="Enter coupon code"
                       value={couponCode}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
                     />
                   </div>
                   <button
                     onClick={handleApplyCoupon}
                     disabled={couponLoading || !couponCode.trim()}
-                    className={`px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md ${
+                    className={`px-4 py-2 bg-[#92c51b] hover:bg-[#82b10b] text-white rounded-md ${
                       couponLoading || !couponCode.trim() ? 'opacity-70 cursor-not-allowed' : ''
                     }`}
                   >
@@ -350,12 +342,12 @@ const CartPage = () => {
             
             {/* Applied Coupon */}
             {appliedCoupon && (
-              <div className="mb-4 p-2 bg-green-50 border border-green-200 rounded-md flex justify-between items-center">
+              <div className="mb-4 p-2 bg-[#f5f9e8] border border-[#dbe8b0] rounded-md flex justify-between items-center">
                 <div className="flex items-center">
-                  <FaTag className="text-green-600 mr-2" />
+                  <FaTag className="text-[#92c51b] mr-2" />
                   <div>
                     <div className="font-medium">{appliedCoupon.code}</div>
-                    <div className="text-xs text-green-600">₹{couponDiscount} discount applied</div>
+                    <div className="text-xs text-[#92c51b]">₹{couponDiscount} discount applied</div>
                   </div>
                 </div>
                 <button
@@ -374,7 +366,7 @@ const CartPage = () => {
             <button 
               onClick={handlePlaceOrder}
               disabled={orderLoading || cartItems.length === 0}
-              className={`w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-md font-medium flex items-center justify-center ${
+              className={`w-full bg-[#92c51b] hover:bg-[#82b10b] text-white py-3 rounded-md font-medium flex items-center justify-center ${
                 orderLoading || cartItems.length === 0 ? 'opacity-70 cursor-not-allowed' : ''
               }`}
             >
@@ -393,7 +385,7 @@ const CartPage = () => {
             
             <div className="mt-4 text-xs text-gray-500 text-center">
               <div className="flex items-center justify-center mb-1">
-                <FaLock className="text-green-600 mr-1" />
+                <FaLock className="text-[#92c51b] mr-1" />
                 Secure checkout
               </div>
               <div>Cash on Delivery</div>

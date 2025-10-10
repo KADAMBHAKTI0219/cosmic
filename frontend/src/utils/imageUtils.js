@@ -3,7 +3,7 @@
  */
 
 // Get API base URL from environment variables with fallback
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 /**
  * Checks if a URL already contains a domain to prevent duplication

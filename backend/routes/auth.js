@@ -38,4 +38,7 @@ router.get('/customers/:id', protect, getCustomer); // Get single customer (own 
 router.put('/customers/:id', protect, updateCustomer); // Update customer profile
 router.delete('/customers/:id', protect, deleteCustomer); // Delete customer profile
 
+// User stats
+router.get('/user-stats', protect, require('../controllers/auth/userStats').getUserStats);
+
 module.exports = router;

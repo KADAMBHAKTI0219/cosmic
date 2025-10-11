@@ -1,19 +1,65 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaShoppingBag, FaUser, FaCog, FaBox, FaChartLine } from 'react-icons/fa';
+import { FaShoppingBag, FaUser, FaCog, FaBox, FaChartLine, FaShoppingCart, FaClipboardList, FaHeart } from 'react-icons/fa';
+import { authApi } from '../../services/api';
+import { toast } from 'react-toastify';
 
 const DashboardHome = () => {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    orders: 0,
+    wishlist: 0,
+    cart: 0 
+  });
   
+  // Fetch user data on component mount
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
+    const fetchUserData = async () => {
       try {
-        setUser(JSON.parse(userData));
+        setLoading(true);
+        
+        // Try to get user data from localStorage first for immediate display
+        const userData = localStorage.getItem('user');
+        if (userData) {
+          const parsedUser = JSON.parse(userData);
+          setUser(parsedUser);
+        }
+        
+        // Fetch fresh data from API
+        const response = await authApi.getCurrentUser();
+        if (response.data) {
+          setUser(response.data);
+          localStorage.setItem('user', JSON.stringify(response.data));
+          console.log(response.data)
+        }
+        
+        // Fetch user stats (orders, wishlist, cart)
+        const statsResponse = await authApi.getUserStats();
+        if (statsResponse.data) {
+          const { orders, cart, wishlist, firstName, lastName, name, email } = statsResponse.data;
+          setStats({ orders, cart, wishlist });
+          
+          // Update user data with the latest from API
+          const userData = {
+            ...user,
+            firstName,
+            lastName,
+            name,
+            email
+          };
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
       } catch (error) {
-        console.error('Error parsing user data:', error);
+        console.error('Error fetching user data:', error);
+        toast.error('Problem loading dashboard data. Please try again.');
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    fetchUserData();
   }, []);
   
   const dashboardCards = [
@@ -40,6 +86,19 @@ const DashboardHome = () => {
     }
   ];
 
+  // Display loading state while fetching data
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-main"></div>
+        <span className="ml-3 text-gray-600">Loading your dashboard...</span>
+      </div>
+    );
+  }
+
+  // Format user name for display
+  const displayName = user ? (user.firstName || user.name || user.email || 'Customer') : 'Customer';
+
   return (
     <div className="animate-fadeIn">
       <h1 className="text-2xl font-bold mb-6 text-gray-800">Dashboard</h1>
@@ -52,32 +111,64 @@ const DashboardHome = () => {
           </div>
           <div>
             <h2 className="text-2xl font-semibold mb-2">
-              Welcome, {user?.firstName || user?.name || 'Customer'}!
+              Welcome to Cosmic, {displayName}!
             </h2>
             <p className="opacity-90 text-lg">
-              View your account information and orders here.
+              Here's a summary of your account activity
             </p>
           </div>
         </div>
       </div>
       
-      {/* Dashboard Cards */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {dashboardCards.map((card, index) => (
-          <Link 
-            key={index} 
-            to={card.link}
-            className={`${card.color} p-6 rounded-xl shadow hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1`}
-          >
-            <div className="flex flex-col items-center text-center">
-              <div className="mb-4 bg-white p-4 rounded-full shadow-inner">
-                {card.icon}
-              </div>
-              <h3 className="text-lg font-semibold mb-2">{card.title}</h3>
-              <p className="text-gray-600">{card.description}</p>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-300">
+          <div className="flex items-center">
+            <div className="bg-main/10 p-3 rounded-full mr-4">
+              <FaShoppingCart className="text-main text-xl" />
             </div>
+            <div>
+              <p className="text-gray-500 text-sm font-medium">Cart Items</p>
+              <h3 className="text-2xl font-bold text-gray-800">{stats.cart || 0}</h3>
+              <p className="text-xs text-gray-500 mt-1">Items in your shopping cart</p>
+            </div>
+          </div>
+          <Link to="/dashboard/cart" className="text-main text-sm font-medium mt-4 inline-block hover:underline">
+            View Cart
           </Link>
-        ))}
+        </div>
+        
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-300">
+          <div className="flex items-center">
+            <div className="bg-purple-100 p-3 rounded-full mr-4">
+              <FaClipboardList className="text-purple-600 text-xl" />
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm font-medium">Orders</p>
+              <h3 className="text-2xl font-bold text-gray-800">{stats.orders || 0}</h3>
+              <p className="text-xs text-gray-500 mt-1">Total orders placed</p>
+            </div>
+          </div>
+          <Link to="/dashboard/my-orders" className="text-purple-600 text-sm font-medium mt-4 inline-block hover:underline">
+            View Orders
+          </Link>
+        </div>
+        
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-300">
+          <div className="flex items-center">
+            <div className="bg-pink-100 p-3 rounded-full mr-4">
+              <FaHeart className="text-pink-600 text-xl" />
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm font-medium">Wishlist</p>
+              <h3 className="text-2xl font-bold text-gray-800">{stats.wishlist || 0}</h3>
+              <p className="text-xs text-gray-500 mt-1">Saved items for later</p>
+            </div>
+          </div>
+          <Link to="/dashboard/wishlist" className="text-pink-600 text-sm font-medium mt-4 inline-block hover:underline">
+            View Wishlist
+          </Link>
+        </div>
       </div>
       
       {/* Recent Orders Preview */}

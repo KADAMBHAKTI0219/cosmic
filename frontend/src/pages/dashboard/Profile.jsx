@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { FaUser, FaSave, FaMapMarkerAlt, FaEnvelope, FaPhone } from 'react-icons/fa';
+import { FaUser, FaSave, FaMapMarkerAlt, FaEnvelope, FaPhone, FaBriefcase } from 'react-icons/fa';
 import { authApi } from '../../services/api';
 
 const Profile = () => {
@@ -11,12 +11,18 @@ const Profile = () => {
     firstName: '',
     lastName: '',
     email: '',
-    phone: '',
-    address: '',
-    city: '',
+    mobileNumber: '',
+    phoneNumber: '',
+    secondaryNumber: '',
+    addressLine1: '',
+    addressLine2: '',
+    suburb: '',
     state: '',
     zipCode: '',
-    country: ''
+    country: '',
+    companyName: '',
+    gstNumber: '',
+    pan: ''
   });
 
   useEffect(() => {
@@ -29,18 +35,8 @@ const Profile = () => {
           const parsedUser = JSON.parse(userData);
           setUser(parsedUser);
           
-          // Populate form with user data
-          setFormData({
-            firstName: parsedUser.firstName || '',
-            lastName: parsedUser.lastName || '',
-            email: parsedUser.email || '',
-            phone: parsedUser.phone || '',
-            address: parsedUser.address || '',
-            city: parsedUser.city || '',
-            state: parsedUser.state || '',
-            zipCode: parsedUser.zipCode || '',
-            country: parsedUser.country || 'India'
-          });
+          // Populate form with user data from localStorage
+          populateFormData(parsedUser);
         }
         
         // Also fetch fresh data from API
@@ -52,17 +48,7 @@ const Profile = () => {
           localStorage.setItem('user', JSON.stringify(response.data));
           
           // Update form with fresh data
-          setFormData({
-            firstName: response.data.firstName || '',
-            lastName: response.data.lastName || '',
-            email: response.data.email || '',
-            phone: response.data.phone || '',
-            address: response.data.address || '',
-            city: response.data.city || '',
-            state: response.data.state || '',
-            zipCode: response.data.zipCode || '',
-            country: response.data.country || 'India'
-          });
+          populateFormData(response.data);
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -70,6 +56,27 @@ const Profile = () => {
       } finally {
         setLoading(false);
       }
+    };
+
+    // Helper function to populate form data from user object
+    const populateFormData = (userData) => {
+      setFormData({
+        firstName: userData.firstName || '',
+        lastName: userData.lastName || '',
+        email: userData.email || '',
+        mobileNumber: userData.mobileNumber || '',
+        phoneNumber: userData.phoneNumber || '',
+        secondaryNumber: userData.secondaryNumber || '',
+        addressLine1: userData.addressLine1 || '',
+        addressLine2: userData.addressLine2 || '',
+        suburb: userData.suburb || '',
+        state: userData.state || '',
+        zipCode: userData.zipCode || '',
+        country: userData.country || 'India',
+        companyName: userData.companyName || '',
+        gstNumber: userData.gstNumber || '',
+        pan: userData.pan || ''
+      });
     };
 
     fetchUserData();
@@ -170,12 +177,40 @@ const Profile = () => {
             
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-medium mb-2 flex items-center">
+                <FaPhone className="mr-1 text-gray-500" /> Mobile Number
+              </label>
+              <input
+                type="tel"
+                name="mobileNumber"
+                value={formData.mobileNumber}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-main transition-all duration-200"
+                required
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-2 flex items-center">
                 <FaPhone className="mr-1 text-gray-500" /> Phone Number
               </label>
               <input
                 type="tel"
-                name="phone"
-                value={formData.phone}
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-main transition-all duration-200"
+                required
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-2 flex items-center">
+                <FaPhone className="mr-1 text-gray-500" /> Secondary Number (Optional)
+              </label>
+              <input
+                type="tel"
+                name="secondaryNumber"
+                value={formData.secondaryNumber}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-main transition-all duration-200"
               />
@@ -190,46 +225,61 @@ const Profile = () => {
             </div>
             
             <div className="mb-4 col-span-2">
-              <label className="block text-gray-700 text-sm font-medium mb-2">Address</label>
+              <label className="block text-gray-700 text-sm font-medium mb-2">Address Line 1</label>
               <input
                 type="text"
-                name="address"
-                value={formData.address}
+                name="addressLine1"
+                value={formData.addressLine1}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-main transition-all duration-200"
+                required
+              />
+            </div>
+            
+            <div className="mb-4 col-span-2">
+              <label className="block text-gray-700 text-sm font-medium mb-2">Address Line 2 (Optional)</label>
+              <input
+                type="text"
+                name="addressLine2"
+                value={formData.addressLine2}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-main transition-all duration-200"
               />
             </div>
             
             <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-medium mb-2">City</label>
+              <label className="block text-gray-700 text-sm font-medium mb-2">Suburb/City</label>
               <input
                 type="text"
-                name="city"
-                value={formData.city}
+                name="suburb"
+                value={formData.suburb}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-main transition-all duration-200"
+                required
               />
             </div>
             
             <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-medium mb-2">State</label>
+              <label className="block text-gray-700 text-sm font-medium mb-2">State/Province</label>
               <input
                 type="text"
                 name="state"
                 value={formData.state}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-main transition-all duration-200"
+                required
               />
             </div>
             
             <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-medium mb-2">PIN Code</label>
+              <label className="block text-gray-700 text-sm font-medium mb-2">ZIP/Postal Code</label>
               <input
                 type="text"
                 name="zipCode"
                 value={formData.zipCode}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-main transition-all duration-200"
+                required
               />
             </div>
             
@@ -239,6 +289,48 @@ const Profile = () => {
                 type="text"
                 name="country"
                 value={formData.country}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-main transition-all duration-200"
+                required
+              />
+            </div>
+            
+            {/* Business Information */}
+            <div className="col-span-2 mt-4">
+              <h2 className="text-lg font-semibold mb-4 flex items-center text-gray-800">
+                <FaBriefcase className="mr-2 text-main" /> Business Information (Optional)
+              </h2>
+              <div className="h-px bg-gray-200 mb-6"></div>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-2">Company Name</label>
+              <input
+                type="text"
+                name="companyName"
+                value={formData.companyName}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-main transition-all duration-200"
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-2">GST Number</label>
+              <input
+                type="text"
+                name="gstNumber"
+                value={formData.gstNumber}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-main transition-all duration-200"
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-medium mb-2">PAN</label>
+              <input
+                type="text"
+                name="pan"
+                value={formData.pan}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-main transition-all duration-200"
               />

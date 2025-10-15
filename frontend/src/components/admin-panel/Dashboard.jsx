@@ -495,7 +495,7 @@ const Dashboard = () => {
                       <div className="flex items-center">
                         {product.image && (
                           <img 
-                            src={`http://localhost:8000/uploads/products/${product.image}`} 
+                            src={`https://cosmic-1.onrender.com/uploads/products/${product.image}`} 
                             alt={product.name} 
                             className="h-8 w-8 mr-3 object-cover rounded"
                           />

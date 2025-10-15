@@ -13,7 +13,7 @@ const NewsletterManagement = () => {
   const fetchSubscribers = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('/api/newsletter');
+      const response = await axios.get('/api/newsletter/admin/subscribers');
       // Ensure subscribers is always an array
       setSubscribers(Array.isArray(response.data) ? response.data : 
                     (response.data.subscribers || response.data.data || []));
@@ -32,7 +32,7 @@ const NewsletterManagement = () => {
     }
     
     try {
-      await axios.delete(`/api/newsletter/${subscriberId}`);
+      await axios.delete(`/api/newsletter/admin/subscribers/${subscriberId}`);
       setSubscribers(prev => prev.filter(sub => sub._id !== subscriberId));
       toast.success('Subscriber removed successfully');
     } catch (error) {

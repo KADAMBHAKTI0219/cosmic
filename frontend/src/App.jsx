@@ -15,7 +15,7 @@ const ProductList = lazy(() => import('./pages/products/ProductList'));
 const CartPage = lazy(() => import('./components/products/CartPage'));
 const OrdersPage = lazy(() => import('./pages/orders/OrdersPage'));
 const OrderDetailsPage = lazy(() => import('./pages/orders/OrderDetailsPage'));
-const OrderConfirmationPage = lazy(() => import('./pages/OrderConfirmationPage'));
+const OrderConfirmationPage = lazy(() => import('./pages/orders/OrderConfirmationPage'));
 const OrderPendingPage = lazy(() => import('./pages/orders/OrderPendingPage'));
 const PendingOrderPage = lazy(() => import('./pages/orders/PendingOrderPage'));
 const ReviewsPage = lazy(() => import('./pages/reviews/ReviewsPage'));

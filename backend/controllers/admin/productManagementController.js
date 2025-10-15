@@ -174,7 +174,7 @@ exports.createProduct = async (req, res) => {
     if (req.files && req.files.length > 0) {
       req.files.forEach(file => {
         // Add full URL prefix to make it a valid URL for the model validation
-        imageUrls.push(`https://cosmic-1.onrender.com/uploads/products/${file.filename}`);
+        imageUrls.push(`http://localhost:8000/uploads/products/${file.filename}`);
       });
     }
 
@@ -463,7 +463,7 @@ exports.updateProduct = async (req, res) => {
     if (req.files && req.files.length > 0) {
       req.files.forEach(file => {
         // Add full URL prefix to make it a valid URL for the model validation
-        imageUrls.push(`https://cosmic-1.onrender.com/uploads/products/${file.filename}`);
+        imageUrls.push(`http://localhost:8000/uploads/products/${file.filename}`);
       });
       updateData.images = imageUrls;
     } else if (images) {

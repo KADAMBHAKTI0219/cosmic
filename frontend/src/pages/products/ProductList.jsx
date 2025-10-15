@@ -47,12 +47,12 @@ const ProductCard = ({ product }) => {
           <img 
             src={product.images && product.images.length > 0 
               ? fixImageUrl(product.images[0])
-              : '/src/assets/images/placeholder.jpg'}
+              : '/placeholder.jpg'}
             alt={product.name}
             className="absolute inset-0 w-full h-full object-cover"
             onError={(e) => {
               e.target.onerror = null;
-              e.target.src = '/src/assets/images/placeholder.jpg';
+              e.target.src = '/placeholder.jpg';
             }}
           />
         </div>

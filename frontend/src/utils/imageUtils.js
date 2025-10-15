@@ -4,7 +4,7 @@
 
 // Get API base URL from environment variables with fallback
 // Using import.meta.env for Vite projects
-const API_BASE_URL = import.meta.NEXT_PUBLIC_API_URL || 'https://cosmic-1.onrender.com';
+const API_BASE_URL = import.meta.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 console.log('Using API base URL for images:', API_BASE_URL);
 
 /**

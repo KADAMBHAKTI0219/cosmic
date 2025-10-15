@@ -136,7 +136,7 @@ const Navbar = () => {
   const CosmicLogo = () => (
     <div className="flex items-center">
      <img 
-       src="/src/assets/images/navbar-logo.png" 
+       src="/navbar-logo.png" 
        alt="Cosmic Logo" 
        className="h-8 sm:h-10 w-auto transition-all duration-200" 
      />

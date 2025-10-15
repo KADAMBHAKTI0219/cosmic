@@ -81,7 +81,7 @@ const OrderReviewPage = () => {
 
         console.log('Fetching order with ID:', id);
         // Make direct API call with token
-        const API_URL = import.meta.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+        const API_URL = import.meta.env.NEXT_PUBLIC_API_URL || "https://cosmic-1.onrender.com/api";
         const response = await axios.get(`${API_URL}/admin/orders/${id}`, {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -180,7 +180,7 @@ const OrderReviewPage = () => {
       const finalPrice = calculateFinalPrice();
       
       // Send shipping charges, final price and admin notes to backend using direct API call
-      const API_URL = import.meta.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+      const API_URL = import.meta.env.NEXT_PUBLIC_API_URL || "https://cosmic-1.onrender.com/api";
       
       await axios.put(`${API_URL}/orders/${id}/shipping-price`, {
         shippingCharges: Number(shippingCharges),

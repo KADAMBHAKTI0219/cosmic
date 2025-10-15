@@ -39,7 +39,7 @@ const OrderConfirmationPage = () => {
   const confirmOrder = async () => {
     try {
       setLoading(true);
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+      const API_URL = process.env.REACT_APP_API_URL || 'https://cosmic-1.onrender.com/api';
       const response = await axios.get(`${API_URL}/order-review/confirm/${id}/${token}`);
       
       if (response.data.success) {

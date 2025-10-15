@@ -141,34 +141,34 @@ const Navbar = () => {
   const categories = [
     { 
       name: 'Solar Module', 
-      path: '/category/solar-module',
+      path: '/products/category/solar-module',
       dropdown: [
-        { name: 'Solar Panel', path: '/category/solar-module/solar-panel' },
-        { name: 'Small Solar Modules', path: '/category/solar-module/small-solar-modules' },
-        { name: 'Flexible Solar Module', path: '/category/solar-module/flexible-solar-module' },
-        { name: 'Mono PERC Solar Modules', path: '/category/solar-module/mono-perc-solar-modules' },
-        { name: 'Bifacial Solar Modules', path: '/category/solar-module/bifacial-solar-modules' }
+        { name: 'Solar Panel', path: '/products/category/solar-module/solar-panel' },
+        { name: 'Small Solar Modules', path: '/products/category/solar-module/small-solar-modules' },
+        { name: 'Flexible Solar Module', path: '/products/category/solar-module/flexible-solar-module' },
+        { name: 'Mono PERC Solar Modules', path: '/products/category/solar-module/mono-perc-solar-modules' },
+        { name: 'Bifacial Solar Modules', path: '/products/category/solar-module/bifacial-solar-modules' }
       ]
     },
     { 
       name: 'Solar Inverter', 
-      path: '/category/solar-inverter',
+      path: '/products/category/solar-inverter',
       dropdown: [
-        { name: 'Three Phase On Grid Inverter', path: '/category/solar-inverter/three-phase-on-grid-inverter' },
-        { name: 'Single Phase On Grid Inverter', path: '/category/solar-inverter/single-phase-on-grid-inverter' }
+        { name: 'Three Phase On Grid Inverter', path: '/products/category/solar-inverter/three-phase-on-grid-inverter' },
+        { name: 'Single Phase On Grid Inverter', path: '/products/category/solar-inverter/single-phase-on-grid-inverter' }
       ]
     },
     { 
       name: 'Li-ion Battery', 
-      path: '/category/li-ion-battery',
+      path: '/products/category/li-ion-battery',
       dropdown: [
-        { name: 'UPS Li-ion Battery Pack', path: '/category/li-ion-battery/ups-li-ion-battery-pack' },
-        { name: 'Solar Street Light Li-ion Battery Pack', path: '/category/li-ion-battery/solar-street-light-li-ion-battery-pack' },
-        { name: 'EV - 2 Wheeler Li-ion Battery Pack', path: '/category/li-ion-battery/ev-2-wheeler-li-ion-battery-pack' },
-        { name: 'Residential and Commercial Storage Li-ion Battery', path: '/category/li-ion-battery/residential-commercial-storage-li-ion-battery' }
+        { name: 'UPS Li-ion Battery Pack', path: '/products/category/li-ion-battery/ups-li-ion-battery-pack' },
+        { name: 'Solar Street Light Li-ion Battery Pack', path: '/products/category/li-ion-battery/solar-street-light-li-ion-battery-pack' },
+        { name: 'EV - 2 Wheeler Li-ion Battery Pack', path: '/products/category/li-ion-battery/ev-2-wheeler-li-ion-battery-pack' },
+        { name: 'Residential and Commercial Storage Li-ion Battery', path: '/products/category/li-ion-battery/residential-commercial-storage-li-ion-battery' }
       ]
     },
-    { name: 'Radiance Solar Kit', path: '/category/radiance-solar-kit' },
+    { name: 'Radiance Solar Kit', path: '/products/category/radiance-solar-kit' },
     { name: 'Save More', path: '/save-more' }
   ];
 

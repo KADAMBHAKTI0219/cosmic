@@ -40,6 +40,7 @@ export const authApi = {
   getProfile: (id) => API.get(`/auth/customers/${id}`),
   updateProfile: (id, userData) => API.put(`/auth/customers/${id}`, userData),
   deleteAccount: (id) => API.delete(`/auth/customers/${id}`),
+  getUserStats: () => API.get('/auth/user-stats'),
 };
 
 // Products API

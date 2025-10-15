@@ -505,6 +505,30 @@ exports.confirmOrderByCustomer = async (req, res) => {
     });
     
     if (!order) {
+      // If HTML request, show error page
+      if (req.headers.accept && req.headers.accept.includes('text/html')) {
+        return res.send(`
+          <html>
+            <head>
+              <title>Order Confirmation Failed</title>
+              <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                .error-container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f5c6cb; border-radius: 5px; background-color: #f8d7da; }
+                h1 { color: #721c24; }
+                .btn { display: inline-block; padding: 10px 20px; margin-top: 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+              </style>
+            </head>
+            <body>
+              <div class="error-container">
+                <h1>Order Confirmation Failed</h1>
+                <p>Sorry, we couldn't find your order or the confirmation link has expired.</p>
+                <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}" class="btn">Go to Homepage</a>
+              </div>
+            </body>
+          </html>
+        `);
+      }
+      
       return res.status(404).json({
         success: false,
         message: 'Invalid order or confirmation token'
@@ -574,7 +598,7 @@ exports.confirmOrderByCustomer = async (req, res) => {
             <p><strong>Customer:</strong> ${customerName || 'Guest'} ${customerEmail ? `(${customerEmail})` : ''}</p>
             <p><strong>Total Amount:</strong> ₹${order.finalPrice.toFixed(2)}</p>
             <p>Please proceed with processing this order.</p>
-            <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/admin/orders" style="padding: 10px 15px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px;">View Order</a>
+            <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/admin/orders/${order._id}" style="padding: 10px 15px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px;">View Order</a>
           `
         );
         console.log('Admin notification email sent successfully');
@@ -584,9 +608,34 @@ exports.confirmOrderByCustomer = async (req, res) => {
       // Continue with order confirmation even if admin email fails
     }
     
-    // Redirect to success page
+    // Redirect to success page or show success message
     if (req.headers.accept && req.headers.accept.includes('text/html')) {
-      return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/order-success?id=${order._id}`);
+      return res.send(`
+        <html>
+          <head>
+            <title>Order Confirmed Successfully</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .success-container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #c3e6cb; border-radius: 5px; background-color: #d4edda; }
+              h1 { color: #155724; }
+              .details { text-align: left; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; }
+              .btn { display: inline-block; padding: 10px 20px; margin-top: 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; }
+            </style>
+          </head>
+          <body>
+            <div class="success-container">
+              <h1>Order Confirmed Successfully!</h1>
+              <p>Thank you for confirming your order. We will process it right away.</p>
+              <div class="details">
+                <p><strong>Order ID:</strong> ${order.orderId}</p>
+                <p><strong>Total Amount:</strong> ₹${order.finalPrice.toFixed(2)}</p>
+              </div>
+              <p>A confirmation email has been sent to your email address.</p>
+              <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}" class="btn">Continue Shopping</a>
+            </div>
+          </body>
+        </html>
+      `);
     }
     
     return res.status(200).json({
@@ -599,6 +648,31 @@ exports.confirmOrderByCustomer = async (req, res) => {
     });
   } catch (error) {
     console.error('Error confirming order:', error);
+    
+    // If HTML request, show error page
+    if (req.headers.accept && req.headers.accept.includes('text/html')) {
+      return res.status(500).send(`
+        <html>
+          <head>
+            <title>Order Confirmation Error</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .error-container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f5c6cb; border-radius: 5px; background-color: #f8d7da; }
+              h1 { color: #721c24; }
+              .btn { display: inline-block; padding: 10px 20px; margin-top: 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+            </style>
+          </head>
+          <body>
+            <div class="error-container">
+              <h1>Order Confirmation Error</h1>
+              <p>Sorry, something went wrong while confirming your order. Please contact customer support.</p>
+              <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}" class="btn">Go to Homepage</a>
+            </div>
+          </body>
+        </html>
+      `);
+    }
+    
     logError('Order Confirmation', `Error confirming order: ${error.message}`);
     return res.status(500).json({
       success: false,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { productsApi, cartApi } from '../../services/api';
 import { FaHeart, FaChevronLeft, FaChevronRight, FaStar, FaShoppingCart, FaEye, FaTruck, FaCheckCircle, FaFilter, FaTimes } from 'react-icons/fa';
 import { fixImageUrl } from '../../utils/imageUtils';
@@ -122,12 +122,13 @@ const ProductCard = ({ product }) => {
 };
 
 const ProductList = () => {
+  const { category, subcategory } = useParams();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
   const [filters, setFilters] = useState({
-    category: '',
+    category: category || '',
     search: '',
     sortBy: 'createdAt',
     sortOrder: 'desc',
@@ -217,7 +218,14 @@ const ProductList = () => {
           <Breadcrumb 
             items={[
               { label: 'Products', path: '/products' },
-              { label: 'All Products', path: '/products' }
+              ...(category ? [{ 
+                label: category.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '), 
+                path: `/products/category/${category}` 
+              }] : []),
+              ...(subcategory ? [{ 
+                label: subcategory.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '), 
+                path: `/products/category/${category}/${subcategory}` 
+              }] : [])
             ]} 
           />
         </div>

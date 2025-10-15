@@ -86,7 +86,7 @@ const CartPopup = ({ isOpen, onClose }) => {
       {/* Offcanvas */}
       <div        
         ref={cartRef}
-        className={`fixed top-0 right-0 h-full w-full sm:w-96 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed top-0 right-0 h-full w-full sm:w-96 bg-white shadow-xl z-50 transform ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
         style={{ maxWidth: '100%' }}
       >
         <div className="flex flex-col h-full">

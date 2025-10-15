@@ -1,24 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ordersApi } from '../../services/api';
+import axios from 'axios';
 import { FaCheckCircle, FaBox, FaArrowLeft, FaShoppingCart, FaMapMarkerAlt, FaMoneyBillWave, FaCalendarAlt, FaSync } from 'react-icons/fa';
 
 const OrderConfirmationPage = () => {
-  const { id } = useParams();
+  const { id, token } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [confirmationStatus, setConfirmationStatus] = useState(null);
   const pollingInterval = useRef(null);
 
   useEffect(() => {
-    fetchOrderDetails();
-    
-    // Set up polling to refresh order data every 30 seconds
-    pollingInterval.current = setInterval(() => {
-      fetchOrderDetails(false);
-    }, 30000);
+    // If we have a token, this is a confirmation link from email
+    if (token) {
+      confirmOrder();
+    } else {
+      fetchOrderDetails();
+      
+      // Set up polling to refresh order data every 30 seconds
+      pollingInterval.current = setInterval(() => {
+        fetchOrderDetails(false);
+      }, 30000);
+    }
     
     // Clean up interval on component unmount
     return () => {
@@ -26,7 +34,29 @@ const OrderConfirmationPage = () => {
         clearInterval(pollingInterval.current);
       }
     };
-  }, [id]);
+  }, [id, token]);
+
+  const confirmOrder = async () => {
+    try {
+      setLoading(true);
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+      const response = await axios.get(`${API_URL}/order-review/confirm/${id}/${token}`);
+      
+      if (response.data.success) {
+        setConfirmationStatus('success');
+        setOrder(response.data.data);
+      } else {
+        setConfirmationStatus('error');
+        setError(response.data.message || 'Failed to confirm order');
+      }
+    } catch (error) {
+      console.error('Error confirming order:', error);
+      setConfirmationStatus('error');
+      setError('Failed to confirm order. The link may be invalid or expired.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchOrderDetails = async (showLoading = true) => {
     try {
@@ -68,6 +98,9 @@ const OrderConfirmationPage = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-main"></div>
+          <p className="ml-3 text-gray-600">
+            {token ? 'Processing your order confirmation...' : 'Loading order details...'}
+          </p>
         </div>
       </div>
     );
@@ -87,6 +120,36 @@ const OrderConfirmationPage = () => {
             <FaArrowLeft className="mr-2" />
             Back to Orders
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Special case for confirmation via token
+  if (token && confirmationStatus === 'success') {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-green-50 rounded-lg p-6 mb-8 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaCheckCircle className="text-green-500 text-3xl" />
+            </div>
+            <h1 className="text-2xl font-bold text-green-700 mb-2">Order Confirmed Successfully!</h1>
+            <p className="text-green-600 mb-4">Thank you for confirming your order. We will process it right away.</p>
+            {order && (
+              <p className="text-gray-600">Order ID: <span className="font-semibold">{order.orderId}</span></p>
+            )}
+          </div>
+          
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+            <Link 
+              to="/" 
+              className="bg-main text-white px-6 py-3 rounded-md hover:bg-main-dark transition-colors flex items-center"
+            >
+              <FaShoppingCart className="mr-2" />
+              Continue Shopping
+            </Link>
+          </div>
         </div>
       </div>
     );

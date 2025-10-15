@@ -74,7 +74,23 @@ app.use(express.static(path.join(__dirname)));
 
 // Start main server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Main server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-  console.log(`Uploads are now being served on the main server (port ${PORT})`);
-});
+
+// Function to try alternative ports if the primary port is in use
+const startServer = (port) => {
+  const server = app.listen(port)
+    .on('listening', () => {
+      console.log(`Main server running in ${process.env.NODE_ENV} mode on port ${port}`);
+      console.log(`Uploads are now being served on the main server (port ${port})`);
+    })
+    .on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.log(`Port ${port} is already in use, trying port ${port + 1}`);
+        server.close();
+        startServer(port + 1);
+      } else {
+        console.error('Server error:', err);
+      }
+    });
+};
+
+startServer(PORT);

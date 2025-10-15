@@ -424,33 +424,215 @@ exports.setShippingAndFinalPrice = async (req, res) => {
 // Customer confirms order
 exports.confirmOrder = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { token } = req.body;
+    const { id, token } = req.params;
+    const bodyToken = req.body.token;
     
-    // Find order
-    const order = await Order.findById(id);
+    // Use token from either params (GET request) or body (POST request)
+    const confirmationToken = token || bodyToken;
     
-    if (!order) {
-      return res.status(404).json({
+    if (!confirmationToken) {
+      if (req.headers.accept && req.headers.accept.includes('text/html')) {
+        return res.send(`
+          <html>
+            <head>
+              <title>Order Confirmation Failed</title>
+              <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                .error-container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f5c6cb; border-radius: 5px; background-color: #f8d7da; }
+                h1 { color: #721c24; }
+                .btn { display: inline-block; padding: 10px 20px; margin-top: 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+              </style>
+            </head>
+            <body>
+              <div class="error-container">
+                <h1>Order Confirmation Failed</h1>
+                <p>Invalid confirmation token.</p>
+                <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}" class="btn">Go to Homepage</a>
+              </div>
+            </body>
+          </html>
+        `);
+      }
+      
+      return res.status(400).json({
         success: false,
-        message: 'Order not found'
+        message: 'Confirmation token is required'
       });
     }
     
-    // Verify token (implement proper token verification)
-    // This is a simplified version
+    // Find order
+    const order = await Order.findOne({
+      _id: id,
+      confirmationToken: confirmationToken
+    });
     
-    // Update order status
-    order.orderStatus = 'confirmed';
+    if (!order) {
+      if (req.headers.accept && req.headers.accept.includes('text/html')) {
+        return res.send(`
+          <html>
+            <head>
+              <title>Order Confirmation Failed</title>
+              <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                .error-container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f5c6cb; border-radius: 5px; background-color: #f8d7da; }
+                h1 { color: #721c24; }
+                .btn { display: inline-block; padding: 10px 20px; margin-top: 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+              </style>
+            </head>
+            <body>
+              <div class="error-container">
+                <h1>Order Confirmation Failed</h1>
+                <p>Sorry, we couldn't find your order or the confirmation link has expired.</p>
+                <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}" class="btn">Go to Homepage</a>
+              </div>
+            </body>
+          </html>
+        `);
+      }
+      
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found or invalid confirmation token'
+      });
+    }
+    
+    // Generate real order ID now that customer has confirmed
+    const orderId = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Update order status and set order ID
+    order.orderStatus = 'confirmed'; // Using lowercase to match admin panel status values
+    order.orderId = orderId;
+    order.confirmationToken = undefined; // Clear token after use
+    order.confirmedAt = new Date();
+    
     await order.save();
+    
+    // Send confirmation email to customer
+    let customerEmail, customerName;
+    if (order.isGuestOrder && order.guestDetails) {
+      customerEmail = order.guestDetails.email;
+      customerName = order.guestDetails.name;
+    } else if (order.userId && typeof order.userId === 'object') {
+      customerEmail = order.userId.email;
+      customerName = order.userId.name;
+    } else if (order.customerEmail) {
+      customerEmail = order.customerEmail;
+      customerName = 'Customer';
+    }
+    
+    if (customerEmail) {
+      try {
+        await emailSender.sendOrderStatusUpdateEmail(
+          customerEmail,
+          `Order #${order.orderId} Confirmed`,
+          `
+            <h1>Your Order is Confirmed!</h1>
+            <p>Dear ${customerName || 'Customer'},</p>
+            <p>Thank you for confirming your order. We will process it right away.</p>
+            <p><strong>Order ID:</strong> ${order.orderId}</p>
+            <p><strong>Total Amount:</strong> ₹${order.finalPrice.toFixed(2)}</p>
+            <p>You will receive another email when your order ships.</p>
+            <p>Thank you for shopping with us!</p>
+          `,
+          order
+        );
+        console.log('Customer confirmation email sent successfully');
+      } catch (emailError) {
+        console.error('Error sending customer confirmation email:', emailError);
+        // Continue with order confirmation even if email fails
+      }
+    }
+    
+    // Notify admin about order confirmation
+    try {
+      const admins = await User.find({ role: 'admin' });
+      const adminEmails = admins.map(admin => admin.email).filter(email => email).join(',');
+      
+      if (adminEmails) {
+        await emailSender.sendNotificationEmail(
+          adminEmails,
+          `Order #${order.orderId} Confirmed by Customer`,
+          `
+            <h1>Order Confirmed by Customer</h1>
+            <p>The customer has confirmed the following order:</p>
+            <p><strong>Order ID:</strong> ${order.orderId}</p>
+            <p><strong>Customer:</strong> ${customerName || 'Guest'} ${customerEmail ? `(${customerEmail})` : ''}</p>
+            <p><strong>Total Amount:</strong> ₹${order.finalPrice.toFixed(2)}</p>
+            <p>Please proceed with processing this order.</p>
+            <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/admin/orders/${order._id}" style="padding: 10px 15px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px;">View Order</a>
+          `
+        );
+        console.log('Admin notification email sent successfully');
+      }
+    } catch (adminEmailError) {
+      console.error('Error sending admin notification email:', adminEmailError);
+      // Continue with order confirmation even if admin email fails
+    }
+    
+    // Redirect to success page or show success message
+    if (req.headers.accept && req.headers.accept.includes('text/html')) {
+      return res.send(`
+        <html>
+          <head>
+            <title>Order Confirmed Successfully</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .success-container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #c3e6cb; border-radius: 5px; background-color: #d4edda; }
+              h1 { color: #155724; }
+              .details { text-align: left; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; }
+              .btn { display: inline-block; padding: 10px 20px; margin-top: 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; }
+            </style>
+          </head>
+          <body>
+            <div class="success-container">
+              <h1>Order Confirmed Successfully!</h1>
+              <p>Thank you for confirming your order. We will process it right away.</p>
+              <div class="details">
+                <p><strong>Order ID:</strong> ${order.orderId}</p>
+                <p><strong>Total Amount:</strong> ₹${order.finalPrice.toFixed(2)}</p>
+              </div>
+              <p>A confirmation email has been sent to your email address.</p>
+              <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}" class="btn">Continue Shopping</a>
+            </div>
+          </body>
+        </html>
+      `);
+    }
     
     return res.status(200).json({
       success: true,
       message: 'Order confirmed successfully',
-      data: order
+      data: {
+        orderId: order.orderId,
+        status: order.orderStatus
+      }
     });
   } catch (error) {
     logError('Error confirming order', error);
+    if (req.headers.accept && req.headers.accept.includes('text/html')) {
+      return res.send(`
+        <html>
+          <head>
+            <title>Order Confirmation Failed</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .error-container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f5c6cb; border-radius: 5px; background-color: #f8d7da; }
+              h1 { color: #721c24; }
+              .btn { display: inline-block; padding: 10px 20px; margin-top: 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+            </style>
+          </head>
+          <body>
+            <div class="error-container">
+              <h1>Order Confirmation Failed</h1>
+              <p>Sorry, an error occurred while confirming your order.</p>
+              <p>Please try again later or contact our customer support.</p>
+              <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}" class="btn">Go to Homepage</a>
+            </div>
+          </body>
+        </html>
+      `);
+    }
+    
     return res.status(500).json({
       success: false,
       message: 'Failed to confirm order',
@@ -539,7 +721,7 @@ exports.confirmOrderByCustomer = async (req, res) => {
     const orderId = Math.floor(100000 + Math.random() * 900000).toString();
     
     // Update order status and set order ID
-    order.orderStatus = 'Confirmed';
+    order.orderStatus = 'confirmed'; // Using lowercase to match admin panel status values
     order.orderId = orderId;
     order.confirmationToken = undefined; // Clear token after use
     order.confirmedAt = new Date();
@@ -692,7 +874,7 @@ exports.cancelOrderByCustomer = async (req, res) => {
     const order = await Order.findOne({
       _id: id,
       confirmationToken: token,
-      orderStatus: 'Awaiting Confirmation'
+      orderStatus: 'awaiting confirmation'
     });
     
     if (!order) {
@@ -703,7 +885,7 @@ exports.cancelOrderByCustomer = async (req, res) => {
     }
     
     // Update order status
-    order.orderStatus = 'Cancelled';
+    order.orderStatus = 'cancelled';
     order.cancelReason = cancelReason || 'Cancelled by customer';
     order.confirmationToken = undefined; // Clear token after use
     await order.save();

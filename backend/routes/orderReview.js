@@ -11,6 +11,7 @@ router.post('/:id/cancel-request', protect, orderReviewController.cancelOrderReq
 // Public routes for customer confirmation via email
 router.post('/customer-confirm/:orderId/:token', orderReviewController.confirmOrderByCustomer);
 router.post('/customer-cancel/:orderId/:token', orderReviewController.cancelOrderByCustomer);
+router.get('/confirm/:id/:token', orderReviewController.confirmOrder); // Added GET route for direct link access
 
 // Admin routes
 router.put('/:id/set-shipping', protect, authorize('admin'), orderReviewController.setShippingAndFinalPrice);

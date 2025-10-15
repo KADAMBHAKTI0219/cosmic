@@ -204,6 +204,12 @@ export const productManagementApi = {
           } else {
             formData.append('categoryId', productData[key]);
           }
+        } else if (key === 'subcategoryId') {
+          // Use subcategoryId as categoryId
+          formData.append('categoryId', productData[key]);
+        } else if (key === 'mainCategoryId') {
+          // Skip mainCategoryId as we'll use subcategoryId as categoryId
+          // This prevents sending both which causes confusion
         } else {
           formData.append(key, productData[key]);
         }

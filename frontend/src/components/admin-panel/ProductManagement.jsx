@@ -382,7 +382,13 @@ const ProductManagement = () => {
       // Append all text fields except images, category, offers, and emiOffers
       Object.keys(productData).forEach(key => {
         if (key !== 'images' && key !== 'category' && key !== 'offers' && key !== 'emiOffers') {
-          formData.append(key, productData[key]);
+          // Check if the value is an object and convert it to JSON string
+          if (typeof productData[key] === 'object' && productData[key] !== null) {
+            formData.append(key, JSON.stringify(productData[key]));
+            console.log(`Converting object to JSON for ${key}:`, JSON.stringify(productData[key]));
+          } else {
+            formData.append(key, productData[key]);
+          }
         }
       });
       
@@ -399,11 +405,17 @@ const ProductManagement = () => {
       
       // Append offers and emiOffers as JSON strings
       if (productData.offers && productData.offers.length > 0) {
-        formData.append('offers', JSON.stringify(productData.offers.map(offer => offer._id)));
+        // Make sure we're sending a simple array of IDs, not complex objects
+        const offerIds = productData.offers.map(offer => typeof offer === 'object' ? offer._id : offer);
+        formData.append('offers', JSON.stringify(offerIds));
+        console.log('Offers JSON:', JSON.stringify(offerIds));
       }
       
       if (productData.emiOffers && productData.emiOffers.length > 0) {
-        formData.append('emiOffers', JSON.stringify(productData.emiOffers.map(emi => emi._id)));
+        // Make sure we're sending a simple array of IDs, not complex objects
+        const emiIds = productData.emiOffers.map(emi => typeof emi === 'object' ? emi._id : emi);
+        formData.append('emiOffers', JSON.stringify(emiIds));
+        console.log('EMI Offers JSON:', JSON.stringify(emiIds));
       }
       
       // Append images if exists
@@ -413,7 +425,13 @@ const ProductManagement = () => {
         }
       }
       
-      console.log('Sending product data with categoryId:', productData.subcategoryId || productData.mainCategoryId);
+      // Use subcategoryId as the primary categoryId, fallback to mainCategoryId if needed
+      if (productData.subcategoryId) {
+        formData.delete('mainCategoryId'); // Remove mainCategoryId to avoid confusion
+        console.log('Sending product data with categoryId (from subcategory):', productData.subcategoryId);
+      } else if (productData.mainCategoryId) {
+        console.log('Sending product data with categoryId (from main category):', productData.mainCategoryId);
+      }
       
       const result = await productManagementApi.createProduct(formData);
       console.log('Product creation result:', result);
@@ -511,7 +529,12 @@ const ProductManagement = () => {
       // Add all product data except images, _id, id, category, and categoryId
       for (const key in editProduct) {
         if (key !== 'images' && key !== '_id' && key !== 'id' && key !== 'category' && key !== 'categoryId') {
-          formData.append(key, editProduct[key]);
+          // Handle objects and arrays by stringifying them
+          if (typeof editProduct[key] === 'object' && editProduct[key] !== null) {
+            formData.append(key, JSON.stringify(editProduct[key]));
+          } else {
+            formData.append(key, editProduct[key]);
+          }
         }
       }
       
@@ -1292,9 +1315,9 @@ const ProductManagement = () => {
                           />
                         </div>
                         <div className="mb-2">
-                          <label className="block text-gray-600 text-xs mb-1">Icon (CSS class or name)</label>
+                          <label className="block text-gray-600 text-xs mb-1">Icon URL (must be a valid URL)</label>
                           <input
-                            type="text"
+                            type="url"
                             className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
                             value={application.icon}
                             onChange={(e) => {
@@ -1302,7 +1325,7 @@ const ProductManagement = () => {
                               updatedApplications[index] = {...updatedApplications[index], icon: e.target.value};
                               setNewProduct({...newProduct, applications: updatedApplications});
                             }}
-                            placeholder="fa-home, fa-building, etc."
+                            placeholder="https://example.com/icon.png"
                           />
                         </div>
                         <div className="flex justify-end">
@@ -1372,10 +1395,9 @@ const ProductManagement = () => {
                         >
                           <option value="">Select Type</option>
                           <option value="Manufacturer Warranty">Manufacturer Warranty</option>
-                          <option value="Extended Warranty">Extended Warranty</option>
-                          <option value="Limited Warranty">Limited Warranty</option>
-                          <option value="Full Warranty">Full Warranty</option>
-                          <option value="Replacement Warranty">Replacement Warranty</option>
+                          <option value="Seller Warranty">Seller Warranty</option>
+                          <option value="Brand Warranty">Brand Warranty</option>
+                          <option value="No Warranty">No Warranty</option>
                         </select>
                       </div>
                     </div>
@@ -2143,14 +2165,30 @@ const ProductManagement = () => {
                       <label className="block text-gray-700 text-sm font-bold mb-2">Kit Components</label>
                       <textarea
                         className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
-                        value={newProduct.installation?.kitComponents ? newProduct.installation.kitComponents.join(', ') : ''}
-                        onChange={(e) => setNewProduct({
-                          ...newProduct, 
-                          installation: {
-                            ...(newProduct.installation || {}),
-                            kitComponents: e.target.value.split(',').map(item => item.trim()).filter(item => item)
-                          }
-                        })}
+                        value={newProduct.installation?.kitComponents ? 
+                          (Array.isArray(newProduct.installation.kitComponents) ? 
+                            newProduct.installation.kitComponents.map(item => 
+                              typeof item === 'object' ? item.name + ' (Qty: ' + item.quantity + ')' : item
+                            ).join(', ') : 
+                            ''
+                          ) : ''}
+                        onChange={(e) => {
+                          // Convert comma-separated text to array of objects with name and quantity
+                          const components = e.target.value.split(',').map(item => item.trim()).filter(item => item)
+                            .map(item => ({
+                              name: item,
+                              quantity: 1,
+                              spec: ''
+                            }));
+                          
+                          setNewProduct({
+                            ...newProduct, 
+                            installation: {
+                              ...(newProduct.installation || {}),
+                              kitComponents: components
+                            }
+                          });
+                        }}
                         rows="3"
                         placeholder="Enter kit components, separated by commas"
                       />
@@ -2239,10 +2277,357 @@ const ProductManagement = () => {
               </button>
             </div>
             
-            {/* Edit form content would go here - similar to Add Modal but using editProduct state */}
-            <div className="text-center py-8">
-              <p className="text-gray-600">Edit form implementation would be similar to Add Product form</p>
-              <p className="text-gray-500 text-sm mt-2">Using editProduct state instead of newProduct</p>
+            {/* Edit form content */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-gray-700">Basic Information</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">Product Name</label>
+                    <input
+                      type="text"
+                      className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
+                      value={editProduct.name || ''}
+                      onChange={(e) => setEditProduct({...editProduct, name: e.target.value})}
+                      placeholder="Enter product name"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">Main Category</label>
+                    <select
+                      className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
+                      value={editProduct.mainCategoryId || ''}
+                      onChange={(e) => {
+                        const mainCatId = e.target.value;
+                        setEditProduct({...editProduct, mainCategoryId: mainCatId, subcategoryId: ''});
+                        if (mainCatId) {
+                          fetchSubcategories(mainCatId);
+                        }
+                      }}
+                    >
+                      <option value="">Select Main Category</option>
+                      {mainCategories.map((category) => (
+                        <option key={category._id || category.id} value={category._id || category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">Subcategory</label>
+                    <select
+                      className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
+                      value={editProduct.subcategoryId || ''}
+                      onChange={(e) => setEditProduct({...editProduct, subcategoryId: e.target.value})}
+                      disabled={!subcategories.length}
+                    >
+                      <option value="">Select Subcategory</option>
+                      {subcategories.map((category) => (
+                        <option key={category._id || category.id} value={category._id || category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">Description</label>
+                    <textarea
+                      className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
+                      value={editProduct.description || ''}
+                      onChange={(e) => setEditProduct({...editProduct, description: e.target.value})}
+                      placeholder="Enter product description"
+                      rows="4"
+                    ></textarea>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">Features</label>
+                    <textarea
+                      className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
+                      value={editProduct.features || ''}
+                      onChange={(e) => setEditProduct({...editProduct, features: e.target.value})}
+                      placeholder="Enter product features"
+                      rows="4"
+                    ></textarea>
+                  </div>
+                </div>
+                
+                <h3 className="text-lg font-semibold mb-4 mt-8 text-gray-700">Pricing & Inventory</h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-700 text-sm font-bold mb-2">Price (₹)</label>
+                      <input
+                        type="number"
+                        className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
+                        value={editProduct.price || ''}
+                        onChange={(e) => setEditProduct({...editProduct, price: e.target.value})}
+                        placeholder="Enter price"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-gray-700 text-sm font-bold mb-2">Old Price (₹)</label>
+                      <input
+                        type="number"
+                        className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
+                        value={editProduct.oldPrice || ''}
+                        onChange={(e) => setEditProduct({...editProduct, oldPrice: e.target.value})}
+                        placeholder="Enter old price"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-700 text-sm font-bold mb-2">MRP (₹)</label>
+                      <input
+                        type="number"
+                        className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
+                        value={editProduct.mrp || ''}
+                        onChange={(e) => setEditProduct({...editProduct, mrp: e.target.value})}
+                        placeholder="Enter MRP"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-gray-700 text-sm font-bold mb-2">Stock</label>
+                      <input
+                        type="number"
+                        className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
+                        value={editProduct.stock || ''}
+                        onChange={(e) => setEditProduct({...editProduct, stock: e.target.value})}
+                        placeholder="Enter stock quantity"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">SKU</label>
+                    <input
+                      type="text"
+                      className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
+                      value={editProduct.sku || ''}
+                      onChange={(e) => setEditProduct({...editProduct, sku: e.target.value})}
+                      placeholder="Enter SKU"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">Status</label>
+                    <select
+                      className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
+                      value={editProduct.status || 'Active'}
+                      onChange={(e) => setEditProduct({...editProduct, status: e.target.value})}
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-gray-700">Images</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">Product Images</label>
+                    <div className="flex flex-wrap gap-4 mb-4">
+                      {editProduct.images && Array.isArray(editProduct.images) && editProduct.images.map((image, index) => (
+                        <div key={index} className="relative">
+                          <img 
+                            src={typeof image === 'string' ? image : URL.createObjectURL(image)} 
+                            alt={`Product ${index + 1}`} 
+                            className="w-24 h-24 object-cover rounded-md border border-gray-300" 
+                          />
+                          <button 
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                            onClick={() => {
+                              const newImages = [...editProduct.images];
+                              newImages.splice(index, 1);
+                              setEditProduct({...editProduct, images: newImages});
+                            }}
+                          >
+                            <FaTimes size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
+                      onChange={(e) => {
+                        const newImages = [...(editProduct.images || [])];
+                        for (let i = 0; i < e.target.files.length; i++) {
+                          newImages.push(e.target.files[i]);
+                        }
+                        setEditProduct({...editProduct, images: newImages});
+                      }}
+                    />
+                  </div>
+                </div>
+                
+                <h3 className="text-lg font-semibold mb-4 mt-8 text-gray-700">Product Applications</h3>
+                <div className="space-y-4">
+                  {editProduct.applications && editProduct.applications.map((app, index) => (
+                    <div key={index} className="border border-gray-200 p-4 rounded-lg">
+                      <div className="flex justify-between mb-2">
+                        <h4 className="font-medium">Application #{index + 1}</h4>
+                        <button 
+                          className="text-red-500"
+                          onClick={() => {
+                            const newApplications = [...editProduct.applications];
+                            newApplications.splice(index, 1);
+                            setEditProduct({...editProduct, applications: newApplications});
+                          }}
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-gray-700 text-xs font-bold mb-1">Application Name</label>
+                          <input
+                            type="text"
+                            className="border border-gray-300 rounded-lg w-full py-1 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent"
+                            value={app.name || ''}
+                            onChange={(e) => {
+                              const newApplications = [...editProduct.applications];
+                              newApplications[index] = {...newApplications[index], name: e.target.value};
+                              setEditProduct({...editProduct, applications: newApplications});
+                            }}
+                            placeholder="e.g., Residential, Commercial"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-700 text-xs font-bold mb-1">Icon (URL)</label>
+                          <input
+                            type="url"
+                            className="border border-gray-300 rounded-lg w-full py-1 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent"
+                            value={app.icon || ''}
+                            onChange={(e) => {
+                              const newApplications = [...editProduct.applications];
+                              newApplications[index] = {...newApplications[index], icon: e.target.value};
+                              setEditProduct({...editProduct, applications: newApplications});
+                            }}
+                            placeholder="Enter a valid URL for the icon"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <button 
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm flex items-center"
+                    onClick={() => {
+                      const newApplications = [...(editProduct.applications || []), { name: '', icon: '' }];
+                      setEditProduct({...editProduct, applications: newApplications});
+                    }}
+                  >
+                    <FaPlus className="mr-2" /> Add Application
+                  </button>
+                </div>
+                
+                <h3 className="text-lg font-semibold mb-4 mt-8 text-gray-700">Warranty Details</h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-700 text-sm font-bold mb-2">Warranty Type</label>
+                      <select
+                        className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
+                        value={editProduct.warrantyDetails?.warrantyType || ''}
+                        onChange={(e) => setEditProduct({
+                          ...editProduct, 
+                          warrantyDetails: {
+                            ...(editProduct.warrantyDetails || {}),
+                            warrantyType: e.target.value
+                          }
+                        })}
+                      >
+                        <option value="">Select Warranty Type</option>
+                        <option value="Seller Warranty">Seller Warranty</option>
+                        <option value="Brand Warranty">Brand Warranty</option>
+                        <option value="No Warranty">No Warranty</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-gray-700 text-sm font-bold mb-2">Warranty Duration</label>
+                      <input
+                        type="text"
+                        className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
+                        value={editProduct.warrantyDetails?.warrantyDuration || ''}
+                        onChange={(e) => setEditProduct({
+                          ...editProduct, 
+                          warrantyDetails: {
+                            ...(editProduct.warrantyDetails || {}),
+                            warrantyDuration: e.target.value
+                          }
+                        })}
+                        placeholder="e.g., 5 years"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <h3 className="text-lg font-semibold mb-4 mt-8 text-gray-700">Installation Information</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">Kit Components (one per line)</label>
+                    <textarea
+                      className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
+                      value={editProduct.installation?.kitComponents ? 
+                        (Array.isArray(editProduct.installation.kitComponents) ? 
+                          editProduct.installation.kitComponents.map(comp => 
+                            typeof comp === 'object' ? comp.name : comp
+                          ).join('\n') : 
+                          editProduct.installation.kitComponents) : 
+                        ''}
+                      onChange={(e) => {
+                        const kitComponentsArray = e.target.value.split('\n')
+                          .map(item => item.trim())
+                          .filter(item => item)
+                          .map(item => ({
+                            name: item,
+                            quantity: "1",
+                            spec: "Standard"
+                          }));
+                        
+                        setEditProduct({
+                          ...editProduct,
+                          installation: {
+                            ...(editProduct.installation || {}),
+                            kitComponents: kitComponentsArray
+                          }
+                        });
+                      }}
+                      placeholder="Enter kit components, one per line"
+                      rows="4"
+                    ></textarea>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">Installation Time</label>
+                    <input
+                      type="text"
+                      className="border border-gray-300 rounded-lg w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b] focus:border-transparent shadow-sm"
+                      value={editProduct.installation?.installationTime || ''}
+                      onChange={(e) => setEditProduct({
+                        ...editProduct, 
+                        installation: {
+                          ...(editProduct.installation || {}),
+                          installationTime: e.target.value
+                        }
+                      })}
+                      placeholder="e.g., 2-3 hours"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
             
             <div className="flex justify-end mt-8 pt-4 border-t border-gray-200">

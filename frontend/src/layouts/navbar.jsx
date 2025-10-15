@@ -41,10 +41,16 @@ const Navbar = () => {
   useEffect(() => {
     const fetchCartCount = async () => {
       try {
-        const response = await cartApi.getCart();
-        if (response.data.success) {
-          const items = response.data.data.items || [];
-          setCartItemsCount(items.length);
+        // Only fetch cart if user is logged in (token exists)
+        const token = localStorage.getItem('token');
+        if (token) {
+          const response = await cartApi.getCart();
+          if (response.data.success) {
+            const items = response.data.data.items || [];
+            setCartItemsCount(items.length);
+          }
+        } else {
+          setCartItemsCount(0);
         }
       } catch (error) {
         console.error('Error fetching cart count:', error);

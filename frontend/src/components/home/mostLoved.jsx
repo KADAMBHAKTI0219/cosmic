@@ -192,7 +192,7 @@ const MostLoved = () => {
               spaceBetween={20}
               slidesPerView={1}
               centeredSlides={false}
-              loop={true}
+              loop={false}
               autoplay={{
                 delay: 3000,
                 disableOnInteraction: false,
@@ -205,6 +205,7 @@ const MostLoved = () => {
               pagination={{
                 clickable: true,
                 dynamicBullets: true,
+
                 el: '.swiper-pagination'
               }}
               breakpoints={{

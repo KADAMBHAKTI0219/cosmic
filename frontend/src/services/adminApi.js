@@ -7,9 +7,11 @@ const API = axios.create({
 
 // Add token to requests if available
 API.interceptors.request.use((config) => {
-  const token = localStorage.getItem('adminToken');
+  const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+    // Add custom header to identify admin requests
+    config.headers['X-Admin-Request'] = 'true';
   }
   return config;
 });
@@ -19,10 +21,10 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // If unauthorized, clear admin token
-      localStorage.removeItem('adminToken');
+      // If unauthorized, clear token
+      localStorage.removeItem('token');
       // Redirect to login page if needed
-      window.location.href = '/admin/login';
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
@@ -204,7 +206,18 @@ export const productManagementApi = {
           } else {
             formData.append('categoryId', productData[key]);
           }
-        } else {
+        } 
+        // Convert objects to JSON strings
+        else if (typeof productData[key] === 'object' && productData[key] !== null) {
+          // Arrays should be handled differently than objects
+          if (Array.isArray(productData[key])) {
+            formData.append(key, JSON.stringify(productData[key]));
+          } else {
+            // For objects like customOffers, applications, technical, etc.
+            formData.append(key, JSON.stringify(productData[key]));
+          }
+        } 
+        else {
           formData.append(key, productData[key]);
         }
       }

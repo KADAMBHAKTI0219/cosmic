@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ordersApi } from '../../services/api';
 import { orderManagementApi } from '../../services/adminApi';
+import axios from 'axios';
 import { FaSpinner, FaSave, FaArrowLeft, FaUser, FaMapMarkerAlt, FaShoppingCart, FaTruck, FaPhone, FaEnvelope, FaMoneyBillWave, FaShippingFast, FaFileInvoiceDollar, FaClipboardCheck } from 'react-icons/fa';
 import './OrderReviewPage.css';
 
@@ -19,32 +20,110 @@ const OrderReviewPage = () => {
   // Force re-render to fix styling issues
   const [forceUpdate, setForceUpdate] = useState(0);
 
+  // Check if user is authenticated and is an admin
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const adminToken = localStorage.getItem('adminToken'); // Check for admin token first
+    const userRole = localStorage.getItem('userRole');
+    
+    // First check for admin token, which is the preferred auth method for admin pages
+    if (adminToken) {
+      // Admin token exists, proceed with page load
+      return;
+    }
+    
+    // Fallback to regular token + role check
+    if (!token) {
+      setError('You must be logged in to view this page');
+      setLoading(false);
+      // Redirect to admin login page after 2 seconds
+      setTimeout(() => {
+        navigate('/admin/login?redirect=' + encodeURIComponent(window.location.pathname));
+      }, 2000);
+      return;
+    }
+    
+    // Check if user is an admin
+    if (userRole !== 'admin') {
+      setError('You are not authorized to access this page. Admin privileges required.');
+      setLoading(false);
+      // Redirect to admin login page after 2 seconds
+      setTimeout(() => {
+        navigate('/admin/login');
+      }, 2000);
+      return;
+    }
+  }, [navigate]);
+
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        console.log('Fetching order with ID:', id);
-        const response = await ordersApi.getOrderById(id);
-        console.log('Order data received:', response.data);
+        // First try with adminToken, then fallback to regular token
+        const adminToken = localStorage.getItem('adminToken');
+        const token = localStorage.getItem('token');
+        const userRole = localStorage.getItem('userRole');
         
-        if (response.data && response.data.data) {
-          setOrder(response.data.data);
-          console.log('Order set in state:', response.data.data);
+        // Determine which token to use
+        const authToken = adminToken || token;
+        
+        if (!authToken) {
+          setError('Authentication required. Please log in.');
+          setLoading(false);
+          return;
+        }
+        
+        // If using regular token, verify admin role
+        if (!adminToken && userRole !== 'admin') {
+          setError('Admin privileges required to view order details.');
+          setLoading(false);
+          return;
+        }
+
+        console.log('Fetching order with ID:', id);
+        // Make direct API call with token
+        const API_URL = import.meta.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+        const response = await axios.get(`${API_URL}/admin/orders/${id}`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            'X-Admin-Request': 'true' // Add admin request header
+          }
+        });
+        
+        if (response.data) {
+          console.log('Order data received:', response.data);
+          // Handle both response formats - direct data or nested in data property
+          const orderData = response.data.data || response.data;
+          setOrder(orderData);
           
           // Initialize shipping charges if it exists
-          if (response.data.data.shippingCharges) {
-            setShippingCharges(response.data.data.shippingCharges);
+          if (orderData.shippingCharges) {
+            setShippingCharges(orderData.shippingCharges);
           }
           
           // Initialize admin notes if they exist
-          if (response.data.data.adminNotes) {
-            setAdminNotes(response.data.data.adminNotes);
+          if (orderData.adminNotes) {
+            setAdminNotes(orderData.adminNotes);
           }
         } else {
           console.error('Invalid response format:', response);
-          setError('Invalid response format from server. Please try again.');
+          setError('Invalid order data received');
         }
       } catch (err) {
-        setError('Failed to load order details. Please try again later.');
+        // Handle authentication errors specifically
+        if (err.response && err.response.status === 401) {
+          setError('You are not authorized to view this order. Please log in with the correct account.');
+          
+          // Redirect to login page after 2 seconds
+          setTimeout(() => {
+            navigate('/login?redirect=' + encodeURIComponent(window.location.pathname));
+          }, 2000);
+        } else if (err.response && err.response.status === 500) {
+          setError('Server error. Please try again later.');
+          console.log('Server error details:', err.response.data);
+        } else {
+          setError('Failed to load order details. Please try again later.');
+        }
+        
         console.error('Error fetching order:', err);
         
         // Log detailed error information
@@ -64,7 +143,7 @@ const OrderReviewPage = () => {
     };
 
     fetchOrder();
-  }, [id]);
+  }, [id, navigate]);
 
   const calculateSubtotal = () => {
     if (!order?.items || order.items.length === 0) return 0;
@@ -82,14 +161,36 @@ const OrderReviewPage = () => {
     setSubmitting(true);
     
     try {
+      // First try with adminToken, then fallback to regular token
+      const adminToken = localStorage.getItem('adminToken');
+      const token = localStorage.getItem('token');
+      const userRole = localStorage.getItem('userRole');
+      
+      // Determine which token to use
+      const authToken = adminToken || token;
+      
+      // If using regular token, verify admin role
+      if (!adminToken && userRole !== 'admin') {
+        setError('Admin privileges required to update order.');
+        setSubmitting(false);
+        return;
+      }
+      
       // Calculate final price
       const finalPrice = calculateFinalPrice();
       
-      // Send shipping charges, final price and admin notes to backend
-      await orderManagementApi.setShippingAndFinalPrice(id, {
+      // Send shipping charges, final price and admin notes to backend using direct API call
+      const API_URL = import.meta.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+      
+      await axios.put(`${API_URL}/orders/${id}/shipping-price`, {
         shippingCharges: Number(shippingCharges),
         finalPrice: finalPrice,
         adminNotes: adminNotes
+      }, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'X-Admin-Request': 'true' // Add admin request header
+        }
       });
       
       setSuccess(true);

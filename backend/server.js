@@ -19,7 +19,7 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 app.use(cors({
-  origin: [process.env.CLIENT_URL || 'http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174'],
+  origin: [process.env.CLIENT_URL || 'http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174', 'https://cosmic-1-git-main-kadam-bhaktis-projects.vercel.app', 'https://cosmic-1.vercel.app'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'HEAD'],
   exposedHeaders: ['Content-Length', 'Content-Type']

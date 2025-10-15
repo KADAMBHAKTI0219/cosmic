@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base URL
 const API = axios.create({
-  baseURL: import.meta.env.NEXT_PUBLIC_API_URL || "https://cosmic-backend.vercel.app/api",
+  baseURL: import.meta.env.NEXT_PUBLIC_API_URL || "https://cosmic-1.onrender.com/api",
 });
 
 // Add token to requests if available

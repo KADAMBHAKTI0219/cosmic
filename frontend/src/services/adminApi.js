@@ -206,7 +206,6 @@ export const productManagementApi = {
           } else {
             formData.append('categoryId', productData[key]);
           }
-<<<<<<< HEAD
         } 
         // Convert objects to JSON strings
         else if (typeof productData[key] === 'object' && productData[key] !== null) {
@@ -219,15 +218,6 @@ export const productManagementApi = {
           }
         } 
         else {
-=======
-        } else if (key === 'subcategoryId') {
-          // Use subcategoryId as categoryId
-          formData.append('categoryId', productData[key]);
-        } else if (key === 'mainCategoryId') {
-          // Skip mainCategoryId as we'll use subcategoryId as categoryId
-          // This prevents sending both which causes confusion
-        } else {
->>>>>>> 7d19493ae2acd97900d1923381ddf37b3ddeac3b
           formData.append(key, productData[key]);
         }
       }
@@ -346,16 +336,16 @@ export const inventoryManagementApi = {
 export const reportsApi = {
   getSalesReport: (filters = {}) => {
     const { startDate, endDate, groupBy } = filters;
-    return API.get('/reports/ordersReports', { params: { startDate, endDate, period: groupBy } });
+    return API.get('/admin/reports/sales', { params: { startDate, endDate, groupBy } });
   },
-  getInventoryReport: () => API.get('/reports/inventoryReports'),
+  getInventoryReport: () => API.get('/admin/reports/inventory'),
   getCustomerReport: (filters = {}) => {
     const { startDate, endDate } = filters;
-    return API.get('/reports/customersReports', { params: { startDate, endDate } });
+    return API.get('/admin/reports/customers', { params: { startDate, endDate } });
   },
   getProductPerformance: (filters = {}) => {
     const { startDate, endDate, limit } = filters;
-    return API.get('/reports/ordersReports', { params: { startDate, endDate, limit } });
+    return API.get('/admin/reports/products/performance', { params: { startDate, endDate, limit } });
   },
 };
 

@@ -1,7 +1,8 @@
 const Order = require('../../models/orders/order');
 const Cart = require('../../models/cart/cart');
 const Product = require('../../models/products/product');
-const { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } = require('../../utils/emailSender');
+const User = require('../../models/auth/auth');
+const { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail, sendAdminOrderNotification } = require('../../utils/emailSender');
 
 /**
  * Place a new order

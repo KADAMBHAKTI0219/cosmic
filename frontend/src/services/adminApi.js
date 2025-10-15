@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base URL
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
 });
 
 // Add token to requests if available
@@ -31,6 +31,22 @@ API.interceptors.response.use(
 // Dashboard API
 export const dashboardApi = {
   getDashboardStats: () => API.get('/admin/stats'),
+};
+
+// Coupon Management API
+export const couponManagementApi = {
+  getAllCoupons: (page = 1, limit = 20, filters = {}) => {
+    const { status, search, sortBy, sortOrder } = filters;
+    return API.get('/coupons', { 
+      params: { page, limit, status, search, sortBy, sortOrder } 
+    });
+  },
+  getCouponById: (id) => API.get(`/coupons/${id}`),
+  createCoupon: (couponData) => API.post('/coupons', couponData),
+  updateCoupon: (id, couponData) => API.put(`/coupons/${id}`, couponData),
+  deleteCoupon: (id) => API.delete(`/coupons/${id}`),
+  generateAndSendCoupon: (couponId, userIds) => API.post('/coupons/generate-for-users', { couponId, userIds }),
+  getCouponStats: () => API.get('/coupons/stats'),
 };
 
 // Offer Management API
@@ -69,8 +85,20 @@ export const userManagementApi = {
 // Category Management API
 export const categoryManagementApi = {
   getAllCategories: (page = 1, limit = 10, filters = {}) => {
-    const { status, search, sortBy, sortOrder } = filters;
+    const { status, search, sortBy, sortOrder, mainOnly, parent } = filters;
     return API.get('/admin/categories', { 
+      params: { page, limit, status, search, sortBy, sortOrder, mainOnly, parent } 
+    });
+  },
+  getMainCategories: (page = 1, limit = 10, filters = {}) => {
+    const { status, search, sortBy, sortOrder } = filters;
+    return API.get('/admin/main-categories', { 
+      params: { page, limit, status, search, sortBy, sortOrder } 
+    });
+  },
+  getSubcategories: (parentId, page = 1, limit = 10, filters = {}) => {
+    const { status, search, sortBy, sortOrder } = filters;
+    return API.get(`/admin/subcategories/${parentId}`, { 
       params: { page, limit, status, search, sortBy, sortOrder } 
     });
   },
@@ -142,6 +170,11 @@ export const productManagementApi = {
     });
   },
   getProductById: (id) => API.get(`/admin/products/${id}`),
+  getProductDetails: (id) => API.get(`/admin/products/${id}/details`),
+  getRelatedProducts: (id) => API.get(`/admin/products/${id}/related`),
+  getRatingSummary: (id) => API.get(`/admin/products/${id}/rating-summary`),
+  getProductsByTag: (tag) => API.get(`/admin/products/tags/${tag}`),
+  getProductApplications: () => API.get('/admin/products/applications'),
   createProduct: (productData) => {
     console.log('Creating product with data:', productData);
     
@@ -161,7 +194,8 @@ export const productManagementApi = {
     
     // Append text fields
     Object.keys(productData).forEach(key => {
-      if (key !== 'images' && key !== 'features') {
+      if (key !== 'images' && key !== 'features' && key !== 'techSpecs' && 
+          key !== 'kitComponents' && key !== 'installation' && key !== 'legal') {
         // Make sure we're using categoryId, not category
         if (key === 'category') {
           // If category is an object with id property, use that
@@ -233,8 +267,19 @@ export const productManagementApi = {
   deleteProduct: (id) => API.delete(`/admin/products/${id}`),
   updateStock: (id, stockData) => API.put(`/admin/products/${id}/stock`, stockData),
   toggleFeaturedStatus: (id, featured) => API.put(`/admin/products/${id}/featured`, { featured }),
+  toggleActiveStatus: (id, status) => API.put(`/admin/products/${id}/status`, { status }),
   getProductStats: () => API.get('/admin/product-stats'),
   exportProducts: () => API.get('/admin/products-export', { responseType: 'blob' }),
+  uploadDocumentation: (id, file, documentType) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return API.post(`/admin/products/${id}/documentation?documentType=${documentType}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  downloadDocumentation: (id, documentType) => {
+    window.open(`${API.defaults.baseURL}/admin/products/${id}/documentation?documentType=${documentType}`, '_blank');
+  },
 };
 
 // Order Management API
@@ -249,6 +294,8 @@ export const orderManagementApi = {
   updateOrderStatus: (id, orderStatus) => API.put(`/admin/orders/${id}/status`, { orderStatus }),
   getOrderStats: () => API.get('/admin/orders/stats'),
   exportOrders: () => API.get('/admin/orders/export', { responseType: 'blob' }),
+  setShippingAndFinalPrice: (id, data) => API.put(`/order-review/${id}/set-shipping`, data),
+  deleteOrder: (id) => API.delete(`/admin/orders/${id}`),
 };
 
 
@@ -268,22 +315,8 @@ export const inventoryManagementApi = {
   getLowStockAlerts: () => API.get('/inventory/admin/low-stock')
 };
 
-// Coupon Management API
-export const couponManagementApi = {
-  getAllCoupons: (page = 1, limit = 10, filters = {}) => {
-    const { status, search, sortBy, sortOrder } = filters;
-    return API.get('/admin/coupons', { 
-      params: { page, limit, status, search, sortBy, sortOrder } 
-    });
-  },
-  getCouponById: (id) => API.get(`/admin/coupons/${id}`),
-  createCoupon: (couponData) => API.post('/admin/coupons', couponData),
-  updateCoupon: (id, couponData) => API.put(`/admin/coupons/${id}`, couponData),
-  deleteCoupon: (id) => API.delete(`/admin/coupons/${id}`),
-  validateCoupon: (code, orderAmount) => API.post('/admin/coupons/validate', { code, orderAmount }),
-  applyCoupon: (code) => API.post('/admin/coupons/apply', { code }),
-  getCouponStats: () => API.get('/admin/coupons/stats'),
-};
+// Coupon Management API - Removing duplicate definition
+// This section is already defined earlier in the file
 
 
 // Reports API

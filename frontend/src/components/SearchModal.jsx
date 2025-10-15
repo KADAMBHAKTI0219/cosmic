@@ -84,7 +84,6 @@ const SearchModal = ({ isOpen, onClose }) => {
           price: `₹${product.price?.toLocaleString('en-IN') || '0'}`
         }));
         
-        console.log('Formatted Products:', formattedProducts); // Debug log
         setFilteredProducts(formattedProducts);
       } else {
         console.log('No products found in API response, using fallback'); // Debug log

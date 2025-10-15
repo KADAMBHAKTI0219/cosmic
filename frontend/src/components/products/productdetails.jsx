@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { 
   FaStar, 
   FaStarHalfAlt, 
@@ -24,12 +24,15 @@ import {
   FaTimes,
   FaCreditCard,
   FaMoneyBillWave,
-  FaChevronRight
+  FaChevronRight,
+  FaTag
 } from 'react-icons/fa';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
+import { productsApi, cartApi, wishlistApi, reviewApi } from '../../services/api';
+import { toast } from 'react-toastify';
 
 // Add custom CSS for no scrollbar
 const noScrollbarStyle = `
@@ -43,7 +46,15 @@ const noScrollbarStyle = `
 `;
 
 const ProductDetails = () => {
-  const [mainImage, setMainImage] = useState('/images/solar-panel-main.jpg');
+  const { id } = useParams();
+  const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [recommendedProducts, setRecommendedProducts] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [ratingDistribution, setRatingDistribution] = useState([]);
+  
+  const [mainImage, setMainImage] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -54,131 +65,51 @@ const ProductDetails = () => {
   const [selectedEmiOffer, setSelectedEmiOffer] = useState(null);
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
+  const [reviewText, setReviewText] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
-  // Mock product data
-  const product = {
-    id: 'SP-10W',
-    name: 'Solar Panel 10W 12V Monocrystalline',
-    price: 1299.00,
-    discountPrice: 999.00,
-    rating: 4.5,
-    reviewCount: 245,
-    stock: 50,
-    images: [
-      '/images/solar-panel-1.jpg',
-      '/images/solar-panel-2.jpg',
-      '/images/solar-panel-3.jpg',
-      '/images/solar-panel-4.jpg',
-      '/images/solar-panel-5.jpg',
-    ],
-    description: 'High efficiency monocrystalline solar panel with 10W power output. Perfect for small-scale solar projects, camping, RVs, and more.',
-    features: [
-      'High conversion efficiency: 21%',
-      'Maximum power: 10W',
-      'Operating voltage: 12V',
-      'Weatherproof and durable design',
-      'Anti-reflective, high transparency glass',
-      'Pre-drilled holes for easy mounting',
-      'Corrosion-resistant aluminum frame'
-    ],
-    specifications: {
-      'Maximum Power': '10W',
-      'Cell Type': 'Monocrystalline',
-      'Voltage': '12V',
-      'Dimensions': '34 x 28 x 3 cm',
-      'Weight': '1.2 kg',
-      'Efficiency': '21%',
-      'Warranty': '25 years'
-    },
-    applications: [
-      { name: 'Solar System', icon: <FaSolarPanel /> },
-      { name: 'Home', icon: <FaHome /> },
-      { name: 'Industrial', icon: <FaIndustry /> },
-      { name: 'Commercial', icon: <FaBuilding /> },
-      { name: 'Outdoor', icon: <FaLeaf /> }
-    ],
-    relatedProducts: [
-      {
-        id: 'SP-20W',
-        name: 'Solar Panel 20W 12V Monocrystalline',
-        price: 1899.00,
-        discountPrice: 1499.00,
-        image: '/images/related-1.jpg',
-        rating: 4.7,
-        reviewCount: 189,
-        isNew: true,
-        discount: 21
-      },
-      {
-        id: 'SP-30W',
-        name: 'Solar Panel 30W 12V Monocrystalline',
-        price: 2499.00,
-        discountPrice: 1999.00,
-        image: '/images/related-2.jpg',
-        rating: 4.8,
-        reviewCount: 156,
-        isNew: false,
-        discount: 20
-      },
-      {
-        id: 'SP-50W',
-        name: 'Solar Panel 50W 12V Monocrystalline',
-        price: 3999.00,
-        discountPrice: 3499.00,
-        image: '/images/related-3.jpg',
-        rating: 4.9,
-        reviewCount: 210,
-        isNew: true,
-        discount: 13
+  // Fetch product data
+  useEffect(() => {
+    const fetchProductData = async () => {
+      try {
+        setLoading(true);
+        
+        // Get product details
+        const productResponse = await productsApi.getProductDetails(id);
+        const productData = productResponse.data.data;
+        console.log(productData)
+        setProduct(productData);
+        
+        if (productData.images && productData.images.length > 0) {
+          setMainImage(productData.images[0]);
+        }
+        
+        // Get related products
+        const relatedResponse = await productsApi.getRelatedProducts(id);
+        setRelatedProducts(relatedResponse.data.data);
+        
+        // Get rating summary
+        const ratingResponse = await productsApi.getRatingSummary(id);
+        const ratingData = ratingResponse.data.data;
+        
+        if (ratingData) {
+          setReviews(ratingData.reviews || []);
+          setRatingDistribution(ratingData.ratingDistribution || []);
+          setRecommendedProducts(ratingData.recommendedProducts || []);
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching product data:', error);
+        toast.error('Failed to load product details');
+        setLoading(false);
       }
-    ],
-    recommended: [
-      {
-        id: 'SP-100W',
-        name: 'Solar Panel 100W 12V Monocrystalline',
-        price: 6999.00,
-        discountPrice: 5999.00,
-        image: '/images/recommended-1.jpg',
-        rating: 4.9,
-        reviewCount: 320,
-        isNew: false,
-        discount: 14
-      },
-      {
-        id: 'INV-500W',
-        name: 'Solar Inverter 500W Pure Sine Wave',
-        price: 4999.00,
-        discountPrice: 3999.00,
-        image: '/images/recommended-2.jpg',
-        rating: 4.7,
-        reviewCount: 178,
-        isNew: true,
-        discount: 20
-      },
-      {
-        id: 'BAT-100AH',
-        name: 'Solar Battery 100AH Deep Cycle',
-        price: 8999.00,
-        discountPrice: 7999.00,
-        image: '/images/recommended-3.jpg',
-        rating: 4.8,
-        reviewCount: 145,
-        isNew: false,
-        discount: 11
-      },
-      {
-        id: 'CTRL-30A',
-        name: 'Solar Charge Controller 30A PWM',
-        price: 1999.00,
-        discountPrice: 1499.00,
-        image: '/images/recommended-4.jpg',
-        rating: 4.6,
-        reviewCount: 210,
-        isNew: true,
-        discount: 25
-      }
-    ]
-  };
+    };
+    
+    if (id) {
+      fetchProductData();
+    }
+  }, [id]);
 
   const handleQuantityChange = (e) => {
     setQuantity(parseInt(e.target.value));
@@ -190,6 +121,91 @@ const ProductDetails = () => {
 
   const handleTabClick = (tab) => {
     setActiveTab(tab);
+  };
+  
+  const handleAddToCart = async () => {
+    try {
+      if (!product) return;
+      
+      const response = await cartApi.addToCart({
+        productId: product._id,
+        quantity: quantity
+      });
+      
+      if (response.data.success) {
+        toast.success('Product added to cart successfully');
+      } else {
+        toast.error(response.data.message || 'Failed to add product to cart');
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      if (error.response && error.response.status === 401) {
+        toast.error('Please login to add items to cart');
+      } else if (error.response && error.response.data && error.response.data.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Failed to add product to cart');
+      }
+    }
+  };
+  
+  const handleAddToWishlist = async () => {
+    try {
+      if (!product) return;
+      
+      const response = await wishlistApi.addToWishlist(product._id);
+      
+      if (response.data.success) {
+        toast.success('Product added to wishlist');
+      } else {
+        toast.error(response.data.message || 'Failed to add product to wishlist');
+      }
+    } catch (error) {
+      console.error('Error adding to wishlist:', error);
+      if (error.response && error.response.status === 401) {
+        toast.error('Please login to add items to wishlist');
+      } else if (error.response && error.response.data && error.response.data.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Failed to add product to wishlist');
+      }
+    }
+  };
+  
+  const handleSubmitReview = async () => {
+    try {
+      if (!product || !userRating) {
+        toast.error('Please select a rating');
+        return;
+      }
+      
+      setSubmittingReview(true);
+      
+      await reviewApi.createReview({
+        productId: product._id,
+        rating: userRating,
+        review: reviewText
+      });
+      
+      toast.success('Review submitted successfully');
+      setShowReviewModal(false);
+      setUserRating(0);
+      setReviewText('');
+      
+      // Refresh reviews
+      const ratingResponse = await productsApi.getRatingSummary(id);
+      const ratingData = ratingResponse.data.data;
+      
+      if (ratingData) {
+        setReviews(ratingData.reviews || []);
+        setRatingDistribution(ratingData.ratingDistribution || []);
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      toast.error('Failed to submit review');
+    } finally {
+      setSubmittingReview(false);
+    }
   };
 
   // Function to render star ratings
@@ -206,6 +222,30 @@ const ProductDetails = () => {
     }
     return stars;
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 font-sans">
+        <div className="flex justify-center items-center h-96">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-main"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 font-sans">
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Product Not Found</h2>
+          <p className="text-gray-600 mb-6">The product you are looking for does not exist or has been removed.</p>
+          <Link to="/products" className="bg-main hover:bg-main-dark text-white font-bold py-2 px-4 rounded">
+            Browse Products
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 font-sans">
@@ -574,13 +614,17 @@ const ProductDetails = () => {
         <div className="w-full lg:w-2/5">
           <div className="border border-gray-200 rounded-lg p-2 sm:p-4 bg-white mb-3 sm:mb-4 shadow-sm">
             <img 
-              src={mainImage} 
-              alt={product.name} 
+              src={mainImage || '/placeholder-image.png'} 
+              alt={product?.name || 'Product Image'} 
               className="w-full h-auto object-contain aspect-square"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = '/no-image-available.png';
+              }}
             />
           </div>
           <div className="flex gap-2 sm:gap-3 pb-2 no-scrollbar">
-            {product.images.map((image, index) => (
+            {product?.images?.map((image, index) => (
               <div 
                 key={index} 
                 className={`w-14 h-14 sm:w-16 sm:h-16 border cursor-pointer p-1 rounded ${mainImage === image ? 'border-main ring-1 ring-main' : 'border-gray-200'}`}
@@ -588,7 +632,7 @@ const ProductDetails = () => {
               >
                 <img 
                   src={image} 
-                  alt={`${product.name} - view ${index + 1}`} 
+                  alt={`${product?.name} - view ${index + 1}`} 
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -631,10 +675,10 @@ const ProductDetails = () => {
             {/* Price */}
             <div className="mb-4 sm:mb-6">
               <div className="flex flex-wrap items-baseline mb-2">
-                <span className="text-xl sm:text-2xl font-bold text-gray-900">₹{product.discountPrice.toLocaleString()}</span>
-                <span className="ml-2 text-base sm:text-lg text-gray-500 line-through">₹{product.price.toLocaleString()}</span>
+                <span className="text-xl sm:text-2xl font-bold text-gray-900">₹{product?.discountPrice?.toLocaleString() || '0'}</span>
+                <span className="ml-2 text-base sm:text-lg text-gray-500 line-through">₹{product?.price?.toLocaleString() || '0'}</span>
                 <span className="ml-2 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                  {Math.round(((product.price - product.discountPrice) / product.price) * 100)}% OFF
+                  {product?.price ? Math.round(((product.price - (product.discountPrice || 0)) / product.price) * 100) : 0}% OFF
                 </span>
               </div>
               <div className="flex items-center mb-2">
@@ -680,7 +724,10 @@ const ProductDetails = () => {
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-4">
-                <button className="bg-main hover:bg-main-dark text-white px-3 sm:px-6 py-2 sm:py-3 rounded-lg flex items-center justify-center gap-1 sm:gap-2 transition-colors duration-300 text-sm sm:text-base">
+                <button 
+                  onClick={handleAddToCart}
+                  className="bg-main hover:bg-main-dark text-white px-3 sm:px-6 py-2 sm:py-3 rounded-lg flex items-center justify-center gap-1 sm:gap-2 transition-colors duration-300 text-sm sm:text-base"
+                >
                   <FaShoppingCart size={14} /> Add to Cart
                 </button>
                 <Link to="/checkout" className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-6 py-2 sm:py-3 rounded-lg flex items-center justify-center gap-1 sm:gap-2 transition-colors duration-300 text-sm sm:text-base">
@@ -929,12 +976,12 @@ const ProductDetails = () => {
               <div>
                 <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Key Features</h3>
                 <ul className="space-y-1.5 sm:space-y-2">
-                  {product.features.map((feature, index) => (
-                    <li key={index} className="flex items-start">
+                  {product?.features && (
+                    <li className="flex items-start">
                       <FaCheck className="text-main mt-1 mr-2 flex-shrink-0 text-sm" />
-                      <span className="text-sm sm:text-base text-gray-700">{feature}</span>
+                      <span className="text-sm sm:text-base text-gray-700">{product.features}</span>
                     </li>
-                  ))}
+                  )}
                 </ul>
               </div>
               
@@ -959,12 +1006,12 @@ const ProductDetails = () => {
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <tbody className="divide-y divide-gray-200">
-                      {Object.entries(product.specifications).map(([key, value], index) => (
-                        <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{key}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{value}</td>
-                        </tr>
-                      ))}
+                      {Object.entries(product?.specifications || {}).map(([key, value], index) => (
+                <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{key}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{value}</td>
+                </tr>
+              ))}
                     </tbody>
                   </table>
                 </div>
@@ -1092,7 +1139,7 @@ const ProductDetails = () => {
           }}
           className="related-products-swiper no-scrollbar"
         >
-          {product.relatedProducts.map((item, index) => (
+          {product?.relatedProducts?.map((item, index) => (
             <SwiperSlide key={index}>
               <div className="bg-white shadow-sm overflow-hidden flex flex-col h-full relative rounded-lg">
                 {/* Bestseller Badge */}
@@ -1211,7 +1258,7 @@ const ProductDetails = () => {
           }}
           className="recommended-products-swiper no-scrollbar"
         >
-          {product.recommended.map((item, index) => (
+          {product?.recommended?.map((item, index) => (
             <SwiperSlide key={index}>
               <div className="bg-white shadow-sm overflow-hidden flex flex-col h-full relative">
                 {/* Bestseller Badge */}

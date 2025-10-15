@@ -10,7 +10,7 @@ const createUploadsDir = () => {
   }
   
   // Create subdirectories
-  const dirs = ['products', 'categories'];
+  const dirs = ['products', 'categories', 'users'];
   dirs.forEach(dir => {
     const dirPath = path.join(uploadsDir, dir);
     if (!fs.existsSync(dirPath)) {
@@ -63,8 +63,15 @@ const fileFilter = (req, file, cb) => {
 // Initialize upload
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 500000000 }, // 5MB limit
+  limits: { fileSize: 5000000 }, // 5MB limit
   fileFilter: fileFilter
 });
 
-module.exports = upload;
+// Export the multer instance directly so we can use methods like .array() on it
+const productUpload = multer({
+  storage: storage,
+  limits: { fileSize: 5000000 }, // 5MB limit
+  fileFilter: fileFilter
+});
+
+module.exports = { upload, productUpload };

@@ -12,6 +12,9 @@ const {
     getCouponStats
 } = require('../controllers/coupon/couponController');
 
+// Import user coupon controller
+const userCouponController = require('../controllers/coupon/userCouponController');
+
 // Public routes
 router.post('/validate', validateCoupon);
 router.post('/apply', applyCoupon);
@@ -30,5 +33,12 @@ router.route('/:id')
 
 
 router.get('/stats', getCouponStats);
+
+// User coupon routes
+router.post('/generate-and-send', protect, authorize('admin'), userCouponController.generateAndSendCoupon);
+router.get('/users-for-coupon', protect, authorize('admin'), userCouponController.getUsersForCoupon);
+
+// Generate and send coupons to selected users
+router.post('/generate-for-users', protect, authorize('admin'), require('../controllers/coupon/couponController').generateCouponForUsers);
 
 module.exports = router;

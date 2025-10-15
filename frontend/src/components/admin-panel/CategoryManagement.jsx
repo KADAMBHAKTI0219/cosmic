@@ -1,30 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { FaSearch, FaEdit, FaTrash, FaPlus, FaTimes, FaSave, FaSpinner } from 'react-icons/fa';
+import { FaSearch, FaEdit, FaTrash, FaPlus, FaTimes, FaSave, FaSpinner, FaLayerGroup, FaArrowLeft } from 'react-icons/fa';
 import { categoryManagementApi } from '../../services/adminApi';
 import { toast } from 'react-toastify';
 import { fixImageUrl } from '../../utils/imageUtils';
 
 const CategoryManagement = () => {
   const [categories, setCategories] = useState([]);
+  const [mainCategories, setMainCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [viewMode, setViewMode] = useState('all'); // 'all', 'main', 'sub'
+  const [currentParentId, setCurrentParentId] = useState(null);
+  const [currentParentName, setCurrentParentName] = useState('');
+  
   const [newCategory, setNewCategory] = useState({ 
     name: '', 
     description: '', 
     image: null,
-    status: 'Active' 
+    status: 'Active',
+    parent: '' 
   });
+  
   const [editCategory, setEditCategory] = useState({
     _id: null,
     name: '', 
     description: '', 
     image: null,
-    status: '' 
+    status: '',
+    parent: ''
   });
+  
   const [imagePreview, setImagePreview] = useState(null);
   const [editImagePreview, setEditImagePreview] = useState(null);
 
@@ -32,9 +41,24 @@ const CategoryManagement = () => {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await categoryManagementApi.getAllCategories();
+      let response;
+      
+      if (viewMode === 'all') {
+        response = await categoryManagementApi.getAllCategories();
+      } else if (viewMode === 'main') {
+        response = await categoryManagementApi.getMainCategories();
+      } else if (viewMode === 'sub' && currentParentId) {
+        response = await categoryManagementApi.getSubcategories(currentParentId);
+      }
+      
       const categoryData = response.data.data || response.data;
       setCategories(Array.isArray(categoryData) ? categoryData : []);
+      
+      // If we're viewing subcategories, store the parent name
+      if (viewMode === 'sub' && response.data.parentCategory) {
+        setCurrentParentName(response.data.parentCategory.name);
+      }
+      
       setError(null);
     } catch (err) {
       setError('Failed to load categories. Please try again.');
@@ -45,9 +69,25 @@ const CategoryManagement = () => {
     }
   };
 
-  // Load categories on component mount
+  // Load main categories for dropdown
+  const fetchMainCategories = async () => {
+    try {
+      const response = await categoryManagementApi.getMainCategories();
+      const mainCategoryData = response.data.data || response.data;
+      setMainCategories(Array.isArray(mainCategoryData) ? mainCategoryData : []);
+    } catch (err) {
+      console.error('Error fetching main categories:', err);
+    }
+  };
+
+  // Load categories on component mount and when viewMode changes
   useEffect(() => {
     fetchCategories();
+  }, [viewMode, currentParentId]);
+
+  // Load main categories for dropdowns
+  useEffect(() => {
+    fetchMainCategories();
   }, []);
 
   const handleSearch = (e) => {
@@ -96,6 +136,11 @@ const CategoryManagement = () => {
       // Add status
       formData.append('status', newCategory.status || 'Active');
       
+      // Add parent if selected
+      if (newCategory.parent) {
+        formData.append('parent', newCategory.parent);
+      }
+      
       // Handle image if available
       if (newCategory.image) {
         // Check if image is a File object or string
@@ -110,6 +155,7 @@ const CategoryManagement = () => {
         name: newCategory.name.trim(),
         description: newCategory.description ? newCategory.description.trim() : '',
         status: newCategory.status || 'Active',
+        parent: newCategory.parent || 'None',
         image: newCategory.image ? 'Image present' : 'No image'
       });
 
@@ -119,8 +165,11 @@ const CategoryManagement = () => {
       // Reload categories after adding
       await fetchCategories();
       
+      // Also refresh main categories list for dropdowns
+      await fetchMainCategories();
+      
       toast.success('Category added successfully');
-      setNewCategory({ name: '', description: '', image: null, status: 'Active' });
+      setNewCategory({ name: '', description: '', image: null, status: 'Active', parent: '' });
       setImagePreview(null);
       setShowAddModal(false);
     } catch (err) {
@@ -140,7 +189,8 @@ const CategoryManagement = () => {
         name: category.name, 
         description: category.description || '',
         image: null,
-        status: category.status || 'Active'
+        status: category.status || 'Active',
+        parent: category.parent || ''
       });
       
       // Set image preview with correct URL
@@ -174,6 +224,12 @@ const CategoryManagement = () => {
         formData.append('description', editCategory.description.trim());
       }
       formData.append('status', editCategory.status || 'Active');
+      
+      // Add parent if selected
+      if (editCategory.parent) {
+        formData.append('parent', editCategory.parent);
+      }
+      
       if (editCategory.image) {
         formData.append('image', editCategory.image);
       }
@@ -183,6 +239,7 @@ const CategoryManagement = () => {
         name: editCategory.name.trim(),
         description: editCategory.description ? editCategory.description.trim() : '',
         status: editCategory.status || 'Active',
+        parent: editCategory.parent || 'None',
         image: editCategory.image ? 'Image present' : 'No image'
       });
 
@@ -191,6 +248,9 @@ const CategoryManagement = () => {
       
       // Reload categories after updating
       await fetchCategories();
+      
+      // Also refresh main categories list for dropdowns
+      await fetchMainCategories();
       
       toast.success('Category updated successfully');
       setShowEditModal(false);
@@ -209,12 +269,34 @@ const CategoryManagement = () => {
         // Reload categories after deletion
         await fetchCategories();
         
+        // Also refresh main categories list for dropdowns
+        await fetchMainCategories();
+        
         toast.success('Category deleted successfully');
       } catch (err) {
-        toast.error('Failed to delete category');
+        const errorMessage = err.response?.data?.message || 'Failed to delete category';
+        toast.error(errorMessage);
         console.error('Error deleting category:', err);
       }
     }
+  };
+
+  const handleViewSubcategories = (categoryId, categoryName) => {
+    setCurrentParentId(categoryId);
+    setCurrentParentName(categoryName);
+    setViewMode('sub');
+  };
+
+  const handleBackToAllCategories = () => {
+    setViewMode('all');
+    setCurrentParentId(null);
+    setCurrentParentName('');
+  };
+
+  const handleBackToMainCategories = () => {
+    setViewMode('main');
+    setCurrentParentId(null);
+    setCurrentParentName('');
   };
 
   if (loading) {
@@ -237,13 +319,37 @@ const CategoryManagement = () => {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Category Management</h1>
-        <button 
-          onClick={() => setShowAddModal(true)}
-          className="bg-[#92c51b] hover:bg-[#7ba515] text-white px-4 py-2 rounded-md flex items-center"
-        >
-          <FaPlus className="mr-2" /> Add Category
-        </button>
+        <div className="flex items-center">
+          {viewMode === 'sub' && (
+            <button 
+              onClick={handleBackToMainCategories}
+              className="mr-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-md flex items-center"
+            >
+              <FaArrowLeft className="mr-1" /> Back
+            </button>
+          )}
+          <h1 className="text-2xl font-bold">
+            {viewMode === 'all' ? 'Category Management' : 
+             viewMode === 'main' ? 'Main Categories' : 
+             `Subcategories of ${currentParentName}`}
+          </h1>
+        </div>
+        <div className="flex">
+          {viewMode === 'all' && (
+            <button 
+              onClick={() => setViewMode('main')}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center mr-2"
+            >
+              <FaLayerGroup className="mr-2" /> View Main Categories
+            </button>
+          )}
+          <button 
+            onClick={() => setShowAddModal(true)}
+            className="bg-[#92c51b] hover:bg-[#7ba515] text-white px-4 py-2 rounded-md flex items-center"
+          >
+            <FaPlus className="mr-2" /> Add Category
+          </button>
+        </div>
       </div>
       
       {/* Search */}
@@ -271,6 +377,7 @@ const CategoryManagement = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -305,16 +412,34 @@ const CategoryManagement = () => {
                     {category.status || 'Active'}
                   </span>
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    category.isMainCategory ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                  }`}>
+                    {category.isMainCategory ? 'Main' : 'Sub'}
+                  </span>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  {category.isMainCategory && (
+                    <button 
+                      className="text-blue-600 hover:text-blue-900 mr-3"
+                      onClick={() => handleViewSubcategories(category._id, category.name)}
+                      title="View Subcategories"
+                    >
+                      <FaLayerGroup />
+                    </button>
+                  )}
                   <button 
                     className="text-indigo-600 hover:text-indigo-900 mr-3"
                     onClick={() => handleEditClick(category._id)}
+                    title="Edit Category"
                   >
                     <FaEdit />
                   </button>
                   <button 
                     className="text-red-600 hover:text-red-900"
                     onClick={() => handleDeleteCategory(category._id)}
+                    title="Delete Category"
                   >
                     <FaTrash />
                   </button>
@@ -355,6 +480,21 @@ const CategoryManagement = () => {
                 onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
                 rows="3"
               ></textarea>
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">Parent Category (Optional)</label>
+              <select
+                className="border rounded-md w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
+                value={newCategory.parent}
+                onChange={(e) => setNewCategory({...newCategory, parent: e.target.value})}
+              >
+                <option value="">None (Main Category)</option>
+                {mainCategories.map(category => (
+                  <option key={category._id} value={category._id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">Image</label>
@@ -433,6 +573,24 @@ const CategoryManagement = () => {
                 onChange={(e) => setEditCategory({...editCategory, description: e.target.value})}
                 rows="3"
               ></textarea>
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">Parent Category (Optional)</label>
+              <select
+                className="border rounded-md w-full py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#92c51b]"
+                value={editCategory.parent || ''}
+                onChange={(e) => setEditCategory({...editCategory, parent: e.target.value})}
+              >
+                <option value="">None (Main Category)</option>
+                {mainCategories.map(category => (
+                  // Don't allow a category to be its own parent
+                  category._id !== editCategory._id && (
+                    <option key={category._id} value={category._id}>
+                      {category.name}
+                    </option>
+                  )
+                ))}
+              </select>
             </div>
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">Image</label>

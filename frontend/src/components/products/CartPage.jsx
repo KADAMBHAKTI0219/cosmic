@@ -48,16 +48,23 @@ const CartPage = () => {
       setCouponLoading(true);
       setCouponError(null);
       
-      const response = await couponApi.validateCoupon(couponCode, calculateSubtotal());
+      // First validate the coupon with the current subtotal
+      const validateResponse = await couponApi.validateCoupon(couponCode.toUpperCase(), calculateSubtotal());
       
-      if (response.data.success) {
-        setAppliedCoupon(response.data.data.coupon);
-        setCouponDiscount(response.data.data.discount);
+      if (validateResponse.data.success) {
+        // If validation is successful, apply the coupon to increment usage count
+        const applyResponse = await couponApi.applyCoupon(couponCode.toUpperCase());
         
-        // Apply the coupon (increment usage count)
-        await couponApi.applyCoupon(couponCode);
+        if (applyResponse.data.success) {
+          setAppliedCoupon(validateResponse.data.data.coupon);
+          setCouponDiscount(validateResponse.data.data.discount);
+          setCouponCode(''); // Clear the input field after successful application
+          toast.success('Coupon applied successfully!');
+        } else {
+          setCouponError(applyResponse.data.message || 'Failed to apply coupon');
+        }
       } else {
-        setCouponError(response.data.message || 'Invalid coupon');
+        setCouponError(validateResponse.data.message || 'Invalid coupon');
       }
     } catch (error) {
       console.error('Error applying coupon:', error);

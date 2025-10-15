@@ -3,7 +3,9 @@
  */
 
 // Get API base URL from environment variables with fallback
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Using import.meta.env for Vite projects
+const API_BASE_URL = import.meta.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+console.log('Using API base URL for images:', API_BASE_URL);
 
 /**
  * Checks if a URL already contains a domain to prevent duplication
@@ -15,25 +17,19 @@ const hasProtocol = (url) => {
 };
 
 /**
- * Extracts the path from a URL that might contain duplicate domains
- * @param {string} url - The URL to clean
- * @returns {string} - The cleaned URL path
+ * Extracts the uploads path from any URL format
+ * @param {string} url - The URL to extract from
+ * @returns {string|null} - The extracted uploads path or null if not found
  */
-const cleanDuplicateDomains = (url) => {
-  if (!url || typeof url !== 'string') return url;
+const extractUploadsPath = (url) => {
+  if (!url || typeof url !== 'string') return null;
   
-  // Check for duplicate domains like http://localhost:5000/http://localhost:5000/
-  const duplicatePattern = /(https?:\/\/[^\/]+)\/(https?:\/\/[^\/]+)/;
-  if (duplicatePattern.test(url)) {
-    // Extract the path after the second domain
-    const parts = url.split(duplicatePattern);
-    if (parts.length >= 3) {
-      // Use the first domain and the remaining path
-      return parts[1] + parts.slice(2).join('');
-    }
-  }
+  // Find the uploads part in the URL
+  const uploadsIndex = url.indexOf('uploads');
+  if (uploadsIndex === -1) return null;
   
-  return url;
+  // Extract everything from 'uploads' onwards
+  return url.substring(uploadsIndex);
 };
 
 /**
@@ -42,9 +38,12 @@ const cleanDuplicateDomains = (url) => {
  * @returns {string} - The corrected image URL
  */
 export const fixImageUrl = (url) => {
+  // Define a reliable fallback image (base64 encoded small gray placeholder)
+  const fallbackImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZWVlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIGZpbGw9IiM5OTk5OTkiPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+  
   // If imageUrl is null or undefined, return fallback image
   if (!url) {
-    return 'https://via.placeholder.com/400x400?text=Image+Not+Available';
+    return fallbackImage;
   }
   
   // If it's an imported image (webpack module), return the object itself
@@ -52,65 +51,58 @@ export const fixImageUrl = (url) => {
     return url;
   }
   
-  // Clean any duplicate domains in the URL
-  url = cleanDuplicateDomains(url);
+  // Check for problematic placeholder URLs
+  if (typeof url === 'string' && (
+    url.includes('via.placeholder.com') || 
+    url.includes('placehold.co') ||
+    url.includes('placeholder')
+  )) {
+    return fallbackImage;
+  }
   
-  // If the image is already a full URL (starts with http or https) and not localhost, return it as is
+  // PRIORITY 1: Handle uploads path directly
+  if (typeof url === 'string') {
+    // Extract uploads path if it exists anywhere in the URL
+    const uploadsPath = extractUploadsPath(url);
+    if (uploadsPath) {
+      // Direct path to uploads without any prefix
+      return `${API_BASE_URL}/${uploadsPath}`;
+    }
+    
+    // If the URL already contains the same API base URL, return as is
+    if (url.includes(API_BASE_URL)) {
+      return url;
+    }
+    
+    // If the URL contains localhost with a different port, extract the path
+    if (url.includes('localhost:') && !url.includes(API_BASE_URL)) {
+      const pathMatch = url.match(/localhost:\d+\/(.+)/);
+      if (pathMatch && pathMatch[1]) {
+        return `${API_BASE_URL}/${pathMatch[1]}`;
+      }
+    }
+    
+    // If the path is relative with /api/ prefix, remove it
+    if (url.startsWith('/api/')) {
+      return `${API_BASE_URL}${url.replace('/api/', '/')}`;
+    }
+    
+    // If the path is relative, prepend the API base URL
+    if (url.startsWith('/')) {
+      return `${API_BASE_URL}${url}`;
+    }
+    
+    // If the path doesn't start with slash, add one
+    if (!hasProtocol(url) && !url.startsWith('/')) {
+      return `${API_BASE_URL}/${url}`;
+    }
+  }
+  
+  // For external URLs (not localhost), return as is
   if (typeof url === 'string' && hasProtocol(url) && !url.includes('localhost')) {
     return url;
   }
   
-  // Add timestamp for cache busting
-  const timestamp = new Date().getTime();
-  
-  // Handle server uploads path - check if it contains 'uploads/products'
-  if (typeof url === 'string' && url.includes('uploads/products')) {
-    // Check if URL already contains the domain to prevent duplication
-    if (hasProtocol(url)) {
-      // URL already has domain, just add timestamp
-      return `${url}?t=${timestamp}`;
-    }
-    
-    // Make sure we have a clean path without duplicate slashes
-    const cleanPath = url.startsWith('/') ? url : `/${url}`;
-    return `${API_BASE_URL}${cleanPath}?t=${timestamp}`;
-  }
-  
-  // Handle paths that start with /uploads
-  if (url.startsWith('/uploads')) {
-    // Check if URL already contains the domain
-    if (hasProtocol(url)) {
-      return `${url}?t=${timestamp}`;
-    }
-    return `${API_BASE_URL}${url}?t=${timestamp}`;
-  }
-  
-  // Handle paths that start with uploads (no leading slash)
-  if (url.startsWith('uploads/')) {
-    // Check if URL already contains the domain
-    if (hasProtocol(url)) {
-      return `${url}?t=${timestamp}`;
-    }
-    return `${API_BASE_URL}/${url}?t=${timestamp}`;
-  }
-  
-  // If the image path is relative, prepend the API base URL from environment variables
-  if (typeof url === 'string' && url.startsWith('/')) {
-    // Check if URL already contains the domain
-    if (hasProtocol(url)) {
-      return url;
-    }
-    return `${API_BASE_URL}${url}`;
-  }
-  
-  // Handle full URLs with localhost (replace with correct port)
-  if (url.includes('localhost:')) {
-    // Extract the path after the port
-    const urlParts = url.split('/');
-    const pathParts = urlParts.slice(3); // Remove protocol and domain parts
-    return `${API_BASE_URL}/${pathParts.join('/')}?t=${timestamp}`;
-  }
-  
-  // For any other string that doesn't match above conditions
-  return url || 'https://via.placeholder.com/400x400?text=Image+Not+Available';
+  // Fallback for any other case
+  return url || fallbackImage;
 };

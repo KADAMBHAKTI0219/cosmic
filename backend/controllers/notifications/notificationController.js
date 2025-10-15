@@ -23,20 +23,29 @@ exports.createNotification = async (req, res) => {
     // Here you would trigger real-time notification via Socket.io
     // io.to(recipient).emit('notification', notification);
     
-    // If notification is created by admin, send email to all customers
+    // If notification is created by admin, send email only to subscribed customers
     if (req.user && req.user.role === 'admin') {
-      // Fetch all customers
+      // Import Newsletter model
+      const Newsletter = require('../../models/newsletter/newsletter');
+      
+      // Fetch all active customers
       const customers = await User.find({ role: 'customer', status: 'active' }, 'email firstName lastName');
       
-      // Send email to all customers
+      // Send email only to subscribed customers
       for (const customer of customers) {
         try {
-          await emailSender.sendNotificationEmail(
-            customer.email,
-            title,
-            message,
-            `${customer.firstName} ${customer.lastName}`
-          );
+          // Check if customer is subscribed to newsletter
+          const subscription = await Newsletter.findOne({ email: customer.email, isSubscribed: true });
+          
+          // Only send if subscribed
+          if (subscription) {
+            await emailSender.sendNotificationEmail(
+              customer.email,
+              title,
+              message,
+              `${customer.firstName} ${customer.lastName}`
+            );
+          }
         } catch (emailError) {
           console.error(`Failed to send email to ${customer.email}:`, emailError);
           // Continue with other emails even if one fails
@@ -292,22 +301,22 @@ exports.getErrorLogs = async (req, res) => {
 };
 
 // Helper function to log errors
-const logError = async (error, req, level = 'error') => {
+const logError = async (error, req = {}, level = 'error') => {
   try {
     const errorLog = new ErrorLog({
       level,
-      message: error.message,
+      message: error.message || 'Unknown error occurred',
       stack: error.stack,
-      path: req.originalUrl,
-      method: req.method,
+      path: req.originalUrl || 'unknown',
+      method: req.method || 'unknown',
       statusCode: error.statusCode || 500,
       requestData: {
-        body: req.body,
-        params: req.params,
-        query: req.query
+        body: req.body || {},
+        params: req.params || {},
+        query: req.query || {}
       },
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
+      ipAddress: req.ip || 'unknown',
+      userAgent: req.headers ? req.headers['user-agent'] : 'unknown',
       userId: req.user ? req.user._id : null,
       userType: req.user ? (req.user.role === 'admin' ? 'admin' : 'user') : null
     });

@@ -1,75 +1,126 @@
 const Review = require('../../models/review/review');
 const Product = require('../../models/products/product');
 const Order = require('../../models/orders/order');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Configure multer for review image uploads
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    const uploadDir = path.join(__dirname, '../../uploads/reviews');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function(req, file, cb) {
+    cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: function(req, file, cb) {
+    const filetypes = /jpeg|jpg|png|webp/;
+    const mimetype = filetypes.test(file.mimetype);
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error('Only image files are allowed!'));
+  }
+}).array('images', 5); // Allow up to 5 images
 
 /**
  * Add a new review for a product
  */
 exports.addReview = async (req, res) => {
   try {
-    const { productId, rating, comment } = req.body;
-    const userId = req.user.id;
-
-    // Check if product exists
-    const product = await Product.findById(productId);
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found'
-      });
-    }
-
-    // Verify user has purchased the product
-    const hasPurchased = await Order.findOne({
-      userId,
-      'items.productId': productId,
-      orderStatus: 'delivered'
-    });
-
-    if (!hasPurchased) {
-      return res.status(403).json({
-        success: false,
-        message: 'You can only review products you have purchased'
-      });
-    }
-
-    // Check if user already reviewed this product
-    const existingReview = await Review.findOne({ userId, productId });
-    
-    if (existingReview) {
-      // Update existing review
-      existingReview.rating = rating;
-      if (comment) existingReview.comment = comment;
+    upload(req, res, async function(err) {
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message
+        });
+      }
       
-      await existingReview.save();
+      const { productId, rating, title, comment } = req.body;
+      const userId = req.user.id;
+
+      // Check if product exists
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: 'Product not found'
+        });
+      }
+
+      // Verify user has purchased the product
+      const hasPurchased = await Order.findOne({
+        userId,
+        'items.productId': productId,
+        orderStatus: 'delivered'
+      });
+
+      // Set verification status based on purchase history
+      const isVerified = !!hasPurchased;
+
+      // Process uploaded images
+      let reviewImages = [];
+      if (req.files && req.files.length > 0) {
+        const uploadUrl = process.env.UPLOAD_URL || 'http://localhost:5000';
+        reviewImages = req.files.map(file => `/uploads/reviews/${file.filename}`);
+      }
+
+      // Check if user already reviewed this product
+      const existingReview = await Review.findOne({ userId, productId });
+      
+      if (existingReview) {
+        // Update existing review
+        existingReview.rating = rating;
+        if (title) existingReview.title = title;
+        if (comment) existingReview.comment = comment;
+        if (reviewImages.length > 0) existingReview.images = reviewImages;
+        existingReview.isVerified = isVerified;
+        
+        await existingReview.save();
+        
+        // Update product average rating
+        await Review.computeAverageRating(productId);
+        
+        return res.status(200).json({
+          success: true,
+          message: 'Review updated successfully',
+          data: existingReview
+        });
+      }
+
+      // Create new review
+      const review = new Review({
+        productId,
+        userId,
+        rating,
+        title,
+        comment,
+        images: reviewImages,
+        isVerified,
+        status: isVerified ? 'approved' : 'pending' // Auto-approve verified purchases
+      });
+
+      await review.save();
       
       // Update product average rating
-      await updateProductAverageRating(productId);
-      
-      return res.status(200).json({
+      await Review.computeAverageRating(productId);
+
+      res.status(201).json({
         success: true,
-        message: 'Review updated successfully',
-        data: existingReview
+        message: 'Review added successfully',
+        data: review
       });
-    }
-
-    // Create new review
-    const review = new Review({
-      productId,
-      userId,
-      rating,
-      comment
-    });
-
-    await review.save();
-    
-    // Update product average rating
-    await updateProductAverageRating(productId);
-
-    res.status(201).json({
-      success: true,
-      message: 'Review added successfully',
-      data: review
     });
   } catch (error) {
     console.error('Error adding review:', error);

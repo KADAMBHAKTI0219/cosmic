@@ -6,13 +6,13 @@ import ScrollToTop from './components/common/ScrollToTop';
 
 import Home from './pages/home';
 import Register from './pages/auth/register';
-import Products from './components/products/products';
-import ProductDetails from './components/products/ProductDetails';
 import ProductList from './pages/products/ProductList';
 import CartPage from './components/products/CartPage';
 import OrdersPage from './pages/orders/OrdersPage';
-import OrderDetailsPage from './pages/orders/OrderDetailsPage';
 import OrderConfirmationPage from './pages/orders/OrderConfirmationPage';
+import OrderDetailsPage from './pages/orders/OrderDetailsPage';
+import OrderPendingPage from './pages/orders/OrderPendingPage';
+import PendingOrderPage from './pages/orders/PendingOrderPage';
 import ReviewsPage from './pages/reviews/ReviewsPage';
 import ReviewForm from './pages/reviews/ReviewForm';
 import NotificationsPage from './pages/notifications/NotificationsPage';
@@ -27,6 +27,7 @@ import AdminLogin from './pages/auth/AdminLogin';
 
 // Admin Panel Components
 import AdminRoutes from './components/admin-panel/AdminRoutes';
+import OrderReviewPage from './pages/admin/OrderReviewPage';
 
 // Dashboard Components
 import DashboardLayout from './layouts/DashboardLayout';
@@ -39,6 +40,7 @@ import OrderDetails from './pages/dashboard/OrderDetails';
 // Admin Auth Context
 import { AdminAuthProvider } from './context/AdminAuthContext';
 import CheckoutPage from './components/products/CheckoutPage';
+import ProductDetails from './components/products/productdetails';
 
 function App() {
   return (
@@ -49,6 +51,7 @@ function App() {
           <Routes>
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/orders/review/:id" element={<OrderReviewPage />} />
             <Route path="/admin/*" element={<AdminRoutes />} />
             
             {/* Dashboard Routes */}
@@ -81,21 +84,8 @@ function App() {
                     <Route path="/auth/verify-otp/:token" element={<VerifyOtp />} />
                     <Route path="/auth/reset-password" element={<ResetPassword />} />
                     
-                    {/* Category Routes */}
-                    <Route path="/solar-module" element={<Products />} />
-                    <Route path="/solar-module/:subcategory" element={<Products />} />
-                    <Route path="/solar-panel" element={<Products />} />
-                    <Route path="/solar-panel/:subcategory" element={<Products />} />
-                    <Route path="/solar-inverter" element={<Products />} />
-                    <Route path="/solar-inverter/:subcategory" element={<Products />} />
-                    <Route path="/solar-battery" element={<Products />} />
-                    <Route path="/solar-battery/:subcategory" element={<Products />} />
-                    <Route path="/solar-accessories" element={<Products />} />
-                    <Route path="/solar-accessories/:subcategory" element={<Products />} />
-                    
-                    {/* Generic product category route */}
-                    <Route path="/category/:category" element={<Products />} />
-                    <Route path="/category/:category/:subcategory" element={<Products />} />
+               
+                  <Route path="/products" element={<ProductList/>}/>
                     
                     {/* Product Details Route */}
                     <Route path="/product/:id" element={<ProductDetails />} />
@@ -108,8 +98,10 @@ function App() {
                     
                     {/* Order Routes */}
                     <Route path="/orders" element={<OrdersPage />} />
+                    <Route path="/order-confirmation/:orderId/:token" element={<OrderConfirmationPage />} />
                     <Route path="/orders/:id" element={<OrderDetailsPage />} />
-                    <Route path="/order-confirmation/:id" element={<OrderConfirmationPage />} />
+                    <Route path="/order-pending/:orderId" element={<OrderPendingPage />} />
+                    <Route path="/pending-order/:orderId" element={<PendingOrderPage />} />
                     
                     {/* Review Routes */}
                     <Route path="/reviews" element={<ReviewsPage />} />

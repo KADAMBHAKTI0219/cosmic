@@ -2,12 +2,48 @@ const Category = require('../../models/category/category');
 const Product = require('../../models/products/product');
 const path = require('path');
 
+// Helper function to check for cycles in category hierarchy
+const checkForCycles = async (categoryId, newParentId) => {
+  let currentParent = newParentId;
+  const visited = new Set();
+  
+  while (currentParent) {
+    // If we've seen this parent before or it's the original category, we have a cycle
+    if (visited.has(currentParent) || currentParent.toString() === categoryId.toString()) {
+      return true;
+    }
+    
+    visited.add(currentParent);
+    
+    // Get the next parent up the chain
+    const parentCategory = await Category.findById(currentParent);
+    if (!parentCategory) break;
+    
+    currentParent = parentCategory.parent;
+  }
+  
+  return false;
+};
+
+// Helper function to update levels of all descendants
+const updateDescendantLevels = async (categoryId, parentLevel) => {
+  const children = await Category.find({ parent: categoryId });
+  
+  for (const child of children) {
+    const newLevel = parentLevel + 1;
+    await Category.findByIdAndUpdate(child._id, { level: newLevel });
+    
+    // Recursively update children's children
+    await updateDescendantLevels(child._id, newLevel);
+  }
+};
+
 // @desc    Create new category
 // @route   POST /api/admin/categories
 // @access  Private/Admin
 exports.createCategory = async (req, res) => {
   try {
-    const { name, description, status, image } = req.body;
+    const { name, description, status, image, parent } = req.body;
     
     // Get image file path if uploaded
     let imagePath = image;
@@ -24,13 +60,36 @@ exports.createCategory = async (req, res) => {
       });
     }
 
-    // Create category
-    const category = await Category.create({
+    // Prepare category data
+    const categoryData = {
       name,
       description,
       status,
-      image: imagePath
-    });
+      image: imagePath,
+      isMainCategory: !parent
+    };
+
+    // Handle parent category if provided
+    if (parent) {
+      // Check if parent category exists
+      const parentCategory = await Category.findById(parent);
+      if (!parentCategory) {
+        return res.status(400).json({
+          success: false,
+          message: 'Parent category not found'
+        });
+      }
+      
+      categoryData.parent = parent;
+      categoryData.level = parentCategory.level + 1;
+    } else {
+      // This is a main category
+      categoryData.level = 0;
+      categoryData.isMainCategory = true;
+    }
+
+    // Create category
+    const category = await Category.create(categoryData);
 
     res.status(201).json({
       success: true,
@@ -58,7 +117,7 @@ exports.createCategory = async (req, res) => {
 // @access  Public
 exports.getCategories = async (req, res) => {
   try {
-    const { search, page = 1, limit = 10 } = req.query;
+    const { search, page = 1, limit = 10, parent, mainOnly = false } = req.query;
     
     // Build query
     const query = {};
@@ -66,6 +125,16 @@ exports.getCategories = async (req, res) => {
     // Add search functionality if provided
     if (search) {
       query.$text = { $search: search };
+    }
+    
+    // Filter by parent category if provided
+    if (parent) {
+      query.parent = parent;
+    }
+    
+    // Filter main categories only if requested
+    if (mainOnly === 'true') {
+      query.isMainCategory = true;
     }
     
     // Count total documents for pagination
@@ -114,9 +183,22 @@ exports.getCategory = async (req, res) => {
       });
     }
     
+    // Get subcategories if any
+    const subcategories = await Category.find({ parent: category._id }).sort({ name: 1 });
+    
+    // Get parent category if any
+    let parentCategory = null;
+    if (category.parent) {
+      parentCategory = await Category.findById(category.parent);
+    }
+    
     res.status(200).json({
       success: true,
-      data: category
+      data: {
+        ...category.toObject(),
+        subcategories,
+        parentCategory
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -185,7 +267,7 @@ exports.getCategoryBySlug = async (req, res) => {
 // @access  Private/Admin
 exports.updateCategory = async (req, res) => {
   try {
-    const { name, description, status } = req.body;
+    const { name, description, status, parent } = req.body;
     
     // Find category
     let category = await Category.findById(req.params.id);
@@ -199,7 +281,7 @@ exports.updateCategory = async (req, res) => {
     
     // Prepare update data
     const updateData = {
-      name: name.trim(),
+      name: name ? name.trim() : category.name,
       description: description ? description.trim() : category.description,
       status: status || category.status,
       updatedAt: Date.now()
@@ -213,12 +295,57 @@ exports.updateCategory = async (req, res) => {
       updateData.image = req.body.image;
     }
     
+    // Handle parent category update
+    if (parent !== undefined) {
+      // Check if trying to set itself as parent
+      if (parent && parent.toString() === req.params.id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Category cannot be its own parent'
+        });
+      }
+      
+      // Check if trying to set one of its descendants as parent (would create a cycle)
+      if (parent) {
+        const wouldCreateCycle = await checkForCycles(req.params.id, parent);
+        if (wouldCreateCycle) {
+          return res.status(400).json({
+            success: false,
+            message: 'Cannot set a descendant as parent (would create a cycle)'
+          });
+        }
+        
+        // Check if parent exists
+        const parentCategory = await Category.findById(parent);
+        if (!parentCategory) {
+          return res.status(400).json({
+            success: false,
+            message: 'Parent category not found'
+          });
+        }
+        
+        updateData.parent = parent;
+        updateData.level = parentCategory.level + 1;
+        updateData.isMainCategory = false;
+      } else {
+        // Setting as main category
+        updateData.parent = null;
+        updateData.level = 0;
+        updateData.isMainCategory = true;
+      }
+    }
+    
     // Update category
     category = await Category.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
     );
+    
+    // If parent changed, update all descendant levels
+    if (parent !== undefined && parent !== category.parent) {
+      await updateDescendantLevels(category._id, category.level);
+    }
     
     res.status(200).json({
       success: true,
@@ -241,6 +368,56 @@ exports.updateCategory = async (req, res) => {
   }
 };
 
+// @desc    Get main categories only
+// @route   GET /api/admin/main-categories
+// @access  Private/Admin
+exports.getMainCategories = async (req, res) => {
+  try {
+    const { search, page = 1, limit = 10 } = req.query;
+    
+    // Build query for main categories only
+    const query = { isMainCategory: true };
+    
+    // Add search functionality if provided
+    if (search) {
+      query.$text = { $search: search };
+    }
+    
+    // Count total documents for pagination
+    const total = await Category.countDocuments(query);
+    
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    // Find main categories
+    const categories = await Category.find(query)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ name: 1 });
+    
+    res.status(200).json({
+      success: true,
+      count: categories.length,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / parseInt(limit))
+      },
+      data: categories
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get subcategories by parent ID
+// @route   GET /api/admin/subcategories/:parentId
+// @access  Private/Admin
 // @desc    Delete category
 // @route   DELETE /api/categories/:id
 // @access  Private/Admin
@@ -253,6 +430,16 @@ exports.deleteCategory = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: `Cannot delete category with ${productsCount} linked products`
+      });
+    }
+    
+    // Check if category has subcategories
+    const subcategoriesCount = await Category.countDocuments({ parent: req.params.id });
+    
+    if (subcategoriesCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete category with ${subcategoriesCount} subcategories`
       });
     }
     
@@ -270,6 +457,64 @@ exports.deleteCategory = async (req, res) => {
       success: true,
       message: 'Category deleted successfully',
       data: {}
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+exports.getSubcategories = async (req, res) => {
+  try {
+    const { search, page = 1, limit = 10 } = req.query;
+    const parentId = req.params.parentId;
+    
+    // Check if parent category exists
+    const parentCategory = await Category.findById(parentId);
+    if (!parentCategory) {
+      return res.status(404).json({
+        success: false,
+        message: 'Parent category not found'
+      });
+    }
+    
+    // Build query for subcategories
+    const query = { parent: parentId };
+    
+    // Add search functionality if provided
+    if (search) {
+      query.$text = { $search: search };
+    }
+    
+    // Count total documents for pagination
+    const total = await Category.countDocuments(query);
+    
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    // Find subcategories
+    const subcategories = await Category.find(query)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ name: 1 });
+    
+    res.status(200).json({
+      success: true,
+      count: subcategories.length,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / parseInt(limit))
+      },
+      parentCategory: {
+        _id: parentCategory._id,
+        name: parentCategory.name
+      },
+      data: subcategories
     });
   } catch (error) {
     res.status(500).json({

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import SearchModal from '../components/SearchModal';
 import CartPopup from '../components/CartPopup';
 import LoginModal from '../components/LoginModal';
+import NotificationBell from '../components/common/NotificationBell';
 import { toast } from 'react-toastify';
 import { cartApi } from '../services/api';
 
@@ -232,6 +233,11 @@ const Navbar = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </button>
+            
+            {/* Notification Bell - Only show for logged in users */}
+            {isLoggedIn && (
+              <NotificationBell />
+            )}
             
             {/* Cart Icon with Count */}
             <div className="relative">
@@ -543,7 +549,7 @@ const Navbar = () => {
             </div>
             
             {/* Add animation keyframes for fadeIn effect */}
-            <style jsx>{`
+            <style jsx="true">{`
               @keyframes fadeIn {
                 from { opacity: 0; transform: translateY(-10px); }
                 to { opacity: 1; transform: translateY(0); }

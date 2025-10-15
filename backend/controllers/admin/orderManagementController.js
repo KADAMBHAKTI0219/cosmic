@@ -43,11 +43,18 @@ exports.getAllOrders = async (req, res) => {
     const options = {
       sort,
       limit: parseInt(limit),
-      skip: (parseInt(page) - 1) * parseInt(limit),
-      populate: 'userId'
+      skip: (parseInt(page) - 1) * parseInt(limit)
     };
     
+    // Handle guest users by conditionally populating userId only for non-guest orders
     const orders = await Order.find(query, null, options);
+    
+    // Populate user data only for orders with valid MongoDB ObjectId userId
+    for (let i = 0; i < orders.length; i++) {
+      if (orders[i].userId && !orders[i].userId.toString().startsWith('guest-')) {
+        await orders[i].populate('userId');
+      }
+    }
     const total = await Order.countDocuments(query);
     
     res.status(200).json({
@@ -72,11 +79,19 @@ exports.getOrderById = async (req, res) => {
   try {
     const { id } = req.params;
     
-    const order = await Order.findById(id).populate('userId').populate('items.productId');
+    const order = await Order.findById(id);
     
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
+    
+    // Conditionally populate user data only for non-guest orders
+    if (order.userId && !order.userId.toString().startsWith('guest-')) {
+      await order.populate('userId');
+    }
+    
+    // Always populate product data
+    await order.populate('items.productId');
     
     res.status(200).json({
       success: true,
@@ -262,5 +277,36 @@ exports.exportOrders = async (req, res) => {
     console.error('Error in exportOrders:', error);
     await logError(error, req);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+// Delete order
+exports.deleteOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const order = await Order.findById(id);
+    
+    if (!order) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Order not found' 
+      });
+    }
+    
+    await Order.findByIdAndDelete(id);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Order deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error in deleteOrder:', error);
+    await logError(error, req);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error', 
+      error: error.message 
+    });
   }
 };

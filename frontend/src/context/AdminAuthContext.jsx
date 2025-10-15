@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 
 const AdminAuthContext = createContext();
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.NEXT_PUBLIC_API_URL;
 
 export const AdminAuthProvider = ({ children }) => {
   const [admin, setAdmin] = useState(null);

@@ -22,17 +22,35 @@ const orderSchema = new mongoose.Schema({
   orderId: {
     type: String,
     unique: true,
-    default: generateOrderId
+    // Remove default to ensure orderId is only generated after confirmation
   },
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.Mixed, // Changed to Mixed type to support both ObjectId and string
     ref: 'User',
     required: true
+  },
+  customerEmail: {
+    type: String,
+    required: [true, 'Customer email is required'],
+    match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email address']
   },
   items: [orderItemSchema],
   totalPrice: {
     type: Number,
     required: true
+  },
+  shippingAddress: {
+    fullName: String,
+    email: String,
+    phone: String,
+    address: String,
+    city: String,
+    state: String,
+    pincode: String
+  },
+  paymentMethod: {
+    type: String,
+    default: 'cod'
   },
   paymentStatus: {
     type: String,
@@ -41,8 +59,28 @@ const orderSchema = new mongoose.Schema({
   },
   orderStatus: {
     type: String,
-    enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
-    default: 'pending'
+    enum: ['Pending Review', 'Awaiting Confirmation', 'Confirmed', 'Cancelled', 'shipped', 'delivered'],
+    default: 'Pending Review'
+  },
+  shippingCharges: {
+    type: Number,
+    default: 0
+  },
+  finalPrice: {
+    type: Number
+  },
+  adminNotes: {
+    type: String
+  },
+  subtotal: {
+    type: Number
+  },
+  couponDiscount: {
+    type: Number,
+    default: 0
+  },
+  confirmationToken: {
+    type: String
   }
 }, { timestamps: true });
 

@@ -609,7 +609,7 @@ const nodemailer = require('nodemailer');
                     <img
                       width="36px"
                       alt="LinkedIn"
-                      src="https://archisketch-resources.s3.ap-northeast-2.amazonaws.com/vrstyler/1661504301898_684202/email-template-icon-linkedin"
+                      src="https://cdn-icons-png.flaticon.com/512/174/174857.png"
                     />
                   </a>
                 </div>
@@ -638,7 +638,62 @@ const nodemailer = require('nodemailer');
    * @param {Object} order - Order details
    * @returns {Promise} - Email sending result
    */
-  const sendOrderStatusUpdateEmail = async (to, order) => {
+  const sendOrderStatusUpdateEmail = async (to, subject, emailTemplate, order) => {
+    // If emailTemplate is provided, use it directly
+    if (emailTemplate) {
+      // Send the email with the provided template
+      const mailOptions = {
+        from: `"Cosmic Orders" <${process.env.SMTP_EMAIL || process.env.EMAIL_USER || 'your-email@gmail.com'}>`,
+        to: to,
+        subject: subject,
+        html: `
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+            <title>${subject}</title>
+            <style>
+              .btn {
+                display: inline-block;
+                padding: 10px 20px;
+                margin: 10px 5px;
+                text-decoration: none;
+                border-radius: 5px;
+                font-weight: bold;
+                text-align: center;
+              }
+              .btn-confirm {
+                background-color: #4CAF50;
+                color: white !important;
+              }
+              .btn-cancel {
+                background-color: #f44336;
+                color: white !important;
+              }
+            </style>
+          </head>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="border: 1px solid #ddd; border-radius: 10px; padding: 20px; background-color: #f9f9f9;">
+              ${emailTemplate}
+            </div>
+          </body>
+        </html>
+        `
+      };
+      
+      try {
+        await transporter.sendMail(mailOptions);
+        console.log('Order status update email sent successfully');
+        return { success: true };
+      } catch (error) {
+        console.error('Error sending order status update email:', error);
+        return { success: false, error };
+      }
+    }
+    
+    // If no template is provided, use the default template (for backward compatibility)
     // Get current date for the email
     const currentDate = new Date().toLocaleDateString('en-US', {
       day: '2-digit',
@@ -658,6 +713,11 @@ const nodemailer = require('nodemailer');
     let statusColor = '#2e7d32'; // Default green color
     let statusEmoji = '✅';
     let statusTitle = '';
+    
+    if (!order) {
+      console.error('Order object is undefined in sendOrderStatusUpdateEmail');
+      return { success: false, error: 'Order object is undefined' };
+    }
     
     switch (order.orderStatus) {
       case 'confirmed':
@@ -692,26 +752,26 @@ const nodemailer = require('nodemailer');
     }
     
     // Format order items for email if needed
-    const itemsList = order.items.map(item => {
+    const itemsList = order.items && Array.isArray(order.items) ? order.items.map(item => {
       return `
         <tr style="border-bottom: 1px solid #e6ebf1; transition: background-color 0.2s;">
           <td style="padding: 16px 15px;">
             <div style="display: flex; align-items: center;">
-              ${item.productId.images && item.productId.images.length > 0 ? 
+              ${item.productId && item.productId.images && item.productId.images.length > 0 ? 
                 `<img src="${item.productId.images[0]}" alt="${item.productId.name}" style="width: 60px; height: 60px; object-fit: cover; margin-right: 15px; border-radius: 6px;">` : ''}
               <div style="font-weight: 500; color: #333; font-size: 14px; line-height: 1.4;">
-                ${item.productId.name || 'Product'}
-                ${item.productId.sku ? `<div style="font-weight: normal; color: #666; font-size: 12px; margin-top: 4px;">SKU: ${item.productId.sku}</div>` : ''}
-                ${item.productId.description ? `<div style="font-weight: normal; color: #666; font-size: 12px; margin-top: 4px;">${item.productId.description.substring(0, 60)}${item.productId.description.length > 60 ? '...' : ''}</div>` : ''}
+                ${item.productId && item.productId.name ? item.productId.name : 'Product'}
+                ${item.productId && item.productId.sku ? `<div style="font-weight: normal; color: #666; font-size: 12px; margin-top: 4px;">SKU: ${item.productId.sku}</div>` : ''}
+                ${item.productId && item.productId.description ? `<div style="font-weight: normal; color: #666; font-size: 12px; margin-top: 4px;">${item.productId.description.substring(0, 60)}${item.productId.description.length > 60 ? '...' : ''}</div>` : ''}
               </div>
             </div>
           </td>
           <td style="padding: 16px 15px; text-align: center; font-size: 14px; color: #333;">${item.quantity}</td>
-          <td style="padding: 16px 15px; text-align: right; font-size: 14px; color: #333;">₹${item.price.toFixed(2)}</td>
-          <td style="padding: 16px 15px; text-align: right; font-weight: 500; font-size: 14px; color: #333;">₹${(item.price * item.quantity).toFixed(2)}</td>
+          <td style="padding: 16px 15px; text-align: right; font-size: 14px; color: #333;">₹${item.price ? item.price.toFixed(2) : '0.00'}</td>
+          <td style="padding: 16px 15px; text-align: right; font-weight: 500; font-size: 14px; color: #333;">₹${item.price ? (item.price * item.quantity).toFixed(2) : '0.00'}</td>
         </tr>
       `;
-    }).join('');
+    }).join('') : '';
 
     const mailOptions = {
       from: `"Cosmic Powertech Orders" <${process.env.SMTP_EMAIL}>`,
@@ -942,9 +1002,281 @@ const nodemailer = require('nodemailer');
     }
   };
 
+  /**
+   * Send coupon code email to user
+   * @param {string} to - Recipient email
+   * @param {Object} couponData - Coupon details
+   * @returns {Promise} - Email sending result
+   */
+  const sendCouponEmail = async (to, couponData) => {
+    // Get current date for the email
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+    
+    // Get user's first name and last name (for personalization)
+    const fullName = to.split('@')[0];
+    const nameParts = fullName.split(/[._-]/);
+    const firstName = nameParts[0] ? nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1) : '';
+    const lastName = nameParts[1] ? nameParts[1].charAt(0).toUpperCase() + nameParts[1].slice(1) : '';
+    const userName = firstName + (lastName ? ' ' + lastName : '');
+    
+    // Format expiry date
+    const expiryDate = new Date(couponData.expiryDate).toLocaleDateString('en-US', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+    
+    // Format discount text
+    const discountText = couponData.discountType === 'percentage' 
+      ? `${couponData.discountValue}% off` 
+      : `₹${couponData.discountValue} off`;
+    
+    const mailOptions = {
+      from: `"Cosmic Powertech" <${process.env.SMTP_EMAIL}>`,
+      to,
+      subject: `Your Special Discount Coupon: ${couponData.couponCode}`,
+      html: `
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+            <title>Your Special Discount Coupon</title>
+            <link
+              href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
+              rel="stylesheet"
+            />
+          </head>
+          <body
+            style="
+              margin: 0;
+              font-family: 'Poppins', sans-serif;
+              background: #ffffff;
+              font-size: 14px;
+            "
+          >
+            <div
+              style="
+                max-width: 680px;
+                margin: 0 auto;
+                padding: 45px 30px 60px;
+                background: #f4f7ff;
+                background-image: url('https://archisketch-resources.s3.ap-northeast-2.amazonaws.com/vrstyler/1661497957196_595865/email-template-background-banner');
+                background-repeat: no-repeat;
+                background-size: 800px 452px;
+                background-position: top center;
+                font-size: 14px;
+                color: #434343;
+              "
+            >
+              <header>
+                <table style="width: 100%;">
+                  <tbody>
+                    <tr style="height: 0;">
+                      <td>
+                        <img
+                          alt="Cosmic Logo"
+                          src="https://api.cosmicpowertech.com/uploads/navbar/logo-1758100778637-478532652.png"
+                          height="30px"
+                        />
+                      </td>
+                      <td style="text-align: right;">
+                        <span
+                          style="font-size: 16px; line-height: 30px; color: #ffffff;"
+                          >${currentDate}</span
+                        >
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </header>
+
+              <main>
+                <div
+                  style="
+                    margin: 0;
+                    margin-top: 70px;
+                    padding: 92px 30px 115px;
+                    background: #ffffff;
+                    border-radius: 30px;
+                    text-align: center;
+                  "
+                >
+                  <div style="width: 100%; max-width: 489px; margin: 0 auto;">
+                    <h1
+                      style="
+                        margin: 0;
+                        font-size: 24px;
+                        font-weight: 500;
+                        color: #1f1f1f;
+                      "
+                    >
+                      Your Special Discount Coupon
+                    </h1>
+                    <p
+                      style="
+                        margin: 0;
+                        margin-top: 17px;
+                        font-size: 16px;
+                        font-weight: 500;
+                      "
+                    >
+                      Hey ${userName},
+                    </p>
+                    <p
+                      style="
+                        margin: 0;
+                        margin-top: 17px;
+                        font-size: 14px;
+                        font-weight: 400;
+                      "
+                    >
+                      We're excited to offer you a special discount on your next purchase!
+                    </p>
+                    
+                    <div
+                      style="
+                        margin-top: 40px;
+                        padding: 20px;
+                        background-color: #f5f9e8;
+                        border: 2px dashed #92c51b;
+                        border-radius: 10px;
+                      "
+                    >
+                      <h2
+                        style="
+                          margin: 0;
+                          font-size: 28px;
+                          font-weight: 600;
+                          color: #92c51b;
+                          letter-spacing: 2px;
+                        "
+                      >
+                        ${couponData.couponCode}
+                      </h2>
+                      <p
+                        style="
+                          margin: 10px 0 0;
+                          font-size: 16px;
+                          font-weight: 500;
+                          color: #333;
+                        "
+                      >
+                        ${discountText}
+                      </p>
+                      ${couponData.minOrderAmount > 0 ? 
+                        `<p style="margin: 5px 0 0; font-size: 12px; color: #666;">
+                          Minimum order: ₹${couponData.minOrderAmount}
+                        </p>` : ''
+                      }
+                      ${couponData.maxDiscount ? 
+                        `<p style="margin: 5px 0 0; font-size: 12px; color: #666;">
+                          Maximum discount: ₹${couponData.maxDiscount}
+                        </p>` : ''
+                      }
+                    </div>
+                    
+                    <p
+                      style="
+                        margin: 0;
+                        margin-top: 20px;
+                        font-size: 13px;
+                        color: #666;
+                      "
+                    >
+                      Valid until: ${expiryDate}
+                    </p>
+                    
+                    <div style="margin-top: 40px;">
+                      <a
+                        href="https://cosmicpowertech.com/shop"
+                        style="
+                          display: inline-block;
+                          padding: 14px 40px;
+                          background-color: #92c51b;
+                          border-radius: 10px;
+                          color: #ffffff;
+                          font-weight: 500;
+                          font-size: 16px;
+                          text-decoration: none;
+                        "
+                        >Shop Now</a
+                      >
+                    </div>
+                  </div>
+                </div>
+              </main>
+
+              <footer
+                style="
+                  margin: 0;
+                  margin-top: 60px;
+                  text-align: center;
+                  color: #ffffff;
+                "
+              >
+                <div style="margin-bottom: 20px;">
+                  <a
+                    href="https://www.facebook.com/cosmicpowertech"
+                    target="_blank"
+                    style="display: inline-block;"
+                  >
+                    <img
+                      width="36px"
+                      alt="Facebook"
+                      src="https://archisketch-resources.s3.ap-northeast-2.amazonaws.com/vrstyler/1661502815169_682499/email-template-icon-facebook"
+                    />
+                  </a>
+                  <a
+                    href="https://www.instagram.com/cosmicpowertech"
+                    target="_blank"
+                    style="display: inline-block; margin-left: 8px;"
+                  >
+                    <img
+                      width="36px"
+                      alt="Instagram"
+                      src="https://archisketch-resources.s3.ap-northeast-2.amazonaws.com/vrstyler/1661504218208_684135/email-template-icon-instagram"
+                  /></a>
+                  <a
+                    href="https://www.linkedin.com/company/cosmicpowertech"
+                    target="_blank"
+                    style="display: inline-block; margin-left: 8px;"
+                  >
+                    <img
+                      width="36px"
+                      alt="LinkedIn"
+                      src="https://cdn-icons-png.flaticon.com/512/174/174857.png"
+                    />
+                  </a>
+                </div>
+                <p style="margin: 0; margin-top: 16px; color: #434343;">
+                  Copyright © ${new Date().getFullYear()} Cosmic Powertech. All rights reserved.
+                </p>
+              </footer>
+            </div>
+          </body>
+        </html>
+      `
+    };
+
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      console.error('Email sending failed:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   module.exports = {
     sendVerificationEmail,
     sendOrderConfirmationEmail,
     sendOrderStatusUpdateEmail,
-    sendNotificationEmail
+    sendNotificationEmail,
+    sendCouponEmail
   };

@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base URL
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
 });
 
 // Add token to requests if available
@@ -13,6 +13,20 @@ API.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Newsletter API
+export const newsletterApi = {
+  subscribe: (data) => API.post('/newsletter/subscribe', data),
+  unsubscribe: (data) => API.post('/newsletter/unsubscribe', data),
+};
+
+// Notifications API
+export const notificationsApi = {
+  getNotifications: (params) => API.get('/notifications/user', { params }),
+  markAsRead: (id) => API.put(`/notifications/${id}/read`),
+  markAllAsRead: () => API.put('/notifications/mark-all-read'),
+  deleteNotification: (id) => API.delete(`/notifications/${id}`),
+};
 
 // Auth API
 export const authApi = {
@@ -37,10 +51,51 @@ export const productsApi = {
     });
   },
   getProductById: (id) => API.get(`/products/${id}`),
+  getProductDetails: (id) => API.get(`/products/${id}`),
+
+
   getProductReviews: (id) => API.get(`/reviews/product/${id}`),
   getRelatedProducts: (id) => API.get(`/products/${id}/related`),
+  getRatingSummary: (id) => API.get(`/products/${id}/rating-summary`),
+  getProductsByTag: (tag) => API.get(`/products/tags/${tag}`),
+  getProductApplications: () => API.get('/products/applications'),
   getTopRatedProducts: () => API.get('/products/top-rated'),
   getNewArrivals: () => API.get('/products/new-arrivals'),
+  addReview: (productId, reviewData) => {
+    const formData = new FormData();
+    
+    // Add text fields
+    Object.keys(reviewData).forEach(key => {
+      if (key !== 'images') {
+        formData.append(key, reviewData[key]);
+      }
+    });
+    
+    // Add images if any
+    if (reviewData.images && reviewData.images.length) {
+      for (let i = 0; i < reviewData.images.length; i++) {
+        formData.append('images', reviewData.images[i]);
+      }
+    }
+    
+    return API.post(`/reviews`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+};
+
+// Shipping API
+export const shippingApi = {
+  submitShippingAddress: (data) => API.post('/shipping/submit', data),
+  confirmOrder: (orderId) => API.put(`/shipping/confirm/${orderId}`),
+  cancelOrder: (orderId, data) => API.put(`/shipping/cancel/${orderId}`, data),
+};
+
+// Admin Shipping API
+export const adminShippingApi = {
+  addShippingCharges: (orderId, data) => API.put(`/shipping/charges/${orderId}`, data),
+  getPendingReviewOrders: () => API.get('/shipping/pending-review'),
+  getWaitingConfirmationOrders: () => API.get('/shipping/waiting-confirmation'),
 };
 
 // Cart API
@@ -49,6 +104,7 @@ export const cartApi = {
   addToCart: (productData) => API.post('/cart', productData),
   updateCartItem: (itemId, quantity) => API.put(`/cart/${itemId}`, { quantity }),
   removeCartItem: (itemId) => API.delete(`/cart/${itemId}`),
+  clearCart: () => API.delete('/cart'),
 };
 
 // Review API
@@ -79,13 +135,17 @@ export const emiApi = {
 
 // Coupon API
 export const couponApi = {
-  validateCoupon: (code, orderAmount) => API.post('/coupons/validate', { code, orderAmount }),
+  validateCoupon: (code, cartTotal) => API.post('/coupons/validate', { code, cartTotal }),
   applyCoupon: (code) => API.post('/coupons/apply', { code }),
 };
 
 // Orders API
 export const ordersApi = {
   placeOrder: (orderData) => API.post('/orders', orderData),
+  verifyEmailAndPlaceOrder: (orderData) => API.post('/orders/guest', orderData),
+  sendOrderForReview: (orderData) => API.post('/order-review/review', orderData),
+  confirmOrder: (orderId, confirmationData) => API.post(`/order-review/${orderId}/confirm`, confirmationData),
+  cancelOrderRequest: (orderId) => API.post(`/order-review/${orderId}/cancel-request`),
   getMyOrders: (params = {}) => {
     const { page = 1, limit = 5, status = '', search = '' } = params;
     return API.get('/orders', { 
@@ -95,6 +155,8 @@ export const ordersApi = {
   getOrderById: (id) => API.get(`/orders/${id}`),
   cancelOrder: (id) => API.put(`/orders/${id}/cancel`),
   trackOrder: (id) => API.get(`/orders/${id}/track`),
+  confirmOrderByToken: (orderId, token) => axios.post(`/api/order-review/customer-confirm/${orderId}/${token}`),
+  cancelOrderByToken: (orderId, token, reason) => axios.post(`/api/order-review/customer-cancel/${orderId}/${token}`, { cancelReason: reason }),
 };
 
 // Wishlist API
@@ -116,14 +178,10 @@ export const categoryApi = {
 
 
 
-// Newsletter API
-export const newsletterApi = {
-  subscribe: (email) => API.post('/newsletter', { email }),
-  unsubscribe: (email) => API.delete(`/newsletter/${email}`),
-};
-
 export default {
   auth: authApi,
+  shipping: shippingApi,
+  adminShipping: adminShippingApi,
   products: productsApi,
   cart: cartApi,
   orders: ordersApi,

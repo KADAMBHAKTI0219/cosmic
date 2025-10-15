@@ -20,17 +20,26 @@ const OrderManagement = () => {
         const ordersData = response.data && response.data.data ? response.data.data : [];
         
         // Transform data for display
-        const formattedOrders = ordersData.map(order => ({
-          id: order._id,
-          orderId: order.orderId,
-          customer: order.userId ? (order.userId.name || 'Unknown User') : 'Unknown User',
-          email: order.userId ? (order.userId.email || 'No Email') : 'No Email',
-          date: new Date(order.createdAt).toLocaleDateString(),
-          status: order.orderStatus,
-          total: `₹${order.totalPrice.toFixed(2)}`,
-          items: order.items.length,
-          rawData: order
-        }));
+        const formattedOrders = ordersData.map(order => {
+          // Calculate the final total (product price + shipping charges)
+          const shippingCharges = order.shippingCharges || 0;
+          const productPrice = order.totalPrice || 0;
+          const finalTotal = productPrice + shippingCharges;
+          
+          return {
+            id: order._id,
+            orderId: order.orderId,
+            customer: order.userId ? (order.userId.name || 'Unknown User') : 'Unknown User',
+            email: order.userId ? (order.userId.email || 'No Email') : 'No Email',
+            date: new Date(order.createdAt).toLocaleDateString(),
+            status: order.orderStatus,
+            total: `₹${finalTotal.toFixed(2)}`, // Display the final total (product price + shipping)
+            shippingCharges: shippingCharges,
+            productPrice: productPrice,
+            items: order.items.length,
+            rawData: order
+          };
+        });
         
         setOrders(formattedOrders);
         setError(null);
@@ -52,17 +61,42 @@ const OrderManagement = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editOrder, setEditOrder] = useState(null);
+  
+  // Shipping charges form states
+  const [shippingCharges, setShippingCharges] = useState(0);
+  const [finalPrice, setFinalPrice] = useState(0);
+  const [adminNotes, setAdminNotes] = useState('');
+  const [submittingShipping, setSubmittingShipping] = useState(false);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
   };
 
+  // State for advanced filtering
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [dateRange, setDateRange] = useState({ from: '', to: '' });
+  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Filter orders based on all criteria
   const filteredOrders = orders.filter(order => {
+    // Basic search filter
+    const searchLower = searchTerm.toLowerCase();
     const matchesSearch = 
-      (order.customer && order.customer.toLowerCase().includes(searchTerm.toLowerCase())) || 
-      (order.orderId && order.orderId.toString().includes(searchTerm));
+      (order.customer && order.customer.toLowerCase().includes(searchLower)) || 
+      (order.orderId && order.orderId.toString().includes(searchLower)) ||
+      (order.email && order.email.toLowerCase().includes(searchLower));
     
     const matchesStatus = statusFilter === 'All' || order.status === statusFilter;
+    
+    // Date range filter
+    if (dateRange.from && new Date(order.date) < new Date(dateRange.from)) return false;
+    if (dateRange.to && new Date(order.date) > new Date(dateRange.to)) return false;
+    
+    // Price range filter
+    const orderTotal = parseFloat(order.total.replace(/[₹,]/g, ''));
+    if (priceRange.min && orderTotal < parseFloat(priceRange.min)) return false;
+    if (priceRange.max && orderTotal > parseFloat(priceRange.max)) return false;
     
     return matchesSearch && matchesStatus;
   });
@@ -84,6 +118,64 @@ const OrderManagement = () => {
     setShowEditModal(false);
   };
 
+  const handleSetShippingCharges = async (orderId) => {
+    try {
+      setSubmittingShipping(true);
+      
+      // Calculate final price by adding shipping charges to subtotal
+      const subtotal = parseFloat(selectedOrder.total.replace('₹', ''));
+      const calculatedFinalPrice = subtotal + parseFloat(shippingCharges);
+      
+      // Call API to set shipping charges and final price
+      await orderManagementApi.setShippingAndFinalPrice(orderId, {
+        shippingCharges: parseFloat(shippingCharges),
+        finalPrice: calculatedFinalPrice,
+        adminNotes
+      });
+      
+      toast.success('Shipping charges and final price sent to customer');
+      
+      // Reload orders after update
+      const response = await orderManagementApi.getAllOrders();
+      const ordersData = response.data && response.data.data ? response.data.data : [];
+      
+      // Transform data for display
+      const formattedOrders = ordersData.map(order => {
+        // Calculate the final total (product price + shipping charges)
+        const shippingCharges = order.shippingCharges || 0;
+        const productPrice = order.totalPrice || 0;
+        const finalTotal = productPrice + shippingCharges;
+        
+        return {
+          id: order._id,
+          orderId: order.orderId,
+          customer: order.userId && order.userId.name ? order.userId.name : 'Unknown User',
+          email: order.userId && order.userId.email ? order.userId.email : 'No Email',
+          date: new Date(order.createdAt).toLocaleDateString(),
+          status: order.orderStatus,
+          total: `₹${finalTotal.toFixed(2)}`, // Display the final total (product price + shipping)
+          shippingCharges: shippingCharges,
+          productPrice: productPrice,
+          items: order.items.length,
+          rawData: order
+        };
+      });
+      
+      setOrders(formattedOrders);
+      setShowDetailsModal(false);
+      
+      // Reset form
+      setShippingCharges(0);
+      setFinalPrice(0);
+      setAdminNotes('');
+    } catch (error) {
+      console.error('Error setting shipping charges:', error);
+      toast.error('Failed to set shipping charges');
+    } finally {
+      setSubmittingShipping(false);
+    }
+  };
+
   const handleUpdateStatus = async (id, newStatus) => {
     try {
       console.log('Updating order status:', id, newStatus);
@@ -95,17 +187,26 @@ const OrderManagement = () => {
       const ordersData = response.data && response.data.data ? response.data.data : [];
       
       // Transform data for display
-      const formattedOrders = ordersData.map(order => ({
-        id: order._id,
-        orderId: order.orderId,
-        customer: order.userId ? (order.userId.name || 'Unknown User') : 'Unknown User',
-        email: order.userId ? (order.userId.email || 'No Email') : 'No Email',
-        date: new Date(order.createdAt).toLocaleDateString(),
-        status: order.orderStatus,
-        total: `₹${order.totalPrice.toFixed(2)}`,
-        items: order.items.length,
-        rawData: order
-      }));
+      const formattedOrders = ordersData.map(order => {
+        // Calculate the final total (product price + shipping charges)
+        const shippingCharges = order.shippingCharges || 0;
+        const productPrice = order.totalPrice || 0;
+        const finalTotal = productPrice + shippingCharges;
+        
+        return {
+          id: order._id,
+          orderId: order.orderId,
+          customer: order.userId && typeof order.userId === 'object' && order.userId.name ? order.userId.name : 'Unknown User',
+          email: order.userId && typeof order.userId === 'object' && order.userId.email ? order.userId.email : 'No Email',
+          date: new Date(order.createdAt).toLocaleDateString(),
+          status: order.orderStatus,
+          total: `₹${finalTotal.toFixed(2)}`, // Display the final total (product price + shipping)
+          shippingCharges: shippingCharges,
+          productPrice: productPrice,
+          items: order.items.length,
+          rawData: order
+        };
+      });
       console.log('Updated orders:', formattedOrders);
       setOrders(formattedOrders);
       
@@ -117,8 +218,20 @@ const OrderManagement = () => {
     }
   };
 
-  const handleDeleteOrder = (id) => {
-    setOrders(orders.filter(order => order.id !== id));
+  const handleDeleteOrder = async (id) => {
+    try {
+      // Call API to delete the order
+      await orderManagementApi.deleteOrder(id);
+      
+      // Update the UI by removing the deleted order
+      setOrders(orders.filter(order => order.id !== id));
+      
+      toast.success('Order deleted successfully');
+      setShowDetailsModal(false);
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error('Failed to delete order');
+    }
   };
 
   const statusColors = {
@@ -134,30 +247,122 @@ const OrderManagement = () => {
       <h2 className="text-2xl font-semibold mb-4">Order Management</h2>
       
       {/* Search and Filter */}
-      <div className="flex flex-wrap items-center mb-4 gap-4">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search by order ID or customer"
-            className="pl-10 pr-4 py-2 border rounded-lg w-64"
-            value={searchTerm}
-            onChange={handleSearch}
-          />
-          <FaSearch className="absolute left-3 top-3 text-gray-400" />
+      <div className="mb-6">
+        <div className="flex flex-wrap items-center mb-4 gap-4">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search by order ID or customer"
+              className="pl-10 pr-4 py-2 border rounded-lg w-64"
+              value={searchTerm}
+              onChange={handleSearch}
+            />
+            <FaSearch className="absolute left-3 top-3 text-gray-400" />
+          </div>
+          
+          <select 
+            className="border rounded-lg px-4 py-2"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="All">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="pending_admin_review">Pending Admin Review</option>
+          </select>
+          
+          <div>
+            <button
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-md flex items-center justify-center"
+            >
+              <span>{showAdvancedFilters ? 'Hide' : 'Show'} Advanced Filters</span>
+              <svg
+                className={`ml-2 w-4 h-4 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+          </div>
         </div>
         
-        <select 
-          className="border rounded-lg px-4 py-2"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="All">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="confirmed">Confirmed</option>
-          <option value="shipped">Shipped</option>
-          <option value="delivered">Delivered</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
+        {/* Advanced Filters */}
+        {showAdvancedFilters && (
+          <div className="bg-gray-50 p-4 rounded-lg mb-4">
+            <h3 className="font-medium text-gray-700 mb-3">Advanced Filters</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Date Range */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                <input
+                  type="date"
+                  value={dateRange.from}
+                  onChange={(e) => setDateRange({...dateRange, from: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                <input
+                  type="date"
+                  value={dateRange.to}
+                  onChange={(e) => setDateRange({...dateRange, to: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              
+              {/* Price Range */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Min Price (₹)</label>
+                <input
+                  type="number"
+                  value={priceRange.min}
+                  onChange={(e) => setPriceRange({...priceRange, min: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  placeholder="Min price"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Max Price (₹)</label>
+                <input
+                  type="number"
+                  value={priceRange.max}
+                  onChange={(e) => setPriceRange({...priceRange, max: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  placeholder="Max price"
+                />
+              </div>
+            </div>
+            
+            {/* Filter Actions */}
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => {
+                  setDateRange({ from: '', to: '' });
+                  setPriceRange({ min: '', max: '' });
+                  setStatusFilter('All');
+                  setSearchTerm('');
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md mr-2 hover:bg-gray-100"
+              >
+                Reset Filters
+              </button>
+              <button
+                onClick={() => setShowAdvancedFilters(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       
       {/* Orders Table */}
@@ -279,6 +484,162 @@ const OrderManagement = () => {
                   </div>
                 </div>
               </div>
+              
+              {/* Customer Details Section */}
+              <div className="mb-6 border-t pt-4">
+                <h4 className="font-medium text-gray-800 mb-3">Customer Details</h4>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  {selectedOrder.rawData && selectedOrder.rawData.shippingAddress && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-gray-600">Full Name</p>
+                        <p className="font-medium">{selectedOrder.rawData.shippingAddress.fullName}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Phone</p>
+                        <p className="font-medium">{selectedOrder.rawData.shippingAddress.phone}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Address</p>
+                        <p className="font-medium">{selectedOrder.rawData.shippingAddress.address}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">City</p>
+                        <p className="font-medium">{selectedOrder.rawData.shippingAddress.city}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">State</p>
+                        <p className="font-medium">{selectedOrder.rawData.shippingAddress.state}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Pincode</p>
+                        <p className="font-medium">{selectedOrder.rawData.shippingAddress.pincode}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Order Items Section */}
+              <div className="mb-6 border-t pt-4">
+                <h4 className="font-medium text-gray-800 mb-3">Order Items</h4>
+                <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {selectedOrder.rawData && selectedOrder.rawData.items && selectedOrder.rawData.items.map((item, index) => (
+                        <tr key={index}>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center">
+                              {item.image && (
+                                <img src={item.image} alt={item.name} className="h-10 w-10 mr-3 object-cover rounded" />
+                              )}
+                              <div>
+                                <p className="font-medium">{item.productId ? (item.productId.name || 'Unknown Product') : 'Unknown Product'}</p>
+                                {item.variant && <p className="text-xs text-gray-500">{item.variant}</p>}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">{item.quantity}</td>
+                          <td className="px-4 py-3">₹{item.price.toFixed(2)}</td>
+                          <td className="px-4 py-3">₹{(item.price * item.quantity).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-gray-50">
+                      <tr>
+                        <td colSpan="3" className="px-4 py-2 text-right font-medium">Subtotal:</td>
+                        <td className="px-4 py-2 font-medium">
+                          ₹{selectedOrder.rawData && selectedOrder.rawData.items ? 
+                            selectedOrder.rawData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2) : 
+                            '0.00'}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+
+              {/* Shipping Charges Form - Only show for pending_admin_review orders */}
+              {selectedOrder.status === 'pending_admin_review' && (
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                  <h4 className="font-medium text-blue-800 mb-3">Set Shipping Charges & Final Price</h4>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSetShippingCharges(selectedOrder.id);
+                  }}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Shipping Charges (₹)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={shippingCharges}
+                          onChange={(e) => setShippingCharges(parseFloat(e.target.value))}
+                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          required
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Based on customer's location and order weight</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Final Price (₹)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={finalPrice}
+                          onChange={(e) => setFinalPrice(parseFloat(e.target.value))}
+                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          required
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Subtotal: ₹{selectedOrder.rawData && selectedOrder.rawData.items ? 
+                            selectedOrder.rawData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2) : 
+                            '0.00'} + Shipping: ₹{shippingCharges || '0'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Admin Notes (Optional)
+                      </label>
+                      <textarea
+                        value={adminNotes}
+                        onChange={(e) => setAdminNotes(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        rows="3"
+                      ></textarea>
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {submittingShipping ? (
+                          <span className="flex items-center">
+                            <FaSpinner className="animate-spin mr-2" />
+                            Processing...
+                          </span>
+                        ) : (
+                          'Send Final Price to Customer'
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
               
               <div className="mb-4">
                 <p className="text-gray-600 mb-2">Update Status</p>

@@ -8,7 +8,6 @@ const OffersManagement = () => {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [productsLoading, setProductsLoading] = useState(true);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -16,20 +15,16 @@ const OffersManagement = () => {
     discountValue: '',
     startDate: '',
     endDate: '',
-    productId: '',
     isActive: true
   });
   const [formErrors, setFormErrors] = useState({});
   const [editMode, setEditMode] = useState(false);
   const [currentOfferId, setCurrentOfferId] = useState(null);
-  const [products, setProducts] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterType, setFilterType] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchOffers();
-    fetchProducts();
   }, []);
 
   const fetchOffers = async () => {
@@ -45,35 +40,7 @@ const OffersManagement = () => {
     }
   };
 
-  const fetchProducts = async () => {
-    setProductsLoading(true);
-    try {
-      // Direct API call with token
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.get('http://localhost:5000/api/products', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      console.log('Product response:', response.data);
-      
-      if (response.data && response.data.products) {
-        setProducts(response.data.products);
-      } else if (response.data && Array.isArray(response.data.data)) {
-        setProducts(response.data.data);
-      } else {
-        // Fallback - set empty array to avoid errors
-        setProducts([]);
-        console.error('Could not find products in response:', response.data);
-      }
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      toast.error('Failed to fetch products');
-      // Set empty array to avoid errors
-      setProducts([]);
-    } finally {
-      setProductsLoading(false);
-    }
-  };
+  // Product fetch functionality removed as requested
 
   const validateForm = () => {
     const errors = {};
@@ -139,9 +106,7 @@ const OffersManagement = () => {
     const payload = {
       ...formData,
       discountValue: Number(formData.discountValue),
-      discountPercentage: formData.discountType === 'percentage' ? Number(formData.discountValue) : 0,
-      // Ensure empty productId is sent as null, not empty string
-      productId: formData.productId || null
+      discountPercentage: formData.discountType === 'percentage' ? Number(formData.discountValue) : 0
     };
     
     console.log('Submitting offer with payload:', payload);
@@ -178,7 +143,6 @@ const OffersManagement = () => {
       discountValue: offer.discountValue || offer.discountPercentage || '',
       startDate: offer.startDate?.split('T')[0] || '',
       endDate: offer.endDate?.split('T')[0] || '',
-      productId: offer.productId?._id || offer.productId || '',
       isActive: offer.isActive
     });
     setFormErrors({});
@@ -207,7 +171,6 @@ const OffersManagement = () => {
       discountValue: '',
       startDate: '',
       endDate: '',
-      productId: '',
       isActive: true
     });
     setFormErrors({});
@@ -220,28 +183,10 @@ const OffersManagement = () => {
       (filterStatus === 'active' && offer.isActive) || 
       (filterStatus === 'inactive' && !offer.isActive);
     
-    const matchesType = filterType === 'all' || 
-      (filterType === 'global' && !offer.productId) || 
-      (filterType === 'product' && offer.productId);
-    
     const matchesSearch = offer.title.toLowerCase().includes(searchTerm.toLowerCase());
     
-    return matchesStatus && matchesType && matchesSearch;
+    return matchesStatus && matchesSearch;
   });
-
-  const getProductName = (offer) => {
-    // Handle null, undefined, or empty string productId
-    if (!offer.productId) return 'All Products (Global)';
-    
-    // Handle populated product object
-    if (typeof offer.productId === 'object' && offer.productId.name) {
-      return offer.productId.name;
-    }
-    
-    // Find product by ID in local products array
-    const product = products.find(p => p._id === offer.productId);
-    return product ? product.name : 'Unknown Product';
-  };
 
   return (
     <div className="container mx-auto p-4">
@@ -319,59 +264,10 @@ const OffersManagement = () => {
               {formErrors.endDate && <p className="text-red-500 text-sm mt-1">{formErrors.endDate}</p>}
             </div>
             
-            <div>
-              <label className="block mb-2">Product</label>
-              <div className="relative">
-                {productsLoading ? (
-                  <div className="w-full p-2 border rounded border-gray-300 bg-gray-50 flex items-center">
-                    <FaSpinner className="animate-spin mr-2" />
-                    Loading products...
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <select
-                      name="productId"
-                      value={formData.productId || ''}
-                      onChange={handleChange}
-                      className="w-full p-2 border rounded border-gray-300 appearance-none"
-                    >
-                      <option value="">All Products (Global Offer)</option>
-                      {products && products.length > 0 ? (
-                        <optgroup label="Products">
-                          {products.map(product => (
-                            <option key={product._id} value={product._id}>
-                              {product.name} - ₹{product.price}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ) : (
-                        <option disabled>No products available</option>
-                      )}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                      <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                        <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-                      </svg>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Leave empty for a global offer that applies to all products
+            <div className="mt-2 p-2 bg-green-50 rounded border border-green-100">
+              <p className="text-sm text-green-700">
+                <strong>Global offer:</strong> This offer will apply to all eligible products.
               </p>
-              {formData.productId ? (
-                <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-100">
-                  <p className="text-sm text-blue-700">
-                    <strong>Product-specific offer:</strong> This offer will only apply to the selected product.
-                  </p>
-                </div>
-              ) : (
-                <div className="mt-2 p-2 bg-green-50 rounded border border-green-100">
-                  <p className="text-sm text-green-700">
-                    <strong>Global offer:</strong> This offer will apply to all eligible products.
-                  </p>
-                </div>
-              )}
             </div>
             
             <div className="flex items-center mt-4">
@@ -465,15 +361,7 @@ const OffersManagement = () => {
               <option value="inactive">Inactive</option>
             </select>
             
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="p-2 border rounded"
-            >
-              <option value="all">All Offers</option>
-              <option value="global">Global Offers</option>
-              <option value="product">Product-Specific</option>
-            </select>
+
             
             <button
               onClick={fetchOffers}
@@ -504,7 +392,6 @@ const OffersManagement = () => {
                 <tr className="bg-gray-100">
                   <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b">Title</th>
                   <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b">Discount</th>
-                  <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b">Product</th>
                   <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b">Validity</th>
                   <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b">Status</th>
                   <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b">Actions</th>
@@ -520,22 +407,6 @@ const OffersManagement = () => {
                           ? `₹${offer.discountValue || 0}` 
                           : `${offer.discountValue || offer.discountPercentage || 0}%`}
                       </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      {!offer.productId ? (
-                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                          Global Offer (All Products)
-                        </span>
-                      ) : (
-                        <div>
-                          <div className="font-medium">{getProductName(offer)}</div>
-                          {typeof offer.productId === 'object' && offer.productId.price && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              Price: ₹{offer.productId.price}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </td>
                     <td className="py-3 px-4">
                       <div className="text-sm">

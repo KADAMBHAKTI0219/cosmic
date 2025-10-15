@@ -63,6 +63,7 @@ exports.getDashboardStats = async (req, res) => {
       shippedOrders,
       deliveredOrders,
       cancelledOrders,
+      pendingAdminReviewOrders,
       newOrders,
       ordersLastMonth
     ] = await Promise.all([
@@ -72,6 +73,7 @@ exports.getDashboardStats = async (req, res) => {
       Order.countDocuments({ status: 'shipped' }),
       Order.countDocuments({ status: 'delivered' }),
       Order.countDocuments({ status: 'cancelled' }),
+      Order.countDocuments({ status: 'pending_admin_review' }),
       Order.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
       Order.countDocuments({ createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } })
     ]);
@@ -187,6 +189,71 @@ exports.getDashboardStats = async (req, res) => {
       }
     ]);
     
+    // Get shipping statistics
+    const shippingStats = await Order.aggregate([
+      {
+        $match: {
+          shippingCharges: { $exists: true, $ne: null }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalShipping: { $sum: '$shippingCharges' },
+          avgShipping: { $avg: '$shippingCharges' },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          totalShipping: { $round: ['$totalShipping', 2] },
+          avgShipping: { $round: ['$avgShipping', 2] },
+          count: 1
+        }
+      }
+    ]);
+    
+    // Get order status distribution
+    const orderStatusData = {
+      pending_admin_review: pendingAdminReviewOrders,
+      pending: pendingOrders,
+      processing: processingOrders,
+      shipped: shippedOrders,
+      delivered: deliveredOrders,
+      cancelled: cancelledOrders
+    };
+    
+    // Get recent orders requiring admin review
+    const recentPendingOrders = await Order.find({ status: 'pending_admin_review' })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('orderId customer email date totalAmount')
+      .lean();
+    
+    // Calculate average order value
+    const avgOrderValueResult = await Order.aggregate([
+      {
+        $match: {
+          status: { $nin: ['cancelled'] }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          avgOrderValue: { $avg: '$totalAmount' }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          avgOrderValue: { $round: ['$avgOrderValue', 2] }
+        }
+      }
+    ]);
+    
+    const avgOrderValue = avgOrderValueResult.length > 0 ? avgOrderValueResult[0].avgOrderValue : 0;
+    
     // Return all stats with a small delay to ensure frontend can handle the response
     setTimeout(() => {
       res.status(200).json({
@@ -214,14 +281,23 @@ exports.getDashboardStats = async (req, res) => {
             shipped: shippedOrders,
             delivered: deliveredOrders,
             cancelled: cancelledOrders,
+            pendingReview: pendingAdminReviewOrders,
             new: newOrders,
-            growth: `${orderGrowth}%`
+            growth: `${orderGrowth}%`,
+            avgOrderValue
           },
           revenueStats: {
             total: totalRevenue,
             recent: thisMonthRevenue,
             growth: `${revenueGrowth}%`
           },
+          shippingStats: shippingStats.length > 0 ? shippingStats[0] : {
+            totalShipping: 0,
+            avgShipping: 0,
+            count: 0
+          },
+          orderStatusData,
+          recentPendingOrders,
           chartData: {
             monthlySales: formattedMonthlySales,
             topSellingProducts

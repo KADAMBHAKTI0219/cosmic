@@ -75,25 +75,16 @@ const CartPopup = ({ isOpen, onClose }) => {
   };
   
   if (!isOpen) return null;
-  
-  // Fallback cart product if API fails
-  const fallbackProduct = {
-    _id: 1,
-    name: 'WAAREE 590Wp 144Cells 24 Volts N-Type Framed...',
-    price: 10599,
-    images: [solarModule],
-    link: '/product/waaree-590wp-solar-module'
-  };
 
   return (
-    <>
-      {/* Overlay */}
+    <>+00
+  .    {/* Overlay */}
       {isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300"></div>
       )}
       
       {/* Offcanvas */}
-      <div 
+      <div        
         ref={cartRef}
         className={`fixed top-0 right-0 h-full w-full sm:w-96 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
         style={{ maxWidth: '100%' }}
@@ -140,21 +131,17 @@ const CartPopup = ({ isOpen, onClose }) => {
                        <div className="flex items-center space-x-4">
                          <div className="flex-shrink-0 w-20 h-20 border border-gray-200 rounded-md overflow-hidden">
                            <img 
-                             src={item.product?.images?.[0] ? fixImageUrl(item.product.images[0]) : solarModule} 
-                             alt={item.product?.name || 'Product'} 
+                             src={item.productId?.images?.[0] ? fixImageUrl(item.productId.images[0]) : solarModule} 
+                             alt={item.productId?.name || 'Product'} 
                              className="w-full h-full object-cover"
                            />
                          </div>
                          <div className="flex-1 min-w-0">
-                           <p className="text-sm font-medium text-gray-900 truncate">
-                             {item.product?.name || 'Product'}
-                           </p>
+                           <Link to={`/product/${item.productId?._id}`} className="text-sm font-medium text-gray-900 truncate hover:text-main">
+                             {item.productId?.name || 'Product'}
+                           </Link>
                            <div className="flex items-center mt-1">
                              <span className="text-sm text-gray-500 mr-2">Qty: {item.quantity}</span>
-                             <div className="flex items-center space-x-2">
-                               <button className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-300">-</button>
-                               <button className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-300">+</button>
-                             </div>
                            </div>
                            <p className="text-sm font-medium text-main mt-1">
                              ₹{item.price || 0}
@@ -174,98 +161,7 @@ const CartPopup = ({ isOpen, onClose }) => {
                    ))}
                  </ul>
                  
-                 {/* Product Recommendations */}
-                 <div className="mt-4 p-4 border-t border-gray-200">
-                   <div className="flex items-center justify-between mb-3">
-                     <h3 className="text-sm font-medium text-gray-900">Recommended for You</h3>
-                     <div className="flex items-center text-xs text-main">
-                       <span>Personalized</span>
-                       <FaBolt className="ml-1 text-yellow-500" />
-                     </div>
-                   </div>
-                   
-                   <div className="grid grid-cols-2 gap-3">
-                     {/* Recommendation 1 */}
-                     <div className="border border-gray-200 rounded-lg p-2 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
-                       <div className="relative">
-                         <div className="aspect-square bg-gray-100 rounded-md overflow-hidden mb-2">
-                           <img 
-                             src={solarModule} 
-                             alt="Solar Panel" 
-                             className="w-full h-full object-cover"
-                           />
-                         </div>
-                         <div className="absolute top-1 right-1 bg-yellow-500 text-white text-xs px-1.5 py-0.5 rounded-sm font-medium">
-                           Best Seller
-                         </div>
-                       </div>
-                       <h4 className="text-xs font-medium text-gray-900 line-clamp-2">Solar Panel 450W Monocrystalline</h4>
-                       <div className="flex items-center mt-1 mb-1">
-                         <div className="flex text-yellow-400 text-xs">
-                           <FaStar />
-                           <FaStar />
-                           <FaStar />
-                           <FaStar />
-                           <FaStar className="text-gray-300" />
-                         </div>
-                         <span className="text-xs text-gray-500 ml-1">(42)</span>
-                       </div>
-                       <div className="flex justify-between items-center">
-                         <div>
-                           <p className="text-xs font-bold text-main">₹12,999</p>
-                           <p className="text-xs text-gray-500 line-through">₹15,999</p>
-                         </div>
-                         <button className="text-xs bg-main text-white px-2 py-1 rounded-full hover:bg-main-dark transition-colors duration-200 flex items-center">
-                           <span>Add</span>
-                           <FaShoppingCart className="ml-1 text-xs" />
-                         </button>
-                       </div>
-                     </div>
-                     
-                     {/* Recommendation 2 */}
-                     <div className="border border-gray-200 rounded-lg p-2 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
-                       <div className="relative">
-                         <div className="aspect-square bg-gray-100 rounded-md overflow-hidden mb-2">
-                           <img 
-                             src={solarModule} 
-                             alt="Solar Inverter" 
-                             className="w-full h-full object-cover"
-                           />
-                         </div>
-                         <div className="absolute top-1 right-1 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-sm font-medium">
-                           20% Off
-                         </div>
-                       </div>
-                       <h4 className="text-xs font-medium text-gray-900 line-clamp-2">Solar Inverter 3kW Pure Sine Wave</h4>
-                       <div className="flex items-center mt-1 mb-1">
-                         <div className="flex text-yellow-400 text-xs">
-                           <FaStar />
-                           <FaStar />
-                           <FaStar />
-                           <FaStar />
-                           <FaStar className="text-yellow-400" />
-                         </div>
-                         <span className="text-xs text-gray-500 ml-1">(28)</span>
-                       </div>
-                       <div className="flex justify-between items-center">
-                         <div>
-                           <p className="text-xs font-bold text-main">₹18,499</p>
-                           <p className="text-xs text-gray-500 line-through">₹22,999</p>
-                         </div>
-                         <button className="text-xs bg-main text-white px-2 py-1 rounded-full hover:bg-main-dark transition-colors duration-200 flex items-center">
-                           <span>Add</span>
-                           <FaShoppingCart className="ml-1 text-xs" />
-                         </button>
-                       </div>
-                     </div>
-                   </div>
-                   
-                   <div className="mt-3">
-                     <Link to="/products" onClick={onClose} className="text-xs text-main hover:text-main-dark flex items-center justify-center w-full">
-                       View more recommendations <FaArrowRight className="ml-1" />
-                     </Link>
-                   </div>
-                 </div>
+                 {/* No dummy recommendations - we'll show actual related products */}
                </>
              )}
           </div>

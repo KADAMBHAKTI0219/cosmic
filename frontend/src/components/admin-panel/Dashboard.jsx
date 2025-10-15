@@ -149,6 +149,112 @@ const Dashboard = () => {
         ))}
       </div>
       
+      {/* Order Status Distribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Order Status Chart */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-lg font-semibold mb-4">Order Status Distribution</h2>
+          <div className="h-64">
+            {dashboardStats?.orderStatusData ? (
+              <Pie 
+                data={{
+                  labels: Object.keys(dashboardStats.orderStatusData),
+                  datasets: [
+                    {
+                      data: Object.values(dashboardStats.orderStatusData),
+                      backgroundColor: [
+                        '#4F46E5', // pending_admin_review
+                        '#10B981', // confirmed
+                        '#F59E0B', // processing
+                        '#3B82F6', // shipped
+                        '#6366F1', // delivered
+                        '#EF4444', // cancelled
+                      ],
+                      borderWidth: 1,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: 'right',
+                    },
+                  },
+                }}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-gray-500">No order status data available</p>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Shipping Charges Summary */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-lg font-semibold mb-4">Shipping & Revenue Summary</h2>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500">Avg. Shipping Charges</p>
+                <p className="text-xl font-bold">₹{dashboardStats?.shippingStats?.avgShipping || '0'}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500">Total Shipping Revenue</p>
+                <p className="text-xl font-bold">₹{dashboardStats?.shippingStats?.totalShipping || '0'}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500">Orders Pending Review</p>
+                <p className="text-xl font-bold">{dashboardStats?.orderStats?.pendingReview || '0'}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500">Avg. Order Value</p>
+                <p className="text-xl font-bold">₹{dashboardStats?.orderStats?.avgOrderValue || '0'}</p>
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              <h3 className="text-md font-medium mb-2">Recent Orders Requiring Review</h3>
+              {dashboardStats?.recentPendingOrders && dashboardStats.recentPendingOrders.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {dashboardStats.recentPendingOrders.map((order, index) => (
+                        <tr key={index}>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm">{order.orderId}</td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm">{order.customer}</td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm">{new Date(order.date).toLocaleDateString()}</td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm">
+                            <a 
+                              href={`/admin/orders?id=${order._id}`} 
+                              className="text-indigo-600 hover:text-indigo-900"
+                            >
+                              Review
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">No pending orders requiring review</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow-md p-6">
@@ -341,7 +447,7 @@ const Dashboard = () => {
                         <div className="flex items-center">
                           {product.image && (
                             <img 
-                              src={`http://localhost:5000/uploads/products/${product.image}`} 
+                              src={`http://localhost:8000/uploads/products/${product.image}`} 
                               alt={product.name} 
                               className="h-8 w-8 mr-3 object-cover rounded"
                             />
@@ -389,7 +495,7 @@ const Dashboard = () => {
                       <div className="flex items-center">
                         {product.image && (
                           <img 
-                            src={`http://localhost:5000/uploads/products/${product.image}`} 
+                            src={`http://localhost:8000/uploads/products/${product.image}`} 
                             alt={product.name} 
                             className="h-8 w-8 mr-3 object-cover rounded"
                           />

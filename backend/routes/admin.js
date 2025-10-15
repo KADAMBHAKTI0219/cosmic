@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
-const upload = require('../utils/multerConfig');
+const { upload } = require('../utils/multerConfig');
 
 // Import controllers - Using only admin controllers for consistency
 const userManagementController = require('../controllers/admin/userManagementController');
@@ -37,9 +37,13 @@ router.put('/products/:id', upload.array('images', 10), productManagementControl
 router.delete('/products/:id', productManagementController.deleteProduct);
 router.put('/products/:id/stock', productManagementController.updateStock);
 router.put('/products/:id/featured', productManagementController.toggleFeaturedStatus);
+router.put('/products/:id/status', productManagementController.toggleActiveStatus);
 router.get('/product-stats', productManagementController.getProductStats);
 // Fix the export route - it needs to come before the :id route to avoid conflict
 router.get('/products-export', productManagementController.exportProducts);
+// Documentation routes
+router.post('/products/:id/documentation', upload.single('file'), productManagementController.uploadDocumentation);
+router.get('/products/:id/documentation', productManagementController.downloadDocumentation);
 
 // Category Routes
 router.get('/categories', categoryController.getCategories);
@@ -47,11 +51,20 @@ router.get('/categories/:id', categoryController.getCategory);
 router.post('/categories', upload.single('image'), categoryController.createCategory);
 router.put('/categories/:id', upload.single('image'), categoryController.updateCategory);
 router.delete('/categories/:id', categoryController.deleteCategory);
+router.get('/main-categories', (req, res) => {
+  req.query.mainOnly = 'true';
+  categoryController.getCategories(req, res);
+});
+router.get('/subcategories/:parentId', (req, res) => {
+  req.query.parent = req.params.parentId;
+  categoryController.getCategories(req, res);
+});
 
 // Order Management Routes
 router.get('/orders', orderManagementController.getAllOrders);
 router.get('/orders/:id', orderManagementController.getOrderById);
 router.put('/orders/:id/status', orderManagementController.updateOrderStatus);
+router.delete('/orders/:id', orderManagementController.deleteOrder);
 router.get('/orders/stats', orderManagementController.getOrderStats);
 router.get('/orders/export', orderManagementController.exportOrders);
 

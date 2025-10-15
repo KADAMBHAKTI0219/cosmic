@@ -34,6 +34,7 @@ app.use('/api/categories', require('./routes/category'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/cart', require('./routes/cart'));
 app.use('/api/orders', require('./routes/orders'));
+app.use('/api/order-review', require('./routes/orderReview'));
 app.use('/api/reviews', require('./routes/review'));
 app.use('/api/wishlist', require('./routes/wishlist'));
 app.use('/api/admin', require('./routes/admin'));
@@ -44,6 +45,7 @@ app.use('/api/coupons', require('./routes/coupon'));
 app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/shipping', require('./routes/shipping'));
 
 // Default route
 app.get('/', (req, res) => {

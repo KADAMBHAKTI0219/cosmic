@@ -15,6 +15,7 @@ import NewsletterManagement from './NewsletterManagement';
 import ReviewsManagement from './ReviewsManagement';
 import WishlistAnalytics from './WishlistAnalytics';
 import EmiManagement from './EmiManagement';
+import AdminShippingPanel from '../../pages/admin/AdminShippingPanel';
 
 const AdminRoutes = () => {
   return (
@@ -34,6 +35,7 @@ const AdminRoutes = () => {
         <Route path="reviews" element={<ReviewsManagement />} />
         <Route path="wishlist" element={<WishlistAnalytics />} />
         <Route path="emi" element={<EmiManagement />} />
+        <Route path="shipping" element={<AdminShippingPanel />} />
       </Route>
     </Routes>
   );

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import logo from '../assets/images/logo.png';
+import NewsletterSubscription from '../components/common/NewsletterSubscription';
 
 const Footer = () => {
   return (
@@ -117,19 +118,7 @@ const Footer = () => {
             <p className="mb-4 text-gray-300">
               Leave your email address for news updates
             </p>
-            <form className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="email"
-                placeholder="Your email"
-                className="px-4 py-2 rounded-md focus:outline-none text-gray-800"
-              />
-              <button
-                type="submit"
-                className="bg-main hover:bg-main-dark text-white px-4 py-2 rounded-md transition duration-300"
-              >
-                Subscribe
-              </button>
-            </form>
+            <NewsletterSubscription />
           </div>
         </div>
 

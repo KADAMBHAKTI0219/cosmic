@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { couponManagementApi } from '../../services/adminApi';
 import { toast } from 'react-toastify';
-import { FaEdit, FaTrash, FaPlus, FaTimes, FaCheck, FaSpinner } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaTimes, FaCheck, FaSpinner, FaGift } from 'react-icons/fa';
+import UserSelectionModal from './UserSelectionModal';
+import axios from 'axios';
 
 const CouponsMangement = () => {
   const [coupons, setCoupons] = useState([]);
@@ -23,6 +25,9 @@ const CouponsMangement = () => {
   const [currentCouponId, setCurrentCouponId] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [generatingCoupons, setGeneratingCoupons] = useState(false);
+  const [selectedCouponForGeneration, setSelectedCouponForGeneration] = useState(null);
 
   useEffect(() => {
     fetchCoupons();
@@ -184,12 +189,96 @@ const CouponsMangement = () => {
     return matchesStatus && matchesSearch;
   });
 
+  const openGenerateCouponModal = (coupon = null) => {
+    // If coupon is provided, we're generating for a specific coupon
+    // Otherwise, we're using the current form data
+    setSelectedCouponForGeneration(coupon);
+    setIsUserModalOpen(true);
+  };
+
+  const handleGenerateCoupon = async (selectedUsers) => {
+    if (!selectedUsers || selectedUsers.length === 0) {
+      toast.error('Please select at least one user');
+      return;
+    }
+
+    try {
+      setGeneratingCoupons(true);
+      
+      // Determine which coupon data to use
+      const couponData = selectedCouponForGeneration 
+        ? selectedCouponForGeneration 
+        : editMode && currentCouponId 
+          ? coupons.find(c => c._id === currentCouponId) 
+          : formData;
+
+      if (!couponData._id && !currentCouponId) {
+        toast.error('Please save the coupon first before generating');
+        setGeneratingCoupons(false);
+        setIsUserModalOpen(false);
+        return;
+      }
+
+      // Extract user IDs from selected users
+      const userIds = selectedUsers.map(user => user._id || user.id);
+      
+      // Use the API service to generate and send coupons
+      const couponId = couponData._id || currentCouponId;
+      console.log('Generating coupon with ID:', couponId, 'for users:', userIds);
+      const response = await couponManagementApi.generateAndSendCoupon(couponId, userIds);
+
+      if (response.data.success) {
+        toast.success(`Coupons generated and sent to ${selectedUsers.length} users successfully!`);
+        
+        // Show more detailed success message if available
+        if (response.data.sentCount) {
+          toast.info(`${response.data.sentCount} emails sent successfully.`);
+        }
+      } else {
+        toast.warning(response.data.message || 'Coupons generated but there might be issues with email delivery');
+      }
+      
+      setIsUserModalOpen(false);
+      setSelectedCouponForGeneration(null);
+      
+      // Refresh the coupons list
+      fetchCoupons();
+    } catch (error) {
+      console.error('Error generating coupons:', error);
+      toast.error(error.response?.data?.message || 'Failed to generate coupons');
+    } finally {
+      setGeneratingCoupons(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Coupons Management</h1>
       
+      {/* User Selection Modal */}
+      <UserSelectionModal 
+        isOpen={isUserModalOpen}
+        onClose={() => {
+          setIsUserModalOpen(false);
+          setSelectedCouponForGeneration(null);
+        }}
+        onSubmit={handleGenerateCoupon}
+        couponName={selectedCouponForGeneration?.code || (editMode ? formData.code : '')}
+      />
+      
       <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 className="text-xl font-semibold mb-4">{editMode ? 'Edit Coupon' : 'Create New Coupon'}</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">{editMode ? 'Edit Coupon' : 'Create New Coupon'}</h2>
+          <button
+            type="button"
+            onClick={() => openGenerateCouponModal()}
+            className="flex items-center bg-[#92c51b] hover:bg-[#82b10b] text-white px-4 py-2 rounded"
+            disabled={!editMode && !formData.code}
+          >
+            <FaGift className="mr-2" />
+            Generate Coupon
+          </button>
+        </div>
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -378,11 +467,10 @@ const CouponsMangement = () => {
             <table className="min-w-full bg-white border border-gray-200">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b">Code</th>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b">Name</th>
+                  <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b">Type</th>
                   <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b">Discount</th>
-                 
                   <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b">Validity</th>
-                  <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b">Usage</th>
                   <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b">Status</th>
                   <th className="py-3 px-4 text-left font-semibold text-gray-700 border-b">Actions</th>
                 </tr>
@@ -392,64 +480,30 @@ const CouponsMangement = () => {
                   <tr key={coupon._id} className="border-b hover:bg-gray-50">
                     <td className="py-3 px-4 font-medium">{coupon.code}</td>
                     <td className="py-3 px-4">
-                      {coupon.discountType === 'percentage' 
-                        ? <span className="text-green-600 font-medium">{coupon.discountValue || 0}%</span> 
-                        : <span className="text-green-600 font-medium">₹{coupon.discountValue || 0}</span>}
-                      {coupon.maxDiscount && coupon.discountType === 'percentage' && (
-                        <span className="text-xs text-gray-500 block">Max: ₹{coupon.maxDiscount}</span>
-                      )}
+                      {coupon.discountType === 'percentage' ? 'Coupon' : 'Fixed Amount'}
                     </td>
-                   
+                    <td className="py-3 px-4">
+                      {coupon.discountType === 'percentage' 
+                        ? <span className="text-green-600 font-medium">{coupon.discountValue || 0}% off</span> 
+                        : <span className="text-green-600 font-medium">₹{coupon.discountValue || 0}</span>}
+                    </td>
                     <td className="py-3 px-4">
                       <div className="text-sm">
-                        <div>From: {new Date(coupon.startDate).toLocaleDateString()}</div>
-                        <div>To: {new Date(coupon.endDate).toLocaleDateString()}</div>
+                        {new Date(coupon.startDate).toLocaleDateString()}
+                        <br />
+                        to {new Date(coupon.endDate).toLocaleDateString()}
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      {coupon.usageLimit ? (
-                        <span>
-                          {coupon.usedCount || 0}/{coupon.usageLimit} used
-                        </span>
-                      ) : (
-                        <span>
-                          {coupon.usedCount || 0} used (unlimited)
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <button 
-                        onClick={async () => {
-                          try {
-                            await couponManagementApi.updateCoupon(coupon._id, {
-                              ...coupon,
-                              isActive: !coupon.isActive
-                            });
-                            toast.success(`Coupon ${!coupon.isActive ? 'activated' : 'deactivated'} successfully`);
-                            fetchCoupons();
-                          } catch (error) {
-                            console.error('Error toggling coupon status:', error);
-                            toast.error('Failed to update coupon status');
-                          }
-                        }}
-                        className={`px-2 py-1 rounded-full text-xs font-medium cursor-pointer ${
+                      <span 
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
                           coupon.isActive 
-                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                            : 'bg-red-100 text-red-800 hover:bg-red-200'
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
                         }`}
                       >
-                        {coupon.isActive ? (
-                          <span className="flex items-center">
-                            <FaCheck className="mr-1" />
-                            Active
-                          </span>
-                        ) : (
-                          <span className="flex items-center">
-                            <FaTimes className="mr-1" />
-                            Inactive
-                          </span>
-                        )}
-                      </button>
+                        {coupon.isActive ? 'Active' : 'Inactive'}
+                      </span>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex space-x-2">
@@ -466,6 +520,13 @@ const CouponsMangement = () => {
                           title="Delete coupon"
                         >
                           <FaTrash />
+                        </button>
+                        <button
+                          onClick={() => openGenerateCouponModal(coupon)}
+                          className="text-green-600 hover:text-green-800 p-1"
+                          title="Generate coupon for users"
+                        >
+                          <FaGift />
                         </button>
                       </div>
                     </td>

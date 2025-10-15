@@ -619,7 +619,7 @@ const ProductDetails = () => {
               className="w-full h-auto object-contain aspect-square"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = '/no-image-available.png';
+                e.target.src = '/placeholder.jpg';
               }}
             />
           </div>

@@ -30,7 +30,7 @@ API.interceptors.response.use(
 
 // Dashboard API
 export const dashboardApi = {
-  getDashboardStats: () => API.get('/admin/stats'),
+  getDashboardStats: () => API.get('/admin/dashboard/stats'),
 };
 
 // Coupon Management API
@@ -323,16 +323,16 @@ export const inventoryManagementApi = {
 export const reportsApi = {
   getSalesReport: (filters = {}) => {
     const { startDate, endDate, groupBy } = filters;
-    return API.get('/admin/reports/sales', { params: { startDate, endDate, groupBy } });
+    return API.get('/reports/ordersReports', { params: { startDate, endDate, period: groupBy } });
   },
-  getInventoryReport: () => API.get('/admin/reports/inventory'),
+  getInventoryReport: () => API.get('/reports/inventoryReports'),
   getCustomerReport: (filters = {}) => {
     const { startDate, endDate } = filters;
-    return API.get('/admin/reports/customers', { params: { startDate, endDate } });
+    return API.get('/reports/customersReports', { params: { startDate, endDate } });
   },
   getProductPerformance: (filters = {}) => {
     const { startDate, endDate, limit } = filters;
-    return API.get('/admin/reports/products/performance', { params: { startDate, endDate, limit } });
+    return API.get('/reports/ordersReports', { params: { startDate, endDate, limit } });
   },
 };
 

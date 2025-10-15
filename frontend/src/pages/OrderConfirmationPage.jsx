@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { shippingApi } from '../services/api';
-import { FaCheckCircle, FaTimesCircle, FaSpinner } from 'react-icons/fa';
+import { shippingApi, ordersApi, cartApi } from '../services/api';
+import { FaCheckCircle, FaTimesCircle, FaSpinner, FaShoppingCart } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import Modal from 'react-modal';
+
+// Set the app element for accessibility
+Modal.setAppElement('#root');
 
 const OrderConfirmationPage = () => {
   const { orderId } = useParams();
@@ -11,29 +15,54 @@ const OrderConfirmationPage = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [order, setOrder] = useState(null);
+  const [orderDetails, setOrderDetails] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
   const [showCancelForm, setShowCancelForm] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [showThankYouPopup, setShowThankYouPopup] = useState(true);
+  const [cartCleared, setCartCleared] = useState(false);
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
       try {
         setLoading(true);
+        // Try to get order details from shipping API
         const response = await shippingApi.getOrderDetails(orderId);
         setOrder(response.data.data);
+        setOrderDetails(response.data.data);
         setError(null);
       } catch (err) {
         console.error('Error fetching order details:', err);
-        setError(err.response?.data?.message || 'Failed to load order details');
-        toast.error(err.response?.data?.message || 'Failed to load order details');
+        
+        // Fallback to orders API if shipping API fails
+        try {
+          const orderResponse = await ordersApi.getOrderById(orderId);
+          setOrderDetails(orderResponse.data.data);
+          setOrder(orderResponse.data.data);
+          setError(null);
+        } catch (orderErr) {
+          setError(err.response?.data?.message || 'Failed to load order details');
+          toast.error(err.response?.data?.message || 'Failed to load order details');
+        }
       } finally {
         setLoading(false);
       }
     };
 
+    const clearCart = async () => {
+      try {
+        await cartApi.clearCart();
+        setCartCleared(true);
+        console.log('Cart cleared successfully');
+      } catch (err) {
+        console.error('Error clearing cart:', err);
+      }
+    };
+
     if (orderId) {
       fetchOrderDetails();
+      clearCart(); // Clear cart when order confirmation page loads
     }
   }, [orderId]);
 
@@ -87,20 +116,6 @@ const OrderConfirmationPage = () => {
     }
   };
 
-  useEffect(() => {
-    // Fetch order details
-    const fetchOrderDetails = async () => {
-      try {
-        const response = await ordersApi.getOrderById(id);
-        setOrderDetails(response.data.data);
-      } catch (err) {
-        setError('Failed to load order details. Please try again later.');
-      }
-    };
-
-    fetchOrderDetails();
-  }, [id]);
-
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
@@ -120,8 +135,8 @@ const OrderConfirmationPage = () => {
           <p className="text-gray-600 mb-6">Thank you for confirming your order. We'll process it right away.</p>
           
           <div className="mb-6">
-            <p className="text-gray-700 font-medium">Order ID: <span className="font-bold">{orderDetails?.orderId}</span></p>
-            <p className="text-gray-700 font-medium mt-2">Total Amount: <span className="font-bold">₹{orderDetails?.totalPrice}</span></p>
+            <p className="text-gray-700 font-medium">Order ID: <span className="font-bold">{orderId}</span></p>
+            <p className="text-gray-700 font-medium mt-2">Total Amount: <span className="font-bold">₹{order?.totalAmount || orderDetails?.totalPrice || 0}</span></p>
           </div>
           
           <div className="flex flex-col space-y-3">
@@ -146,6 +161,46 @@ const OrderConfirmationPage = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+      {/* Thank You Popup */}
+      {showThankYouPopup && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+          <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full mx-4 relative">
+            <button 
+              onClick={() => setShowThankYouPopup(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+            >
+              <FaTimesCircle />
+            </button>
+            <div className="text-center">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaCheckCircle className="text-green-500 text-4xl" />
+              </div>
+              <h2 className="text-2xl font-bold text-green-700 mb-2">Thank You!</h2>
+              <p className="text-gray-600 mb-6">Your order has been placed successfully.</p>
+              <div className="mb-4">
+                <p className="text-gray-700 font-medium">Order ID: <span className="font-bold">{orderId}</span></p>
+              </div>
+              <div className="flex flex-col space-y-3">
+                <Link 
+                  to="/" 
+                  className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition duration-200"
+                  onClick={() => setShowThankYouPopup(false)}
+                >
+                  Continue Shopping
+                </Link>
+                <Link 
+                  to="/account/orders" 
+                  className="w-full py-2 px-4 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium rounded-md transition duration-200"
+                  onClick={() => setShowThankYouPopup(false)}
+                >
+                  View All Orders
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
         <h1 className="text-2xl font-bold text-gray-800 mb-4 text-center">Confirm Your Order</h1>
         

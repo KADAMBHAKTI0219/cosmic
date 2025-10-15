@@ -6,36 +6,22 @@ import Navbar from './layouts/navbar';
 import ScrollToTop from './components/common/ScrollToTop';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
-<<<<<<< HEAD
-import Home from './pages/home';
-import Register from './pages/auth/register';
-import ProductList from './pages/products/ProductList';
-import CartPage from './components/products/CartPage';
-import OrdersPage from './pages/orders/OrdersPage';
-import OrderConfirmationPage from './pages/orders/OrderConfirmationPage';
-import OrderDetailsPage from './pages/orders/OrderDetailsPage';
-import OrderPendingPage from './pages/orders/OrderPendingPage';
-import PendingOrderPage from './pages/orders/PendingOrderPage';
-import ReviewsPage from './pages/reviews/ReviewsPage';
-import ReviewForm from './pages/reviews/ReviewForm';
-import NotificationsPage from './pages/notifications/NotificationsPage';
-import EMIPage from './pages/emi/EMIPage';
-=======
 // Lazy load components for better performance
 const Home = lazy(() => import('./pages/home'));
 const Register = lazy(() => import('./pages/auth/register'));
-const Products = lazy(() => import('./components/products/products'));
+const Products = lazy(() => import('./components/products/productsidebar'));
 const ProductDetails = lazy(() => import('./components/products/ProductDetails'));
 const ProductList = lazy(() => import('./pages/products/ProductList'));
 const CartPage = lazy(() => import('./components/products/CartPage'));
 const OrdersPage = lazy(() => import('./pages/orders/OrdersPage'));
 const OrderDetailsPage = lazy(() => import('./pages/orders/OrderDetailsPage'));
-const OrderConfirmationPage = lazy(() => import('./pages/orders/OrderConfirmationPage'));
+const OrderConfirmationPage = lazy(() => import('./pages/OrderConfirmationPage'));
+const OrderPendingPage = lazy(() => import('./pages/orders/OrderPendingPage'));
+const PendingOrderPage = lazy(() => import('./pages/orders/PendingOrderPage'));
 const ReviewsPage = lazy(() => import('./pages/reviews/ReviewsPage'));
 const ReviewForm = lazy(() => import('./pages/reviews/ReviewForm'));
 const NotificationsPage = lazy(() => import('./pages/notifications/NotificationsPage'));
 const EMIPage = lazy(() => import('./pages/emi/EMIPage'));
->>>>>>> 78bdf9b3b5feacb3bbb4e60191add3ee820edda5
 
 // Auth Components
 const Login = lazy(() => import('./components/auth/login'));
@@ -45,12 +31,8 @@ const ResetPassword = lazy(() => import('./components/auth/resetPassword'));
 const AdminLogin = lazy(() => import('./pages/auth/AdminLogin'));
 
 // Admin Panel Components
-<<<<<<< HEAD
-import AdminRoutes from './components/admin-panel/AdminRoutes';
-import OrderReviewPage from './pages/admin/OrderReviewPage';
-=======
 const AdminRoutes = lazy(() => import('./components/admin-panel/AdminRoutes'));
->>>>>>> 78bdf9b3b5feacb3bbb4e60191add3ee820edda5
+const OrderReviewPage = lazy(() => import('./pages/admin/OrderReviewPage'));
 
 // Dashboard Components
 const DashboardLayout = lazy(() => import('./layouts/DashboardLayout'));
@@ -63,7 +45,6 @@ const OrderDetails = lazy(() => import('./pages/dashboard/OrderDetails'));
 // Admin Auth Context
 import { AdminAuthProvider } from './context/AdminAuthContext';
 import CheckoutPage from './components/products/CheckoutPage';
-import ProductDetails from './components/products/productdetails';
 
 function App() {
   return (
@@ -73,14 +54,14 @@ function App() {
         <div className="flex flex-col min-h-screen">
           <Routes>
             {/* Admin Routes */}
-<<<<<<< HEAD
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin/orders/review/:id" element={<OrderReviewPage />} />
-            <Route path="/admin/*" element={<AdminRoutes />} />
-=======
             <Route path="/admin/login" element={
               <Suspense fallback={<LoadingSpinner />}>
                 <AdminLogin />
+              </Suspense>
+            } />
+            <Route path="/admin/orders/review/:id" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <OrderReviewPage />
               </Suspense>
             } />
             <Route path="/admin/*" element={
@@ -88,7 +69,6 @@ function App() {
                 <AdminRoutes />
               </Suspense>
             } />
->>>>>>> 78bdf9b3b5feacb3bbb4e60191add3ee820edda5
             
             {/* Dashboard Routes */}
             <Route path="/dashboard" element={
@@ -170,10 +150,6 @@ function App() {
                       </Suspense>
                     } />
                     
-<<<<<<< HEAD
-               
-                  <Route path="/products" element={<ProductList/>}/>
-=======
                     {/* Category Routes - Dynamic */}
                     <Route path="/:category" element={
                       <Suspense fallback={<LoadingSpinner />}>
@@ -209,7 +185,6 @@ function App() {
                         <ProductList />
                       </Suspense>
                     } />
->>>>>>> 78bdf9b3b5feacb3bbb4e60191add3ee820edda5
                     
                     {/* Product Details Route */}
                     <Route path="/product/:id" element={
@@ -233,13 +208,6 @@ function App() {
                     } />
                     
                     {/* Order Routes */}
-<<<<<<< HEAD
-                    <Route path="/orders" element={<OrdersPage />} />
-                    <Route path="/order-confirmation/:orderId/:token" element={<OrderConfirmationPage />} />
-                    <Route path="/orders/:id" element={<OrderDetailsPage />} />
-                    <Route path="/order-pending/:orderId" element={<OrderPendingPage />} />
-                    <Route path="/pending-order/:orderId" element={<PendingOrderPage />} />
-=======
                     <Route path="/orders" element={
                       <Suspense fallback={<LoadingSpinner />}>
                         <OrdersPage />
@@ -250,12 +218,21 @@ function App() {
                         <OrderDetailsPage />
                       </Suspense>
                     } />
-                    <Route path="/order-confirmation/:id" element={
+                    <Route path="/order-confirmation/:orderId/:token" element={
                       <Suspense fallback={<LoadingSpinner />}>
                         <OrderConfirmationPage />
                       </Suspense>
                     } />
->>>>>>> 78bdf9b3b5feacb3bbb4e60191add3ee820edda5
+                    <Route path="/order-pending/:orderId" element={
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <OrderPendingPage />
+                      </Suspense>
+                    } />
+                    <Route path="/pending-order/:orderId" element={
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <PendingOrderPage />
+                      </Suspense>
+                    } />
                     
                     {/* Review Routes */}
                     <Route path="/reviews" element={
@@ -288,7 +265,7 @@ function App() {
                       </Suspense>
                     } />
                     
-                    {/* Products Page */}
+                    {/* All Products Page */}
                     <Route path="/products" element={
                       <Suspense fallback={<LoadingSpinner />}>
                         <ProductList />
